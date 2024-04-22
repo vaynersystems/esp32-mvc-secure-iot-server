@@ -1,0 +1,109 @@
+body {
+    margin: 20px auto;
+    width: 90%;
+    border-color: aqua;
+    border-radius: 4px;
+    border-width: 8px;
+}
+
+
+
+.debug-small {
+    font-size: 9px;
+    font-weight: 100;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.menu {
+    background-color: #efefed;
+    margin: 6px 12px;
+    padding: 2px 12px;
+    border-width: 0px 1px 0px 6px;
+    border-color: #333;
+    border-style: solid;
+    border-radius: 10px;
+}
+
+.menu-div {
+    width: 60%;
+    display: inline-block;
+}
+
+#user-placeholder {
+    display: inline-block;
+    right: 0px;
+    margin: 20px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    background-color: #ded;
+    text-align: center;
+    padding: 30px 15px 0px 15px;
+    -webkit-transform-origin-x: center;
+}
+
+.menu a {
+    background-color: #62636d;
+    color: #eefeff;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+}
+
+    .menu a:hover {
+        background-color: #738C78;
+        color: #eefeff;
+        text-decoration: none;
+        padding: 6px 10px;
+    }
+
+    .menu a:active {
+        background-color: #eeeeed;
+        color: #323;
+        text-decoration: none;
+        padding: 6px 10px;
+        border: solid 1px black;
+    }
+
+.debug-message {
+    color: #222;
+    margin: 4px 4px 20px 4px;
+    padding: 6px;
+    font: 18pt Tahoma;
+}
+
+.content {
+    border: solid 2px #efefed;
+    border-radius: 10px;
+    margin: 6px 12px;
+    padding: 20px 12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: rgba(255,243,228,.2);
+    border-width: 0px 2px 0px 4px;
+}
+
+.footer {
+    border: solid 2px #efefed;
+    border-width: 0px 1px 0px 6px;
+    margin: 6px 12px;
+    padding: 2px 12px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /*background-image: linear-gradient(to bottom, rgba(0,0,0,.7) 25%, rgba(30,30,30,.5)5%, rgba(255,245,228,.2) 30%,rgba(255,245,228,.1)) border-width: 0px 1px 0px 6px;*/
+    border-color: #649;
+    border-style: solid;
+    border-radius: 10px;
+}
+
+.footer-debug-info {
+    display: inline-block;
+    padding: 20px;
+}
+
+    .footer-debug-info div {
+        display: inline;
+        padding: 8px;
+        margin: 4px;
+        border: solid 2px rgba(222,223,227,.4);
+        border-radius: 20px;
+        color: #333;
+    }
