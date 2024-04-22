@@ -22,7 +22,7 @@ void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
 	struct tm timeinfo;
 
 	time(&now);
-	// Set timezone to China Standard Time
+	// Set timezone to Eastern Standard Time
 	setenv("Eastern", "EST-5", 1);
 	tzset();
 
@@ -44,7 +44,8 @@ bool esp32_template::RenderTemplate(HTTPRequest* req, HTTPResponse* res)
     Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
 	//open file
 	if (!SPIFFS.exists(templateContentFilePath.c_str())) {
-		Serial.printf("Template %s not found! \n", templateContentFilePath.c_str());		
+		res->printf("Template %s not found! \n", templateContentFilePath.c_str());
+        //TODO: flag if autocreate, create empty template file		
 		return false;
 	}
 	File templateFile = SPIFFS.open(templateContentFilePath.c_str());

@@ -1,13 +1,16 @@
-#include "esp32_wifi.hpp"
+#include "esp32_wifi_controller.hpp"
 
 
-DerivedController<esp32_wifi> esp32_wifi::reg("esp32_wifi");
+DerivedController<esp32_wifi_controller> esp32_wifi_controller::reg("esp32_wifi");
 
-void esp32_wifi::List(HTTPRequest* req, HTTPResponse* res) {
+void esp32_wifi_controller::List(HTTPRequest* req, HTTPResponse* res) {
+    
     title = "Listing of WIFI";
     controllerTemplate.SetTemplateVariable("$_CUSTOM_MESSAGE", "Hi There friends!");
     
     controllerTemplate.SetTemplateVariable("$_IP_ADDRESS", req->getClientIP().toString().c_str());
+
+    
 
 
     //int paramCount = req->getParams()->getQueryParameterCount();

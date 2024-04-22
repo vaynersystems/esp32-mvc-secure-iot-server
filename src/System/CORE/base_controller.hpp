@@ -3,6 +3,7 @@
 #define _ESP32_BASE_CONTROLLER_H
 
 #include <map>
+#include <vector>
 #include "../Config.h"
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
@@ -18,11 +19,19 @@ class Base_Controller {
 
         esp32_template controllerTemplate = esp32_template();
 
-        virtual void Index(HTTPRequest* req, HTTPResponse* res) { /*res->println("This action has not been implemented");*/ }
-        virtual void List(HTTPRequest* req, HTTPResponse* res) {  }
-        virtual void Put(HTTPRequest* req, HTTPResponse* res) {  }
+        virtual void Index(HTTPRequest* req, HTTPResponse* res) {  /*res->println("This action has not been implemented");*/ }
+        virtual void List(HTTPRequest* req, HTTPResponse* res) { }
+        virtual void Put(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Post(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Delete(HTTPRequest* req, HTTPResponse* res) { }
+        virtual void Options(HTTPRequest* req, HTTPResponse* res) { }
+
+        virtual bool isIndexImplemented(){ return false;}
+        virtual bool isListImplemented(){ return false;}
+        virtual bool isPutImplemented(){ return false;}
+        virtual bool isPostImplemented(){ return false;}
+        virtual bool isDeleteImplemented(){ return false;}
+        virtual bool isOptionsImplemented(){ return false;}
 
         void SetVariablesFromJSON() {
             std::string jsonPath = controllerTemplate.templateContentFilePath;
@@ -91,14 +100,34 @@ class Base_Controller {
                 controllerTemplate.templateContentFilePath += ".html";
             }
         }
+
+        void GetActions(vector<string> *actions){
+            if((*this).isIndexImplemented()) actions->push_back("index");
+            if((*this).isListImplemented()) actions->push_back("list");
+            if((*this).isPutImplemented()) actions->push_back("put");
+            if((*this).isPostImplemented()) actions->push_back("post");
+            if((*this).isDeleteImplemented()) actions->push_back("delete");
+            if((*this).isOptionsImplemented()) actions->push_back("options");
+        // }
+               
+        }
+    string title="";
+    string head="";
+    string menu="";
+    string footer="";
+
+    // bool isIndexNotImplemented = true;
+    // bool isListNotImplemented = true;
+    // bool isPutNotImplemented = true;
+    // bool isPostNotImplemented = true;
+    // bool isDeleteNotImplemented = true;
+    
+protected:
+    esp32_controller_route route;   
+    
         
 
-    std::string title="";
-    std::string head="";
-    std::string menu="";
-    std::string footer="";
-protected:
-    esp32_controller_route route;
+    
 };
 
 template<typename T> Base_Controller* createT() { return new T; }
@@ -117,6 +146,7 @@ public:
                 auto ctrl = it->second();
                 ctrl->SetRoute(reqRoute);
                 ctrl->SetTemplate();
+                //ctrl->isIndexImplemented = hasIndexAction(*ctrl);
                 return ctrl;
                 /*it->second()->SetRoute(reqRoute);
                 it->second()->SetTemplate();
@@ -151,12 +181,18 @@ public:
         map_type::iterator it = getMap()->begin();
         while (it != getMap()->end()) {
             if (it->first == s) return true;
+            //Serial.printf("Controller %s does not match %s", it->first.c_str(), s.c_str());
             it++;
         }        
-        HTTPS_LOGW("Controller instance of %s not found\n",s.c_str());
+        //HTTPS_LOGW("Controller instance of %s not found among the %i controllers\n",s.c_str(), getInstanceCount());
         return false;
        
     }
+    // static bool hasIndexAction(Base_Controller& controller){
+    //     //return (void*)(*(controller.Index)) != (void*)(&Base_Controller::Index);
+    //     //return (&T::Index != &Base_Controller::Index);
+    //     return ((void*)(*(controller.Index)) != &Base_Controller::Index());
+    // }
 
 protected:
     static map_type* map;
@@ -168,15 +204,18 @@ protected:
         return map;
     }
 
-
+   
 };
 
 template<typename T>
 struct DerivedController : BaseFactory {
 public:
     DerivedController(std::string const& s) {
-        getMap()->insert(std::make_pair(s, &createT<T>));
+        auto t = &createT<T>;
+        getMap()->insert(std::make_pair(s, t ));
     }
+    
+    
 };
 #include "../ROUTER/esp32_router.h"
 

@@ -144,8 +144,11 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
     }
     else {
         //print dir recursivly
-        if (dir.length() <= 0) dir = "/";
-        Serial.printf("Empty path, starting from %s\n", dir.c_str());
+        if (dir.length() <= 0) 
+        {
+            dir = "/";
+            Serial.printf("Empty path, starting from %s\n", dir.c_str());
+        }
         
         std::list<std::string> files = std::list<std::string>();
         esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, &files);
@@ -451,6 +454,7 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
         return;
     }
     else if (req->getMethod() == "GET") {}
+
     res->println("<html><head><title>File Edited</title><head><body><h1>File Edited</h1>");
     HTTPMultipartBodyParser* parser;
     std::string contentType = req->getHeader("Content-Type");
@@ -522,6 +526,19 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
                 res->printf("<p>Saved %d bytes to %s</p>", int(fieldLength), filename.c_str());
             }
         }
+        else if (name == "path"){
+            string fileName = "";
+            byte buf[512];
+            //adding
+            while (!parser->endOfField()) {                
+                memset(buf,0,sizeof(buf));
+                size_t readLength = parser->read(buf, 512);
+                filename.append((const char *)buf);
+            }
+            Serial.printf("File to create: %s\n", filename.c_str());
+            SPIFFS.open(filename.c_str(),"w");
+            
+        }
         else {
             res->printf("<p>Unexpected field %s</p>", name.c_str());
         }
@@ -552,12 +569,10 @@ void esp32_router::handleInternalPage(HTTPRequest* req, HTTPResponse* res) {
     res->println("<body>");
 
     // Personalized greeting
-    res->print("<h1>Hello ");
+    res->printf("<h1>Hello %s !</h1>", req->getHeader(HEADER_USERNAME).c_str());
     // We can safely use the header value, this area is only accessible if it's
     // set (the middleware takes care of this)
-    res->printStd(req->getHeader(HEADER_USERNAME));
-    res->print("!</h1>");
-
+    
     res->println("<p>Welcome to the internal area. Congratulations on successfully entering your password!</p>");
 
     // The "admin area" will only be shown if the correct group has been assigned in the authenticationMiddleware

@@ -5,11 +5,12 @@
 #include "System/CORE/base_controller.hpp"
 
 using namespace httpsserver;
-class esp32_config : public Base_Controller {
+class esp32_config_controller : public Base_Controller {
 public:
 	inline virtual void List(HTTPRequest* req, HTTPResponse* res);
+    inline virtual bool isListImplemented(){ return true;}
 
 private:
-	static DerivedController<esp32_config> reg; //register the controller
+	static DerivedController<esp32_config_controller> reg; //register the controller
 };
 #endif

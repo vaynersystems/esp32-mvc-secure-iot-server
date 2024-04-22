@@ -107,3 +107,10 @@ body {
         border-radius: 20px;
         color: #333;
     }
+
+.row{
+    display: flex;
+    flex-direction: row;
+    flex-grow: 1;
+    justify-content: space-between;
+}

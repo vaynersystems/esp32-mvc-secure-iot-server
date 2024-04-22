@@ -1,9 +1,10 @@
-#include "esp32_config.hpp"
+#include "esp32_config_controller.hpp"
 
 
-DerivedController<esp32_config> esp32_config::reg("esp32_config");
+DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
-void esp32_config::List(HTTPRequest* req, HTTPResponse* res) {
+void esp32_config_controller::List(HTTPRequest* req, HTTPResponse* res) {
+    
     title = "Module Configuration Page";
     controllerTemplate.SetTemplateVariable("$_CUSTOM_MESSAGE", "<B>[Dynamic - Template Driven Data]</B>");
 

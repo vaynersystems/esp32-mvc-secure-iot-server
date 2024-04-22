@@ -27,6 +27,10 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     //Serial.println(STR_LINES);
     req->setHeader(HEADER_USERNAME, "");
     req->setHeader(HEADER_GROUP, "");
+    bool jwtTokenValid = false;
+    String jwtTokenFromCookie = req->getHeader("Cookie").c_str();
+    if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
+        jwtTokenFromCookie = jwtTokenFromCookie.substring(7);
 
     String jwtToken, jwtTokenFromRequest = req->getBearerAuthToken().c_str();
     String jwtDecodedString, jwtTokenPayload, jwtTokenPayloadVerify;
@@ -36,18 +40,21 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     std::string reqUsername;
     std::string reqPassword;
 
-    if (req->getRequestString().substr(0, 8) == "/logout") {
+    if (req->getRequestString().substr(0, 7) == "/logout") {
         jwtTokenFromRequest.clear();
+        res->setHeader("Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;");
         req->setHeader(HEADER_AUTH, "");
-        res->setHeader(HEADER_AUTH, "");
+        res->setHeader(HEADER_GROUP, "");
         //Serial.println("Logging out..");
-        server.DisplayErrorPage(res, "Logged out!");
-        return;
+        //server.DisplayErrorPage(res, "Logged out!");
+        //server.DisplayLoginPage(res);
+        next();
+        //return;
     }
-    else if (req->getRequestString().substr(0, 7) == "/login") {
+    else if (req->getRequestString().substr(0, 6) == "/login") {
         jwtTokenFromRequest.clear();
         req->setHeader(HEADER_AUTH, "");
-        res->setHeader(HEADER_AUTH, "");
+        res->setHeader(HEADER_GROUP, "");
         //Serial.println("Logging in..");
         if (req->getMethod() == "GET")
             server.DisplayLoginPage(res);
@@ -77,97 +84,111 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         }
 
     }
-    else //try basic auth
+    else //check auth
     {
-        reqUsername = req->getBasicAuthUser();
-        reqPassword = req->getBasicAuthPassword();
+        //Serial.printf("Checking auth token %s received from Cookie", jwtTokenFromCookie.c_str());
+        if(jwtTokenFromCookie.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromCookie,jwtDecodedString)){
+            jwtTokenValid = true;
+        } else {
+            reqUsername = req->getBasicAuthUser();
+            reqPassword = req->getBasicAuthPassword();
+        }
     }
 
-    bool jwtTokenValid = (jwtTokenFromRequest.length() > 0 && !server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString));
-    if (!jwtTokenValid & req->getRequestString().substr(0, 6) == "/login") {
+    if(!jwtTokenValid){ //fall back to processing from request if available
+        jwtTokenValid = (jwtTokenFromRequest.length() > 0 && !server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString));
+    }
+    
+    if (!jwtTokenValid){          
+        if(req->getRequestString().substr(0, 6) == "/login") {
 
-        //Serial.print("Read from Authorization header: "); Serial.println(jwtDecodedString.c_str());
+            //Serial.print("Read from Authorization header: "); Serial.println(jwtDecodedString.c_str());
 
-        // Get login information from request
-        // If you use HTTP Basic Auth, you can retrieve the values from the request.
-        // The return values will be empty strings if the user did not provide any data,
-        // or if the format of the Authorization header is invalid (eg. no Basic Method
-        // for Authorization, or an invalid Base64 token)
+            // Get login information from request
+            // If you use HTTP Basic Auth, you can retrieve the values from the request.
+            // The return values will be empty strings if the user did not provide any data,
+            // or if the format of the Authorization header is invalid (eg. no Basic Method
+            // for Authorization, or an invalid Base64 token)
 
-        /*char* jwtToken = (char* )malloc(req->getHeader("Authoriztion").length());
-        strcpy(jwtToken, req->getHeader("Authoriztion").c_str());*/
+            /*char* jwtToken = (char* )malloc(req->getHeader("Authoriztion").length());
+            strcpy(jwtToken, req->getHeader("Authoriztion").c_str());*/
 
-        // If the user entered login information, we will check it
-        if (reqUsername.length() > 0 && reqPassword.length() > 0) {
-            Serial.println("Checking loging info..");
-            // _Very_ simple hardcoded user database to check credentials and assign the group
-            bool authValid = true;
-            std::string group = "";
-            if (reqUsername == "admin" && reqPassword == "secret") {
-                group = "ADMIN";
-            }
-            else if (reqUsername == "user" && reqPassword == "test") {
-                group = "USER";
-            }
-            else {
-                authValid = false;
-            }
-
-            // If authentication was successful issue JWT token
-            if (authValid) {
-                DynamicJsonDocument doc(128);
-                doc["user"] = reqUsername;
-                doc["password"] = reqPassword;
-                doc["role"] = group;
-                jwtTokenPayload.clear();
-                serializeJson(doc, jwtTokenPayload);
-
-                jwtToken = " Bearer ";
-                jwtToken += String(server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload));
-
-                //Serial.print("Token Payload: "); Serial.println(jwtTokenPayload);
-
-                std::string token = std::string(jwtToken.c_str());
-                //Serial.println(STR_LINES);
-                //Serial.print("Token: "); Serial.println(token.c_str());
-                // set custom headers and delegate control
-                req->setHeader(HEADER_USERNAME, reqUsername);
-                req->setHeader(HEADER_GROUP, group);
-                req->setHeader(HEADER_AUTH, token);
-                //verify
-                String strippedToken = String(token.substr(8).c_str());
-                if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
-                    std::string message = "[ERROR]  *** Failed to encode JWT token. Security validation Failed.";
-                    res->print(message.c_str());
+            // If the user entered login information, we will check it
+            if (reqUsername.length() > 0 && reqPassword.length() > 0) {
+                Serial.println("Checking loging info..");
+                // _Very_ simple hardcoded user database to check credentials and assign the group
+                bool authValid = true;
+                std::string group = "";
+                if (reqUsername == "admin" && reqPassword == "secret") {
+                    group = "ADMIN";
+                }
+                else if (reqUsername == "user" && reqPassword == "test") {
+                    group = "USER";
                 }
                 else {
+                    authValid = false;
+                }
 
-                    //set response AUTH header
-                    //req->setHeader(AUTH_HEADER, token);
-                    //res->setHeader(AUTH_HEADER, token);
+                // If authentication was successful issue JWT token
+                if (authValid) {
+                    DynamicJsonDocument doc(128);
+                    doc["user"] = reqUsername;
+                    doc["password"] = reqPassword;
+                    doc["role"] = group;
+                    jwtTokenPayload.clear();
+                    serializeJson(doc, jwtTokenPayload);
 
-                    // The user tried to authenticate and was successful
-                    // -> We proceed with this request.
-                    jwtToken = String();
-                    DynamicJsonDocument tokenDoc(384);
-                    tokenDoc["access_token"] = token;
-                    serializeJson(tokenDoc, jwtToken);
+                    jwtToken = "Bearer ";
+                    jwtToken += String(server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload));
 
-                    res->print(jwtToken);
-                    //handleRoot(req, res);
+                    //Serial.print("Token Payload: "); Serial.println(jwtTokenPayload);
+
+                    std::string token = std::string(jwtToken.c_str());
+                    //Serial.println(STR_LINES);
+                    //Serial.print("Token: "); Serial.println(token.c_str());
+                    // set custom headers and delegate control
+                    req->setHeader(HEADER_USERNAME, reqUsername);
+                    req->setHeader(HEADER_GROUP, group);
+                    req->setHeader(HEADER_AUTH, token);
+                    //verify
+                    String strippedToken = String(token.substr(7).c_str());
+                    if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
+                        std::string message = "[ERROR]  *** Failed to encode JWT token. Security validation Failed.";
+                        res->print(message.c_str());
+                    }
+                    else {
+
+                        //set response AUTH header
+                        //req->setHeader(AUTH_HEADER, token);
+                        //res->setHeader(AUTH_HEADER, token);
+
+                        // The user tried to authenticate and was successful
+                        // -> We proceed with this request.
+                        jwtToken = String();
+                        DynamicJsonDocument tokenDoc(384);
+                        tokenDoc["access_token"] = token;
+                        serializeJson(tokenDoc, jwtToken);
+
+                        res->print(jwtToken);
+                        //handleRoot(req, res);
+                    }
+                }
+                else {
+                    server.DisplayErrorPage(res, "Failed to authenticate using this username and password!");
                 }
             }
             else {
-                server.DisplayErrorPage(res, "Failed to authenticate using this username and password!");
+                //Serial.println("No log info passed..");
+                // No attempt to authenticate
+                // -> Let the request pass through by calling next()
+                //res->setStatusText("Unauthorized");
+                //res->setHeader("Content-Type", "text/plain");
+                next();
             }
         }
-        else {
-            //Serial.println("No log info passed..");
-            // No attempt to authenticate
-            // -> Let the request pass through by calling next()
-            //res->setStatusText("Unauthorized");
-            //res->setHeader("Content-Type", "text/plain");
-            next();
+        else{
+            //not login page and invalid token.
+            // if requesting private page, redirect to login
         }
     }
     else {
@@ -176,14 +197,15 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         DynamicJsonDocument doc(jwtDecodedString.length() * 4);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == DeserializationError::Ok) {
+            #ifdef DEBUG
             if (doc["user"] == "admin") {
                 Serial.printf("Login from admin\n");
             }
             const char* usr = doc["user"].as<const char*>();
             const char* pass = doc["password"].as<const char*>();
             const char* role = doc["role"].as<const char*>();
-            #ifdef DEBUG
-            Serial.printf("Login from user %s with role %s\n", usr, role);
+            
+            //Serial.printf("Login from user %s with role %s\n", usr, role);
             #endif      
             //res->setHeader("WWW-Authenticate", jwtTokenFromRequest.c_str());
             //next();
@@ -205,9 +227,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             // shouldn't display the login information on this page, of course ;-)
             //res->println("401. Unauthorized [Invalid JWT Token] (try admin/secret or user/test)");
         }
-
-        next();
     }
+
+    next();
 }
 
 /**
@@ -221,8 +243,12 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     // Get the username (if any)
     std::string username = req->getHeader(HEADER_USERNAME);
     std::string authHeader = req->getHeader(HEADER_AUTH);
+    String reqPath = String(req->getRequestString().c_str());
+    String jwtTokenFromCookie = req->getHeader("Cookie").c_str();
+    bool decodeResult = false;
 
-
+    if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
+        jwtTokenFromCookie = jwtTokenFromCookie.substring(7);
 
 
     String jwtTokenFromRequest = String(authHeader.c_str());
@@ -231,26 +257,27 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         //Serial.print("Parsing JWT Token: "); Serial.println(jwtTokenFromRequest);
 
     }
-    String jwtDecodedString;
-    bool decodeResult = jwtTokenFromRequest.length() > 48 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString);
-    bool isInternalPath = req->getRequestString().substr(0, 9) == "/internal";
+    if(reqPath.equalsIgnoreCase("/logout")){
+        res->setStatusCode(303);
+        res->setHeader("Location","logout.html");
+        next();
+        return;
+    }
+
+    String jwtDecodedString; //get from cookie
+    if(jwtTokenFromCookie.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromCookie,jwtDecodedString)){
+        decodeResult= true;
+    } else //otherwise try from request
+        decodeResult = jwtTokenFromRequest.length() > 48 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString);
+
+    bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
     if (!decodeResult
         && isInternalPath) {
 
         // Check that only logged-in users may get to the internal area (All URLs starting with /internal)
-        // Only a simple example, more complicated configuration is up to you.
-       // if (username == "" && req->getRequestString().substr(0, 9) == "/internal") {
-            // Same as the deny-part in middlewareAuthentication()
-            /*res->setStatusCode(401);
-            res->setStatusText("Unauthorized");
-            res->setHeader("Content-Type", "text/plain");
-            res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
-            res->println("401. Unauthorized [Not Authorized] (try admin/secret or user/test)");*/
+       
         res->setStatusCode(303);
         res->setHeader("Location", "login");
-        //Serial.printf("Redirect to login; Decode Result %d IsInternalPath Result %d\n",
-        //    decodeResult ? 1 : 0, isInternalPath ? 1 : 0);
-        // No call denies access to protected handler function.
     }
     else if (decodeResult) {
         // Everything else will be allowed, so we call next()

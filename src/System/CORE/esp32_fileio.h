@@ -7,6 +7,12 @@
 #include "FS.h"
 #include "SPIFFS.h"
 
+struct SPIFFS_Info{
+    int freeBytes;
+    int usedBytes;
+    int totalBytes;
+};
+
 enum HTTP_FORMAT {
     TEXT = 0,
     JSON = 1,
@@ -28,13 +34,12 @@ public:
     bool start();
 	static void listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format = HTTP_FORMAT::TEXT);
     static void buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString, uint8_t levels, std::list<std::string>* list, bool returnDirs = true);
-
+    static SPIFFS_Info getMemoryInfo();
     //output data
     static void printFileSearchOrdered(Print* writeTo, std::list<std::string>* files, std::string filter);
     static void printDirOrdered(Print* writeTo, std::list<std::string>* files);
 //helper methods
-	static        //Pretty format size as string
-        void PrettyFormat(size_t size, String* output) {
+	static void PrettyFormat(size_t size, String* output) {
         int order = 0;
         //Serial.printf("Formatting %u\n",size);
         while (true) {

@@ -21,6 +21,14 @@ bool esp32_fileio::start(){
     return true;
 }
 
+SPIFFS_Info esp32_fileio::getMemoryInfo(){
+    SPIFFS_Info info;
+    info.totalBytes = SPIFFS.totalBytes();
+    info.usedBytes = SPIFFS.usedBytes();
+    info.freeBytes = info.totalBytes - info.usedBytes;
+    return info;
+}
+
 void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format) {
     if (format == HTTP_FORMAT::JSON) {
         bool first = true;

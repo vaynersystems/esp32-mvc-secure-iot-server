@@ -6,11 +6,12 @@
 #include "System/ROUTER/esp32_template.h"
 
 using namespace httpsserver;
-class _footer : public Base_Controller {
+class _footer_controller : public Base_Controller {
 public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
+    inline virtual bool isIndexImplemented(){ return true;}
 
 private:
-	static DerivedController<_footer> reg; //register the controller
+	static DerivedController<_footer_controller> reg; //register the controller
 };
 #endif

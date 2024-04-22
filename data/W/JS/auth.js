@@ -22,6 +22,7 @@ function getToken(url, user, pass) {
 
             request.token = token_;
             window.sessionStorage.token = token_;
+            document.cookie = token_.substring(7);
             //window.request.setRequestHeader('Authorization', token_);
             //window.document.('Authorization', token_);
             window.document.location = "/";
@@ -31,6 +32,34 @@ function getToken(url, user, pass) {
     request.send("{\"user_id\":\"" + user + "\",\"password\":\"" + pass + "\"}"); // specify the credentials to receive the token on request
 
 
+}
+
+function readToken() {
+    let storageToken = window.sessionStorage.token;
+    if(storageToken === undefined) return;
+    let authParts = storageToken.split(' ');
+    if(authParts.length < 2) return;
+    let token = {};
+    token.raw = authParts[1];
+    token.header = JSON.parse(window.atob(token.raw.split('.')[0]));
+    token.payload = JSON.parse(window.atob(token.raw.split('.')[1]));
+    return (token)
+  }
+
+function getUsername(){
+    var userToken = readToken();
+    if(userToken !== undefined){
+        return userToken.payload.user;
+    }
+    return '';
+}
+
+function getRole(){
+    var userToken = readToken();
+    if(userToken !== undefined){
+       return userToken.payload.role;
+    }
+    return '';
 }
 
 function loadToken() {
