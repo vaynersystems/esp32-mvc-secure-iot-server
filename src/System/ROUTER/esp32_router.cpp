@@ -3,10 +3,9 @@
 #include "esp32_router.h"
 #include "../Config.h"
 #include "../CORE/esp32_server.h"
+#include <string_extensions.h>
 
 extern esp32_server server;
-
-
 
 void esp32_router::InitConfigurableRouting()
 {
@@ -17,6 +16,7 @@ void esp32_router::InitConfigurableRouting()
 void esp32_router::RegisterHandler(ResourceNode* resourceNode) {
     RegisterHandler( resourceNode->_path.c_str(), resourceNode->getMethod().c_str(), resourceNode->_callback);
 }
+
 void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSCallbackFunction* handler) {
     String methodName;
     switch (method) {
@@ -38,27 +38,18 @@ void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSC
 
 void esp32_router::RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t levels) {
     File root = fs.open(dirname);
-    if (!root) {
-        //Serial.println("- failed to open directory");
-        return;
-    }
-    if (!root.isDirectory()) {
-        //Serial.println(" - not a directory");
+    if (!root || !root.isDirectory()) {
         return;
     }
 
     File file = root.openNextFile();
     while (file) {
         if (file.isDirectory()) {
-            //Serial.print("  DIR : ");
-            //Serial.println(file.name());
-            if (levels) {
+            if (levels) { //print out directory contents to serial
                 esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
             }
         }
-        else {
-            //Register file handler as filename
-          //  esp32_router::RegisterHandler( file.name(), HTTPMETHOD_GET, &handleFile);
+        else {  //Register file handler as filename         
 
             String mappingPath = String(file.name());
             mappingPath.remove(0, sizeof(SITE_ROOT) - 1);
@@ -82,15 +73,7 @@ void esp32_router::RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t lev
 
                 nonGZName.remove(0, sizeof(SITE_ROOT) - 1);
                //Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
-                RegisterHandler( nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
-                /*
-
-                int startIdx = nonGZName.lastIndexOf('/');
-                if (startIdx > 0) {
-                    String filePath = nonGZName.substring(startIdx);
-                    if (filePath.length() > 0)
-                        RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleHTTPFile);
-                }*/
+                RegisterHandler( nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);                
             }
         }
         file = root.openNextFile();
@@ -99,19 +82,10 @@ void esp32_router::RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t lev
 
 
 void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction* handler) {
-    //Serial.print(" Registering Handler for [");
-    //Serial.print(nodeMapPath);
-    //Serial.println("]\t ");
-
-
     ResourceNode* node = new ResourceNode(nodeMapPath.c_str(), method.c_str(), handler);
     server.secureServer->registerNode(node);
-    server.unsecureServer->registerNode(node);
-    /*httpsserver::ResourceResolver* cast = dynamic_cast<httpsserver::ResourceResolver*>(&server.secureServer);
-    cast->registerNode(node);*/
+    server.unsecureServer->registerNode(node);    
 }
-
-
 
 
 void esp32_router::handleCORS(HTTPRequest* req, HTTPResponse* res) {
@@ -122,7 +96,7 @@ void esp32_router::handleCORS(HTTPRequest* req, HTTPResponse* res) {
 }
 
 void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
-    std::string dir,path,path_dir, filter;
+    std::string dir,path, filter;
     req->getParams()->getQueryParameter("dir", dir);
     req->getParams()->getQueryParameter("path", path);
     req->getParams()->getQueryParameter("filter", filter);
@@ -134,12 +108,9 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
             path = path.substr(0,path.length() - 1);
 
         std::list<std::string> files = std::list<std::string>();
-        // if (path.find_last_of('/' > 0))
-        //     path_dir = path.substr(0, path.find_last_of('/'));
-        // else
-        path_dir = path;
-        Serial.printf("Searching for files only in path %s\n", path_dir.c_str());
-        esp32_fileio::buildOrderedFileList(SPIFFS, path_dir.c_str(), filter.c_str(), 3, &files,false);
+        
+        Serial.printf("Searching for files only in path %s\n", path.c_str());
+        esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, &files,false);
         esp32_fileio::printFileSearchOrdered(res, &files,filter);
     }
     else {
@@ -154,8 +125,6 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
         esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, &files);
         esp32_fileio::printDirOrdered(res, &files);
     }
-
-    //esp32_fileio::listDir(SPIFFS, res, dir.c_str(), 3, HTTP_FORMAT::JSON);
 }
 
 int esp32_router::handlePagePart_Title(HTTPRequest* req, HTTPResponse* res, String line, std::string content = "")
@@ -197,66 +166,13 @@ int esp32_router::handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, St
         if (idx < 0) return idx;
         res->print(line.substring(0, idx));
         handleFile(req, res);
-        //String contentFileName = SITE_ROOT;
-
-        //std::string reqStr = req->getRequestString(), controller(""),action("");
-        //std::string queryString("");
-        //int queryStart = reqStr.find_first_of('?');
-        //if (queryStart > 0)
-        //{
-        //    queryString = reqStr.substr(queryStart+1);
-        //    reqStr.erase(queryStart);
-        //}
-        //if (reqStr.find_first_of('/') == 0) //remove leading slash
-        //    reqStr.erase(0,1);
-        //int reqIdxSlash = reqStr.find_first_of('/');
-        //if (reqIdxSlash > 0)
-        //{
-        //    controller = reqStr.substr(0, reqIdxSlash);
-        //    reqStr.erase(0, reqIdxSlash+1);
-        //    reqIdxSlash = reqStr.find_first_of('/');
-        //    if (reqIdxSlash > 0)
-        //    {
-        //        action = reqStr.substr(0, reqIdxSlash);
-        //        reqStr.erase(0, reqIdxSlash+1);           
-        //    }
-        //    else {
-        //        action = reqStr;
-        //        reqStr.erase(0);
-        //    }
-        //    Serial.printf("Parsed url. Controller=%s Action=%s, Remainder=%s Query=%s\n",controller.c_str(), action.c_str(),reqStr.c_str(), queryString.c_str());
-        //}
-        //bool validController = controllerFactory->hasInstance(controller.c_str());
-        //if (!validController) {
-        //    handle404(req, res);
-        //}
-        //else {
-        //    auto controllerObj = controllerFactory->createInstance(controller.c_str());
-        //    if (controllerObj == NULL)
-        //        handle404(req, res);
-        //    else {
-        //        controllerObj->Action(req, res, action.c_str());
-        //    }
-        //}
-
-        //contentFileName += "/T/C/";
-        //contentFileName += controller.c_str();
-        //contentFileName += ".cpp";
-
-        //File fContent = SPIFFS.open(contentFileName);
-        //while (fContent.available()) {
-        //    res->print(fContent.readStringUntil('\n'));
-        //    if (fContent.available()) res->print('\n'); //print new line if not last line to be read
-        //}
-        //fContent.close();
 
         res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));
 
         return idx;
     }
 
-    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_CONTENT, content);
-    
+    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_CONTENT, content);    
 }
 
 
@@ -282,9 +198,8 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
         auto footerModule = /*controllerFactory->hasInstance(route.controller) ? */
             controllerFactory->createInstance("_footer", "index");// : NULL;
 
-        //esp32_template controllerTemplate = esp32_template();
         if (footerModule != NULL) {
-                //module found
+            //module found
             footerModule->Action(req, res); //execute module action
 
             //render module output
@@ -296,13 +211,7 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
                 
         }
         return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_FOOTER, "/W/T/V/_footer.html");
-    }
-    /*else {
-        res->print(content.c_str());
-    }
-    res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
-
-    return idx;*/
+    }    
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_FOOTER, content);
 }
@@ -363,51 +272,93 @@ int esp32_router::handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res,
     return idx;// > 0 ? idx : 0;
 }
 //Get the route information for a controler/action syntax. returns true if controller found, false otherwise
-bool esp32_router::GetControllerRoute(std::string reqString, esp32_controller_route& routeObj)
+bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj)
 {
 
     std::string controller(""), action("");
-    std::string queryString("");
-    int queryStart = reqString.find_first_of('?');
+    std::string pathString(""), queryString("");
+    pathString = request->getRequestString();
+    /*
+        If request is not a get, route to the proper action
+        Otherwise, decode action from url
+    */
+
+    int queryStart = pathString.find_first_of('?');
     if (queryStart > 0)
     {
-        queryString = reqString.substr(queryStart + 1);
-        reqString.erase(queryStart);
+        queryString = pathString.substr(queryStart + 1);
+        pathString = pathString.substr(0,queryStart);
+        //Serial.printf("Query string detected with %s path and %s query", pathString.c_str(), queryString.c_str());
+        //reqString.erase(queryStart);
     }
-    if (reqString.find_first_of('/') == 0) //remove leading slash
-        reqString.erase(0, 1);
+    if (pathString.find_first_of('/') == 0) //remove leading slash
+        pathString.erase(0, 1);
 
     //default controller if none is specified
-    //TODO: configurable default controller, configure on/off
     controller = "invalid";//"esp32_home";
-    if(strstr(reqString.c_str(),"index.html") != nullptr || reqString.length() == 0)
+    if(strstr(pathString.c_str(),"index.html") != nullptr || pathString.length() == 0)
         controller = "esp32_home";
+    else controller = pathString;
+    //default action
     action = "index";
-
-    int reqIdxSlash = reqString.find_first_of('/');
+    //explicit action defined
+    int reqIdxSlash = pathString.find_first_of('/');
     if (reqIdxSlash > 0)
     {
-        controller = reqString.substr(0, reqIdxSlash);
-        reqString.erase(0, reqIdxSlash + 1);
-        reqIdxSlash = reqString.find_first_of('/');
+        controller = pathString.substr(0, reqIdxSlash);
+        pathString.erase(0, reqIdxSlash + 1);
+        action = pathString;
+    }
+
+    if(strcmp(request->getMethod().c_str(),"GET") != 0){
+        action = request->getMethod();
+    }else {
+        reqIdxSlash = pathString.find_first_of('/');
         if (reqIdxSlash > 0)
         {
-            action = reqString.substr(0, reqIdxSlash);
-            reqString.erase(0, reqIdxSlash + 1);
+            action = pathString.substr(0, reqIdxSlash);
+            pathString.erase(0, reqIdxSlash + 1);
         }
         else {
-            action = reqString;
-            reqString.erase(0);
+            action = pathString;
+            pathString.erase(0);
         }
-        Serial.printf("Parsed url. Controller=%s Action=%s, Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), reqString.c_str(), queryString.c_str());
     }
+    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    
     routeObj.action = action;
     routeObj.controller = controller;
-    routeObj.params = reqString;
-   return controllerFactory->hasInstance(controller.c_str());
+    routeObj.params = urlDecode(queryString);
+    //return IsValidRoute(routeObj);
+    return controllerFactory->hasInstance(controller.c_str());
     
 }
 
+bool esp32_router::IsValidRoute(esp32_controller_route & route){
+    int numOfControllers = BaseFactory::getInstanceCount();
+    //Serial.printf("Found %i controllers\n", numOfControllers);
+    for(int i=0;i< numOfControllers;i++){
+        auto controller = BaseFactory::getInstanceAt(i);        
+        //if(controller.first[0] == '_') continue;
+
+        vector<string> actions = {};
+        controller.second()->GetActions(&actions);
+        //Serial.printf("Controller %d of %d: %s with %i actions\n",i, numOfControllers,controller.first.c_str(), actions.size());
+        for(const string& action : actions) {            
+            if(route.controller.length() == controller.first.length() && route.action.length() == action.length()){                
+                if(iequals(route.controller.c_str(),controller.first.c_str(),route.controller.length())
+                    && iequals(route.action.c_str(), action.c_str(),action.length())
+                ){
+                    Serial.printf("Matched route controller %s action %s against cataloged controller %s action %s\n", route.controller.c_str(), route.action.c_str(),controller.first.c_str(), action.c_str());
+                    //case correct action
+                    route.action = action;
+                    return true;
+                }
+            }
+        }
+    }
+   return false;
+}
 void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
     if (req->getMethod() == "DELETE") {
         res->println("<html><head><title>File Deleted</title><head><body><h1>File Deleted</h1>");
@@ -646,7 +597,7 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* c
     res->setHeader("Content-Type", "text/html");
 
     esp32_controller_route route;
-    if (GetControllerRoute(req->getRequestString(),route)) {
+    if (GetControllerRoute(req,route)) {
         //route is under controller
         
         auto controllerObj = /*controllerFactory->hasInstance(route.controller) ? */
@@ -659,6 +610,13 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* c
         }
        
         controllerObj->Action(req, res);
+
+        if(strcmp(req->getMethod().c_str(),"GET") != 0)
+            return;
+
+        if(!controllerObj->HasAction(route.action.c_str())) return; //custom action or 404
+
+        //serve get request using template engine
         String path = SITE_ROOT;
         path += "/T/_template.html";
         File f = SPIFFS.open(path);
@@ -719,7 +677,7 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* c
     else
     {
         Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
-        writeFileToResponse(req->getRequestString().c_str(), res);
+        writeFileToResponse(req, res);
     }
 
     
@@ -748,12 +706,12 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* c
 //    }
 //
 //}
-void esp32_router::writeFileToResponse(const char* filePath,HTTPResponse* res){
+void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
     //Check if we zip
     bool useGZ = false;
     bool download = false;
     //check if gz version exists
-    String fileName = String(filePath);
+    String fileName = String(req->getRequestString().c_str());
     if (!fileName.startsWith(SITE_ROOT))
         fileName = SITE_ROOT + fileName;
 
@@ -789,7 +747,7 @@ void esp32_router::writeFileToResponse(const char* filePath,HTTPResponse* res){
         fileName +=
             ext == "js" ? "/JS/" :
             ext == "css" ? "/CSS/" : "/";
-        fileName += std::string(filePath).substr(fileName.find_last_of('/') + 1).c_str();
+        fileName += req->getRequestString().substr(fileName.find_last_of('/') + 1).c_str();
        //Serial.printf("[HTTP]1. Opening file %s\n", fileName.c_str());
         f = SPIFFS.open(fileName.c_str());
         if (f.size() < 0)
@@ -834,7 +792,7 @@ void esp32_router::writeFileToResponse(const char* filePath,HTTPResponse* res){
     // }
     Serial.printf("Providing %s file ", f.name());  Serial.print(f.size()); Serial.println(" bytes.");
     if (useGZ) res->setHeader("Content-Encoding", "gzip");
-    res->setHeader("Cache-Control", strstr(f.name(),"list?") != nullptr ? "no-store" : "private, max-age=604800");
+    res->setHeader("Cache-Control", strstr(f.name(),"list?") != nullptr || String(req->getHeader("Refer").c_str()).endsWith("edit.html") ? "no-store" : "private, max-age=604800");
     if (download) {
         char dispStr[128];
         sprintf(dispStr, " attachment; filename = \"%s\"", fileName);
@@ -858,22 +816,7 @@ void esp32_router::writeFileToResponse(const char* filePath,HTTPResponse* res){
     }
 }
 void esp32_router::handleFile(HTTPRequest* req, HTTPResponse* res) {
-    writeFileToResponse(req->getRequestString().c_str(), res);
-    //debug headers
-    //TODO: extract to general method
-    // bool printHeaders = false;
-    // if (printHeaders) {
-    //     Serial.println("----------------------------------------------------------");
-    //     Serial.println("                          HEADERS                         ");
-    //     Serial.println("----------------------------------------------------------");
-    //     for (int i = 0; i < req->getHTTPHeaders()->getAll()->size(); i++) {
-
-    //         Serial.print(i); Serial.print(" ");  Serial.println(req->getHTTPHeaders()->getAll()->at(i)->print().c_str());
-    //     }
-    //     Serial.println("----------------------------------------------------------");
-    // }
-
-    
+    writeFileToResponse(req, res);        
 }
 
 

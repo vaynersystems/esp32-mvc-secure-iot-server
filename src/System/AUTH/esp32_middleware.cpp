@@ -51,13 +51,13 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         next();
         //return;
     }
-    else if (req->getRequestString().substr(0, 6) == "/login") {
+    else if (req->getRequestString().substr(0, 6) == "/login" && req->getMethod().c_str() == "POST") {
         jwtTokenFromRequest.clear();
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
         //Serial.println("Logging in..");
-        if (req->getMethod() == "GET")
-            server.DisplayLoginPage(res);
+        // if (req->getMethod() == "GET")
+        //     server.DisplayLoginPage(res);
         if (req->getMethod() == "POST") {
             int reqLength = req->getContentLength();
             //check user/pass.. issue token
@@ -100,7 +100,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     }
     
     if (!jwtTokenValid){          
-        if(req->getRequestString().substr(0, 6) == "/login") {
+        if(req->getRequestString().substr(0, 6) == "/login" && req->getMethod() == "POST") {
 
             //Serial.print("Read from Authorization header: "); Serial.println(jwtDecodedString.c_str());
 
@@ -263,7 +263,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         next();
         return;
     }
-
+    
     String jwtDecodedString; //get from cookie
     if(jwtTokenFromCookie.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromCookie,jwtDecodedString)){
         decodeResult= true;
@@ -271,6 +271,8 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         decodeResult = jwtTokenFromRequest.length() > 48 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString);
 
     bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
+
+    //Serial.printf("**Authorization**\t Decoded: %s, Is Internal: %s\n", decodeResult ? "Yes" : "No", isInternalPath ? "Yes" : "No");
     if (!decodeResult
         && isInternalPath) {
 
@@ -279,8 +281,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         res->setStatusCode(303);
         res->setHeader("Location", "login");
     }
-    else if (decodeResult) {
-        // Everything else will be allowed, so we call next()
+    else if (decodeResult) {        
         DynamicJsonDocument doc(jwtDecodedString.length() * 2);
         //username = std::string(doc["user"].as<char*>());
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
@@ -297,7 +298,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             res->setHeader("Location", "login");
         }
     }
-    else
+    else // Everything else will be allowed, so we call next()
         next();
 }
 

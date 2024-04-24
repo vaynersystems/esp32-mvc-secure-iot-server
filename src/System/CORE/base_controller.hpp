@@ -10,7 +10,7 @@
 #include "../ROUTER/esp32_template.h"
 #include <ArduinoJson.h>
 
-
+#include <algorithm>
 using namespace httpsserver;
 
 class Base_Controller {
@@ -32,6 +32,12 @@ class Base_Controller {
         virtual bool isPostImplemented(){ return false;}
         virtual bool isDeleteImplemented(){ return false;}
         virtual bool isOptionsImplemented(){ return false;}
+
+        // template<typename T>
+        // void RegisterCustomAction(string action, void(T::* taget)(HTTPRequest*, HTTPResponse*)){
+        //     Serial.printf("\n\n\nREGISTERING CUSTOM ACTION\n\n%s\n",action.c_str());
+        //     _actions.push_back(action);
+        // }
 
         void SetVariablesFromJSON() {
             std::string jsonPath = controllerTemplate.templateContentFilePath;
@@ -57,13 +63,13 @@ class Base_Controller {
             }
         }
 
-        void Action(HTTPRequest* req, HTTPResponse* res) {
+        virtual void Action(HTTPRequest* req, HTTPResponse* res) {
             /* std::transform(route.action.begin(), route.action.end(), route.action.begin(),
                 [](unsigned char c) { return std::tolower(c); });*/
            
             //set temlate variables from json file
             SetVariablesFromJSON();
-
+            Serial.printf("Request for  action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
             if (route.action.compare("list") == 0) {
                 List(req, res);
             } else if (route.action == "put") {
@@ -75,6 +81,12 @@ class Base_Controller {
             else if (route.action == "delete") {
                 Delete(req, res);
             }
+            // else if(HasCustomAction(route.action)){
+            //     //TODO: figure out how to call custom action
+            //     // probably use pair<string, void*> when registering custom actions
+            //     Serial.printf("Custom action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
+            //     //ExecuteCustomAction(route)
+            // }
             else// (action == "Index") {
             {
                 Index(req, res);
@@ -111,6 +123,23 @@ class Base_Controller {
         // }
                
         }
+        bool HasAction(const char * action){
+            if(strcmp(action, "index") == 0) return this->isIndexImplemented();
+            if(strcmp(action, "list") == 0) return this->isListImplemented();
+            if(strcmp(action, "put") == 0) return this->isPutImplemented();
+            if(strcmp(action, "post") == 0) return this->isPostImplemented();
+            if(strcmp(action, "delete") == 0) return this->isDeleteImplemented();
+            if(strcmp(action, "options") == 0) return this->isOptionsImplemented();
+        }
+
+        // bool HasCustomAction(string action){
+        //     for(int idx = 0; idx < _actions.size(); idx++){
+        //         auto customAction = _actions.at(idx);
+        //         if(strcmp(customAction.first.c_str(),action.c_str()) == 0)
+        //             Serial.printf("Found custom action %s on controller %s\n", action.c_str(), route.controller.c_str());
+        //     }
+        //     return std::find(_actions.begin(), _actions.end(), action) != _actions.end();
+        // }
     string title="";
     string head="";
     string menu="";
@@ -124,9 +153,10 @@ class Base_Controller {
     
 protected:
     esp32_controller_route route;   
-    
-        
 
+private:
+//template<typename T>
+    //vector<pair<string,void(*)(HTTPRequest*, HTTPResponse*)>> _actions;
     
 };
 
@@ -213,9 +243,7 @@ public:
     DerivedController(std::string const& s) {
         auto t = &createT<T>;
         getMap()->insert(std::make_pair(s, t ));
-    }
-    
-    
+    }    
 };
 #include "../ROUTER/esp32_router.h"
 

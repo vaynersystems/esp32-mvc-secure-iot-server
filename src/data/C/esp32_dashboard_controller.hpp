@@ -1,5 +1,5 @@
-#ifndef _ESP32__CONTROLLER_esp32_dashboard_H
-#define _ESP32__CONTROLLER_esp32_dashboard_H
+#ifndef _ESP32__CONTROLLER_esp32_DASHBOARD_H
+#define _ESP32__CONTROLLER_esp32_DASHBOARD_H
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include "System/CORE/base_controller.hpp"
@@ -13,5 +13,6 @@ public:
 
 private:
 	static DerivedController<esp32_dashboard_controller> reg; //register the controller
+    void prettyFlashModeString(String &flashMode);
 };
 #endif

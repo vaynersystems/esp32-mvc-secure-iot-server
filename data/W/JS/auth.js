@@ -13,7 +13,8 @@ function getToken(url, user, pass) {
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
             if (request.status == 401) {
-                document.getElementById('login').appendChild('<p class="error">Error occured: ' + request.responseText + '</p>');
+                document.getElementById('error').appendChild('<p class="error">' + request.responseText + '</p>');
+                return;
             }
             var response = request.responseText;
             var obj = JSON.parse(response);
@@ -87,49 +88,49 @@ function loadToken() {
 //};
 
 
-function link(url) {
-    var myHeaders = new Headers();
-    myHeaders.append('Authorization', loadToken());
-    var myInit = {
-        method: 'GET',
-        headers: myHeaders,
-        mode: 'cors',
-        cache: 'default'
-    };
+// function link(url) {
+//     var myHeaders = new Headers();
+//     myHeaders.append('Authorization', loadToken());
+//     var myInit = {
+//         method: 'GET',
+//         headers: myHeaders,
+//         mode: 'cors',
+//         cache: 'default'
+//     };
 
-    var myRequest = new Request(url, myInit);
-    fetch(myRequest).then(function (response) {
-        if (response.status != 200)
-            console.log(response);
+//     var myRequest = new Request(url, myInit);
+//     fetch(myRequest).then(function (response) {
+//         if (response.status != 200)
+//             console.log(response);
 
-        response.text().then(function (text) {
-            replaceContent(text);
+//         response.text().then(function (text) {
+//             replaceContent(text);
 
-        });
-    });
-}
+//         });
+//     });
+// }
 
-function replaceContent(newContent) {
-    document.open();
-    document.write(newContent);
-    document.close();
-}
-(function () {
-    var 
-      origCall = Function.prototype.call,
-      log = document.getElementById ('call_log');  
+// function replaceContent(newContent) {
+//     document.open();
+//     document.write(newContent);
+//     document.close();
+// }
+// (function () {
+//     var 
+//       origCall = Function.prototype.call,
+//       log = document.getElementById ('call_log');  
   
-    // Override call only if call_log element is present    
-    log && (Function.prototype.call = function (self) {
-      var r = (typeof self === 'string' ? '"' + self + '"' : self) + '.' + this + ' ('; 
-      for (var i = 1; i < arguments.length; i++) r += (i > 1 ? ', ' : '') + arguments[i];  
-      log.innerHTML += r + ')<br/>';
+//     // Override call only if call_log element is present    
+//     log && (Function.prototype.call = function (self) {
+//       var r = (typeof self === 'string' ? '"' + self + '"' : self) + '.' + this + ' ('; 
+//       for (var i = 1; i < arguments.length; i++) r += (i > 1 ? ', ' : '') + arguments[i];  
+//       log.innerHTML += r + ')<br/>';
   
   
   
-      this.apply (self, Array.prototype.slice.apply (arguments, [1]));
-    });
-  }) ();
+//       this.apply (self, Array.prototype.slice.apply (arguments, [1]));
+//     });
+//   }) ();
 
 // var origCall = Function.prototype.call;
 // Function.prototype.call = function () {

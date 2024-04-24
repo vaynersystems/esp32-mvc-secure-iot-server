@@ -1,0 +1,50 @@
+<style>
+    .error{ color:red;}
+    #login{
+        display: flex;
+        flex-direction: column;
+        padding: 20px;
+        background-color: #f0edee;
+        border-radius: 15px;
+        margin: 20px 20%;
+    }
+    .row{
+        font-size: 12px;
+        background-color: #fcf3ff;
+    }
+    .header{
+        font-weight: 600;
+    }
+    .header{        
+        border-color: #7d4682;
+        color: #323;
+        border-width: 0 0 1px 0;
+        border-style: solid;
+        font-size: 20px;
+    }
+    .detail{
+        font-size: 16px;
+    }
+    input{
+        padding: 5px 10px;
+        margin: 10px;
+    }
+    input[type="text"], textarea {
+        background-color : #e3dfe6; 
+    }
+    
+</style>
+<script src="/JS/auth.js"></script>
+<div id="login" name="login">
+    <div class="header">Login</div>
+    <div class="row">
+        <div class="detail">Username</div>
+        <div><input type='text' name='user' id='user'></input></div>
+    </div>
+    <div class="row">
+        <div class="detail">Password</div>
+        <input type='password' name='password' id='password'></input>
+    </div>
+    <input type='button' value='Login' onclick='getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value)' />
+    <div class="error" id="error"></div>
+</div>

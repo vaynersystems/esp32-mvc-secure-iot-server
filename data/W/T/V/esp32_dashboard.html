@@ -1,75 +1,240 @@
 <style type="text/css">
-    .w3-border-0{border:0!important}.w3-border{border:1px solid #ccc!important}
-    .w3-border-top{border-top:1px solid #ccc!important}.w3-border-bottom{border-bottom:1px solid #ccc!important}
-    .w3-border-left{border-left:1px solid #ccc!important}.w3-border-right{border-right:1px solid #ccc!important}
-    .w3-grey,.w3-hover-grey:hover,.w3-gray,.w3-hover-gray:hover{color:#000!important;background-color:#9e9e9e!important}
-    .w3-amber,.w3-hover-amber:hover{color:#000!important;background-color:#ffc107!important}
-    .w3-text-amber,.w3-hover-text-amber:hover{color:#ffc107!important}
-    bar {
-        height: 20px;
+    .content{
+        display: flex;
+        flex-direction: column;
+    }
+    .row{
+        font-size: 12px;
+        background-color: #fcf3ff;
+    }
+    .header{
+        font-weight: 600;
+    }
+    .header, .header-sub{
+        display: flex;
+        flex-grow: 1;
+        border-color: #7d4682;
+        color: #323;
+        border-width: 0 0 1px 0;
+        border-style: solid;
+        font-size: 20px;
+    }
+    .header-memory{
+        display: flex;
+        flex-grow: 1;
+        justify-content: space-between;
+    }
+    .section{
+        /* border: solid 1px #f3cfed;
+        border-radius: 5px; */
+        padding:0px;
+        display: flex;
+        flex-direction: column;
+        margin: 8px 0px;
+    }
+    .details{
+        display: flex;
+        flex-wrap: wrap;
+        flex-grow: 1;
+        
+    }
+    .detail{
+        margin:10px;
+        width:200px;
+        border: solid 6px #c780f7;
+        border-width: 1px 2px 1px 6px;
+        border-radius: 6px;
+        padding: 6px 20px;
+        background-color: #fcf3ff;        
+    }
+    .conditional{
+        display: var(--available,block);
+    }
+    .detail>div:nth-child(1){
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .detail>div:nth-child(2){
+        font-size: 14px;
+    }
+    /* .SPIFFS, .HEAP, .PSRAM, .SKETCH, .NVS, .STACK{
+        margin: 10px;
+        padding: 6px 20px;       
+        display: flex;
+        flex-direction: column;
+        display: var(--available);
+        border: solid 6px #c780f7;
+        border-width: 1px 2px 1px 6px;
+        border-radius: 6px;
+        width: 200px;
+    } */
+    .bar {
+        height: 4px !important;
         background-color: #f5f5f5;
     }.bar::before {
         content: '';
         display: flex;
         justify-content: end;
         width: calc(var(--percent) * 1%);
-        height: 100%;
-        background: #2486ff;
-        white-space: nowrap;
-    }
-    #SPIFFS{
-        width: 100%;
-        display: flex;
-        flex-direction: column;
-    }
+        height: 3px !important;
+        background: hsl(calc(100 - var(--percent)) 255 50) !important;
+        
+    }    
 </style>
-<div class='footer-debug-info'>
-    <div>Time: $_TIME</div>
-    <div>Client IP: $_CLIENT_IP</div>
-    <div>Uptime: $_UPTIME</div>
-    <div>Server IP: $_SERVER_IP</div>
-    <div>Request URL: $_REQUEST_URL</div>
-</div>
-<div class="SPIFFS">
-    <div class="header">SPIFFS</div>
-    <div class="w3-border">
-        <div class="w3-grey" style="height:24px;width:$SPIFFS_MEMORY_PERCENT_USED%">$SPIFFS_MEMORY_PERCENT_USED%</div>
-    </div> 
-    <div class="row">
-        <div>Used: $SPIFFS_MEMORY_USED</div>
-        <div>Free: $SPIFFS_MEMORY_FREE</div>
-        <div>Total: $SPIFFS_MEMORY_TOTAL</div>
+<div class="section">
+    <div class="header">Global Variables</div>
+    <div class="details">
+        <div class="detail">
+            <div>Time</div>
+            <div>$_TIME</div>
+        </div>
+        <div class="detail">
+            <div>Uptime</div>
+            <div>$_UPTIME seconds</div>
+        </div>
+        <div class="detail">
+            <div>Client IP</div>
+            <div><a href="$_CLIENT_IP">$_CLIENT_IP</a></div>
+        </div>        
+        <div class="detail">
+            <div>Server IP</div>
+            <div><a href="$_SERVER_IP">$_SERVER_IP</a></div>
+        </div>
+        <div class="detail">
+            <div>Request Path</div>
+            <div>$_REQUEST_URL</div>
+        </div>        
     </div>
 </div>
-<div class="HEAP">
-    <div class="header">HEAP</div>
-    <div class="w3-border">
-        <div class="w3-amber" style="height:24px;width:$HEAP_MEMORY_PERCENT_USED%">$HEAP_MEMORY_PERCENT_USED%</div>
-    </div> 
-    <div class="row">
-        <div>Used: $HEAP_MEMORY_USED</div>
-        <div>Free: $HEAP_MEMORY_FREE</div>
-        <div>Total: $HEAP_MEMORY_TOTAL</div>
+<div class="section">
+    <div class="header">System Info</div>
+
+    <div class="section">
+        <div class="details">
+            <div class="detail">
+                <div>Chip Cores</div>
+                <div>$_CHIP_CORES</div>
+            </div>
+            <div class="detail">
+                <div>Chip Model</div>
+                <div>$_CHIP_MODEL</div>
+            </div>
+            <div class="detail">
+                <div>Chip Revision</div>
+                <div>$_CHIP_REVISION</div>
+            </div>
+            <div class="detail">
+                <div>CPU Frequency</div>
+                <div>$_CPU_FREQUENCY</div>
+            </div>
+            <div class="detail">
+                <div>Flash Mode</div>
+                <div>$_FLASH_MODE</div>
+            </div>
+            <div class="detail">
+                <div>Flash Size</div>
+                <div>$_FLASH_SIZE</div>
+            </div>
+            <div class="detail">
+                <div>Flash Speed</div>
+                <div>$_FLASH_SPEED</div>
+            </div>
+            <div class="detail">
+                <div>SDK Version</div>
+                <div>$_SDK_VERSION</div>
+            </div>
+            <div class="detail">
+                <div>Sketch Size</div>
+                <div>$_SKETCH_SIZE</div>
+            </div> 
+        </div>   
     </div>
 </div>
-<div class="PSRAM">
-    <div class="header">PSRAM</div>
-    <div class="w3-border">
-        <div class="w3-amber" style="height:24px;width:$PSRAM_MEMORY_PERCENT_USED%">$PSRAM_MEMORY_PERCENT_USED%</div>
-    </div> 
-    <div class="row">
-        <div>Used: $PSRAM_MEMORY_USED</div>
-        <div>Free: $PSRAM_MEMORY_FREE</div>
-        <div>Total: $PSRAM_MEMORY_TOTAL</div>
+<div class="section">
+    <div class="header">Memory</div>
+    <div class="section">
+        <div class="header-sub">SPI</div>    
+        <div class="details">
+            <div class="detail conditional" style="--available: $SPIFFS_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>SPIFFS</div>
+                    <div>$SPIFFS_MEMORY_PERCENT_USED%</div>
+                </div>
+                <div class="bar" style="height:28px; --percent: $SPIFFS_MEMORY_PERCENT_USED;"></div>    
+                <div class="row">
+                    <div>Used: $SPIFFS_MEMORY_USED</div>
+                    <div>Free: $SPIFFS_MEMORY_FREE</div>
+                    <div>Total: $SPIFFS_MEMORY_TOTAL</div>
+                </div>
+            </div>
+            <div class="detail conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>PSRAM</div>
+                    <div>$PSRAM_MEMORY_PERCENT_USED%</div>
+                </div>   
+                <div class="bar" style="height:28px; --percent: $PSRAM_MEMORY_PERCENT_USED;"></div>
+                <div class="row">
+                    <div>Used: $PSRAM_MEMORY_USED</div>
+                    <div>Free: $PSRAM_MEMORY_FREE</div>
+                    <div>Total: $PSRAM_MEMORY_TOTAL</div>
+                </div>
+            </div>
+            <div class="detail conditional" style="--available: $SKETCH_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>SKETCH</div>
+                    <div>$SKETCH_MEMORY_PERCENT_USED%</div>
+                </div>  
+                <div class="bar" style="-height:28px; --percent: $SKETCH_MEMORY_PERCENT_USED;"></div>    
+                <div class="row">
+                    <div>Used: $SKETCH_MEMORY_USED</div>
+                    <div>Free: $SKETCH_MEMORY_FREE</div>
+                    <div>Total: $SKETCH_MEMORY_TOTAL</div>
+                </div>
+            </div>
+            <div class="detail conditional" style="--available: $NVS_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>NVS</div>
+                    <div>$NVS_PERCENT_USED%</div>
+                </div>  
+                <div class="bar" style="-height:28px; --percent: $NVS_PERCENT_USED;"></div>    
+                <div class="row">
+                    <div>Used: $NVS_USED_ENTRIES</div>
+                    <div>Free: $NVS_FREE_ENTRIES</div>
+                    <div>Total: $NVS_TOTAL_ENTRIES</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <div class="header-sub">RAM</div>    
+        <div class="details">
+            <div class="detail conditional">
+                <div class="header-memory">
+                    <div>STACK</div>
+                    <div>$STACK_PERCENT_USED%</div>
+                </div>  
+                <div class="bar" style="-height:28px; --percent: $STACK_PERCENT_USED;"></div>    
+                <div class="row">
+                    <div>Used: $STACK_USED</div>
+                    <div>Free: $STACK_FREE</div>
+                    <div>Total: $STACK_TOTAL</div>
+                </div>
+            </div>
+            <div class="detail conditional" style="--available: $HEAP_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>HEAP</div>
+                    <div>$HEAP_MEMORY_PERCENT_USED%</div>
+                </div>   
+                <div class="bar" style="height:28px; --percent: $HEAP_MEMORY_PERCENT_USED;"></div>
+                <div class="row">
+                    <div>Used: $HEAP_MEMORY_USED</div>
+                    <div>Free: $HEAP_MEMORY_FREE</div>
+                    <div>Total: $HEAP_MEMORY_TOTAL</div>
+                </div>
+            </div>        
+        </div>
     </div>
 </div>
-<div class="SKETCH">
-    <div class="header">SKETCH</div>
-        <div class="bar" style="--percent: $SKETCH_MEMORY_PERCENT_USED;">$SKETCH_MEMORY_PERCENT_USED%</div>
-    </div> 
-    <div class="row">
-        <div>Used: $SKETCH_MEMORY_USED</div>
-        <div>Free: $SKETCH_MEMORY_FREE</div>
-        <div>Total: $SKETCH_MEMORY_TOTAL</div>
-    </div>
-</div>
+
+

@@ -32,8 +32,8 @@ bool esp32_server::start() {
 
     _router->RegisterHandler( "/list", HTTPMETHOD_GET, &esp32_router::handleFileList);
     _router->RegisterHandler( "/logout", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
-    _router->RegisterHandler( "/login", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
-    _router->RegisterHandler( "/login", HTTPMETHOD_POST, &esp32_router::dummyPageHandler);
+    // _router->RegisterHandler( "/login", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
+    // _router->RegisterHandler( "/login", HTTPMETHOD_POST, &esp32_router::dummyPageHandler);
     _router->RegisterHandler( "/edit", HTTPMETHOD_PUT, &esp32_router::handleFileUpload);
     _router->RegisterHandler( "/edit", HTTPMETHOD_POST, &esp32_router::handleFileUpload);
     _router->RegisterHandler( "/edit", HTTPMETHOD_DELETE, &esp32_router::handleFileUpload);
@@ -88,17 +88,17 @@ void esp32_server::step()
 }
 
 
-void esp32_server::DisplayLoginPage(HTTPResponse* res) {
+// void esp32_server::DisplayLoginPage(HTTPResponse* res) {
 
-    String path = SITE_ROOT;
-    path += "/login.html";
-    File f = SPIFFS.open(path);
-    res->setStatusCode(200);
-    res->setStatusText("OK");
-    res->setHeader("Content-Type", "text/html");
-    res->println(f.readString());
-    //res->println(htmlLogin);
-}
+//     String path = SITE_ROOT;
+//     path += "/login.html";
+//     File f = SPIFFS.open(path);
+//     res->setStatusCode(200);
+//     res->setStatusText("OK");
+//     res->setHeader("Content-Type", "text/html");
+//     res->println(f.readString());
+//     //res->println(htmlLogin);
+// }
 void esp32_server::DisplayErrorPage(HTTPResponse* res, String errorMessage) {
     // Display error page
     res->setStatusCode(401);

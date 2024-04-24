@@ -74,9 +74,10 @@ public:
 protected:
 	static DerivedController<Base_Controller>* controllerFactory;
 private:
-	static bool GetControllerRoute(std::string reqString, esp32_controller_route &routeObj);
+	static bool GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj);
 
-    static void writeFileToResponse(const char* filePath,HTTPResponse* res);
+    static void writeFileToResponse(HTTPRequest* req, HTTPResponse* res);
+    static bool IsValidRoute(esp32_controller_route & route);
 };
 
 #endif

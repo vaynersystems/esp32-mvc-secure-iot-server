@@ -97,7 +97,5 @@ void esp32_template::PrintDebugMessage(HTTPRequest* req, HTTPResponse* res)
 	esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesPretty);
 	esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize(), &totalBytesPretty);
 	res->printf("<p class=\"debug-message\">VS Web Server v%s.  %s of %s  FREE.</p>\n",
-		FIRMWARE_VERSION, freeBytesPretty.c_str(),totalBytesPretty.c_str());
-
-	
+		FIRMWARE_VERSION, freeBytesPretty.c_str(),totalBytesPretty.c_str());	
 }
