@@ -73,13 +73,9 @@ public:
 
 protected:
 	static DerivedController<Base_Controller>* controllerFactory;
-    static esp32_route_file_info parseFileRequestInfo(const char * requestPath){
-        bool useGZ = false;
-        bool download = false;
-        esp32_route_file_info fileRequestInfo;
-
-        fileRequestInfo.requestPath = requestPath;
-        String fileName = String(requestPath);
+    static bool parseFileRequestInfo(esp32_route_file_info& fileRequestInfo){
+        
+        String fileName = String(fileRequestInfo.requestPath.c_str());
         if (!fileName.startsWith(SITE_ROOT))
             fileName = SITE_ROOT + fileName;
         fileName = urlDecode(fileName.c_str()).c_str();
@@ -93,6 +89,7 @@ protected:
         }
 
         fileRequestInfo.fileName = fileName.c_str();
+        fileRequestInfo.filePath = fileName.c_str();
 
         //check if file requested is in gzip format
         if(fileName.endsWith(".gz")){
@@ -101,7 +98,8 @@ protected:
         }
 
         fileRequestInfo.fileExtension = 
-            fileName.substring(fileName.lastIndexOf('.') + 1).c_str();
+            fileName.lastIndexOf('.') > 0 ?
+                fileName.substring(fileName.lastIndexOf('.') + 1).c_str() : "";
 
         String zipFileName = fileRequestInfo.isGZ ? fileName : fileName + ".gz";
 
@@ -113,20 +111,21 @@ protected:
         } else if(!fileRequestInfo.isGZ && SPIFFS.exists(fileName.c_str())){
             //regular file found
             fileRequestInfo.exists = true;
-            fileRequestInfo.filePath = fileName.c_str();
             fileRequestInfo.isGZ = false;            
         } else{
             //file not found
             fileRequestInfo.exists = false;
         }
 
-        Serial.printf("[3.2] Loading file %s from path %s with extension %s in %s format%s.\n", 
+        Serial.printf("[3.2] Request for file %s from path %s with extension %s in %s format%s %s.\n", 
             fileRequestInfo.fileName.c_str() , 
             fileRequestInfo.filePath.c_str(), 
             fileRequestInfo.fileExtension.c_str(),
             fileRequestInfo.isGZ ? "zipped" : "raw",
-            download ? " with DOWNLOAD flag" : ""
+            fileRequestInfo.isDownload ? " with DOWNLOAD flag" : "",
+            fileRequestInfo.exists ? " OK" : " FAILED"
         );
+        return fileRequestInfo.fileExtension.length() > 0 && fileRequestInfo.exists;
     }
 private:
 	static bool GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj);

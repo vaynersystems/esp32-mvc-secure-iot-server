@@ -28,10 +28,6 @@ bool esp32_server::start() {
     _router->RegisterHandler( "/list", HTTPMETHOD_GET, &esp32_router::handleFileList);
     _router->RegisterHandler( "/logout", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
     
-    // Login page handled by custom MVC view
-    // _router->RegisterHandler( "/login", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
-    // _router->RegisterHandler( "/login", HTTPMETHOD_POST, &esp32_router::dummyPageHandler);
-    
     //edit page handler.
     //TODO: add system config variable to control if handlers are registered
     _router->RegisterHandler( "/edit", HTTPMETHOD_PUT, &esp32_router::handleFileUpload);
@@ -47,8 +43,6 @@ bool esp32_server::start() {
     _router->RegisterHandler( nodeSpecial);
     //_router->RegisterHandler("/esp32_*", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
-    // Add the 404 not found node to the server.
-    // The path is ignored for the default node.
     secureServer->setDefaultNode(nodeRoot);
     unsecureServer->setDefaultNode(nodeRoot);
     

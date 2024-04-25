@@ -50,4 +50,14 @@ public:
     bool isDownload;
     /// @brief True if file being retrieved is in Gzip format. False otherwise
     bool isGZ;
+
+    esp32_route_file_info(){
+        requestPath = "";
+        fileName = "";
+        fileExtension = "";
+        filePath = "";
+        exists = false;
+        isDownload = false;
+        isGZ = false;
+    }
 };

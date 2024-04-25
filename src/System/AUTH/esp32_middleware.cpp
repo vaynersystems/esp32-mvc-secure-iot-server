@@ -20,13 +20,10 @@ extern esp32_server server;
  */
 void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* res, std::function<void()> next) {
     // Unset both headers to discard any value from the client
-    // This prevents authentication bypass by a client that just sets X-USERNAME
-   // Serial.printf("\n\n\n");
-    //Serial.println(STR_LINES);
-   // Serial.printf("*  Processing request for:    %s\n", req->getRequestString().c_str());
-    //Serial.println(STR_LINES);
+    // This prevents authentication bypass by a client that just sets X-USERNAME   
     req->setHeader(HEADER_USERNAME, "");
     req->setHeader(HEADER_GROUP, "");
+
     bool jwtTokenValid = false;
     String jwtTokenFromCookie = req->getHeader("Cookie").c_str();
     if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
@@ -34,20 +31,17 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 
     String jwtToken, jwtTokenFromRequest = req->getBearerAuthToken().c_str();
     String jwtDecodedString, jwtTokenPayload, jwtTokenPayloadVerify;
-
-    //Serial.printf("Middlware authentication with jwt [%s]\n", jwtTokenFromRequest.c_str());
-
     std::string reqUsername;
     std::string reqPassword;
 
+
+    //Serial.printf("Middlware authentication with jwt [%s]\n", jwtTokenFromRequest.c_str());
+    
     if (req->getRequestString().substr(0, 7) == "/logout") {
         jwtTokenFromRequest.clear();
         res->setHeader("Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;");
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
-        //Serial.println("Logging out..");
-        //server.DisplayErrorPage(res, "Logged out!");
-        //server.DisplayLoginPage(res);
         next();
         //return;
     }
@@ -55,9 +49,6 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         jwtTokenFromRequest.clear();
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
-        //Serial.println("Logging in..");
-        // if (req->getMethod() == "GET")
-        //     server.DisplayLoginPage(res);
         if (req->getMethod() == "POST") {
             int reqLength = req->getContentLength();
             //check user/pass.. issue token
@@ -74,9 +65,6 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 const char* password = doc["password"];
                 reqUsername = uname;
                 reqPassword = password;
-                /* req->getParams()->getQueryParameter("user", reqUsername);
-                 req->getParams()->getQueryParameter("password", reqPassword);*/
-                //Serial.printf("Setting user and pass from post %s %s\n", reqUsername.c_str(), reqPassword.c_str());
             }
             else {
                 //Serial.printf("Error %d deserializing json: %s\n", err.code(), err.c_str());
@@ -159,8 +147,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     else {
 
                         //set response AUTH header
-                        //req->setHeader(AUTH_HEADER, token);
-                        //res->setHeader(AUTH_HEADER, token);
+                        req->setHeader(HEADER_AUTH, token);
 
                         // The user tried to authenticate and was successful
                         // -> We proceed with this request.
@@ -170,22 +157,22 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                         serializeJson(tokenDoc, jwtToken);
 
                         res->print(jwtToken);
-                        //handleRoot(req, res);
                     }
                 }
                 else {
                     res->setStatusCode(401);
                     res->error();
-                    //server.DisplayErrorPage(res, "Failed to authenticate using this username and password!");
                 }
             }
             else {
                 //Serial.println("No log info passed..");
                 // No attempt to authenticate
                 // -> Let the request pass through by calling next()
-                //res->setStatusText("Unauthorized");
-                //res->setHeader("Content-Type", "text/plain");
-                next();
+                res->setStatusText("Unauthorized");
+                res->setStatusCode(401);
+                res->setHeader("Content-Type", "text/plain");
+                res->error();
+                //next();
             }
         }
         else{
@@ -195,7 +182,6 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     }
     else {
         //valid JWT Token.. read it
-        //Serial.printf("Processing (jwt) [%s]\n", jwtDecodedString.c_str());
         DynamicJsonDocument doc(jwtDecodedString.length() * 4);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == DeserializationError::Ok) {
@@ -213,7 +199,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             //next();
         }
         else {
-            //if(jwtDecodedString.length() <= 0){
+            // Failed to deserialize token
 #ifdef DEBUG
             Serial.printf("Improperly Formed Token [%s]\n", jwtDecodedString.c_str());
 #endif

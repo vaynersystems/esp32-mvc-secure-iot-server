@@ -38,14 +38,18 @@
         flex-grow: 1;
         
     }
-    .detail{
+    .detail,
+    .detail-wide{
         margin:10px;
-        width:200px;
+        width: 200px;
         border: solid 6px #c780f7;
         border-width: 1px 2px 1px 6px;
         border-radius: 6px;
         padding: 6px 20px;
         background-color: #fcf3ff;        
+    }
+    .wide{
+        width: 468px;
     }
     .conditional{
         display: var(--available,block);
@@ -155,7 +159,7 @@
     <div class="section">
         <div class="header-sub">SPI</div>    
         <div class="details">
-            <div class="detail conditional" style="--available: $SPIFFS_MEMORY_AVAILABLE;">
+            <div class="detail wide conditional" style="--available: $SPIFFS_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>SPIFFS</div>
                     <div>$SPIFFS_MEMORY_PERCENT_USED%</div>
@@ -167,7 +171,7 @@
                     <div>Total: $SPIFFS_MEMORY_TOTAL</div>
                 </div>
             </div>
-            <div class="detail conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">
+            <div class="detail wide conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>PSRAM</div>
                     <div>$PSRAM_MEMORY_PERCENT_USED%</div>
@@ -179,7 +183,7 @@
                     <div>Total: $PSRAM_MEMORY_TOTAL</div>
                 </div>
             </div>
-            <div class="detail conditional" style="--available: $SKETCH_MEMORY_AVAILABLE;">
+            <div class="detail wide conditional" style="--available: $SKETCH_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>SKETCH</div>
                     <div>$SKETCH_MEMORY_PERCENT_USED%</div>
@@ -191,7 +195,7 @@
                     <div>Total: $SKETCH_MEMORY_TOTAL</div>
                 </div>
             </div>
-            <div class="detail conditional" style="--available: $NVS_MEMORY_AVAILABLE;">
+            <div class="detail wide conditional" style="--available: $NVS_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>NVS</div>
                     <div>$NVS_PERCENT_USED%</div>
@@ -209,7 +213,7 @@
     <div class="section">
         <div class="header-sub">RAM</div>    
         <div class="details">
-            <div class="detail conditional">
+            <div class="detail wide conditional">
                 <div class="header-memory">
                     <div>STACK</div>
                     <div>$STACK_PERCENT_USED%</div>
@@ -221,7 +225,7 @@
                     <div>Total: $STACK_TOTAL</div>
                 </div>
             </div>
-            <div class="detail conditional" style="--available: $HEAP_MEMORY_AVAILABLE;">
+            <div class="detail wide conditional" style="--available: $HEAP_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>HEAP</div>
                     <div>$HEAP_MEMORY_PERCENT_USED%</div>
