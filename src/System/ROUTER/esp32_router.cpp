@@ -111,7 +111,7 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
         list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
         
         Serial.printf("Searching for files only in path %s\n", path.c_str());
-        esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, &files,false);
+        esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, files);
         esp32_fileio::printFileSearchOrdered(res, &files,filter);
     }
     else {
@@ -123,7 +123,7 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
         }
         
         list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
-        esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, &files, true);
+        esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, files);
         esp32_fileio::printFileSearchOrdered(res, &files,filter);
         //esp32_fileio::printDirOrdered(res, &files);
     }

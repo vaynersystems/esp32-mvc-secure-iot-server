@@ -113,19 +113,15 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
 /// @param levels Levels of directories to traverse
 /// @param list Object to be filled with file information
 /// @param returnDirs set to true if you want to include directories in the list
-void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString,uint8_t levels, list<SPIFFS_FileInfo>* list, bool returnDirs) {
-    std::list<SPIFFS_FileInfo> files;
+void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString,uint8_t levels, list<SPIFFS_FileInfo> &list) {
+    //std::list<SPIFFS_FileInfo> files;
     std::list<SPIFFS_FileInfo>::iterator it;
     File root = fs.open(dirname);
     if (!root) {
-        //Serial.printf("Failed to open requested path %s. Quitting...", dirname);
         return;
     }
-    if (!root.isDirectory() && returnDirs) {
-        //Serial.printf("Expected path [ %s] to be a directory. Quitting...", dirname);    
-        return;
-    }
-    Serial.printf("[esp32_fileio::buildOrderedFileList] getting next file after %s %s in %s\n", root.isDirectory() ? "dir" : "file", root.name(), root.path());
+    
+    //Serial.printf("[esp32_fileio::buildOrderedFileList] getting next file after %s %s in %s\n", root.isDirectory() ? "dir" : "file", root.name(), root.path());
     File file = root.openNextFile();
     while (file) {
         //file name shorter than search string or not matching
@@ -134,19 +130,19 @@ void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const c
             //...
         }else {
             //add file/dir to list
-            Serial.printf("Adding %s %s to file list\n",file.isDirectory() ? "dir" : "file", file.path());
+            //Serial.printf("Adding %s %s to file list\n",file.isDirectory() ? "dir" : "file", file.path());
             SPIFFS_FileInfo f;
             f.filePath = file.path();
             f.isDirectory = file.isDirectory();
             f.parentDir = f.filePath.substr(0,f.filePath.find_last_of('/'));
             f.size = file.size();
-            files.push_back(f);
+            list.push_back(f);
         }
         
         if (file.isDirectory()) {            
             if (levels) { //read deeper
                 //Serial.printf("Reading dir %s on level %d\n",file.name(),levels);
-                esp32_fileio::buildOrderedFileList(fs, file.path(), searchString, levels - 1, &files);
+                esp32_fileio::buildOrderedFileList(fs, file.path(), searchString, levels - 1, list);
             }
         }
                   
@@ -154,14 +150,12 @@ void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const c
         file = root.openNextFile();
     }
 
-    files.sort(SortByPath);
-
-    //roll through files, check if dir record exists in list for *each* of its parents, if not, create.
+    list.sort(SortByPath);
 
     //iterate over list and add dirs
-    
     string currentDir, parentDir, prevDir;
-    for (it = files.begin(); it != files.end(); ++it)
+    auto lastElement = list.end();
+    for (it = list.begin(); it != lastElement; ++it)
     {
         SPIFFS_FileInfo file = (*it);
         
@@ -176,57 +170,17 @@ void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const c
                 dir.size = 0;
                 dir.parentDir = currentDir.substr(0,currentDir.find_first_of('/'));
                 dir.filePath = currentDir;
-                list->push_back(dir);
+                list.push_back(dir);
             }
         }
         prevDir = currentDir;
-    }
-    
+    }    
     
     //merge files into list
-    for (it = files.begin(); it != files.end(); ++it)    
-        list->push_back((*it));
+    // for (it = files.begin(); it != files.end(); ++it)    
+    //     list->push_back((*it));
 }
 
-// void esp32_fileio::printDirOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files)
-// {
-//     list<SPIFFS_FileInfo>::iterator it;
-//     files->sort(Sort);
-//     string currentDir;
-//     bool first = true;
-//     writeTo->print("[");
-//     for (it = files->begin(); it != files->end(); ++it)
-//     {
-//         File file = SPIFFS.open((*it).c_str());
-
-//         //get current dir
-//         currentDir = file.path();
-//         byte idx = currentDir.find_last_of('/');
-//         if (0xFF > idx > 0)
-//             currentDir.erase(idx);
-//         else
-//             currentDir = "/";//defaul
-
-//         //prefix comma if not first
-//         if (first) {
-//             first = false; 
-//         }
-//         else writeTo->print(",");
-        
-//         if (file.isDirectory()) {
-//             writeTo->printf("{\"type\": \"dir\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\", \"parent_dir\":\"%s\"}", file.name(), 0, "N/A", currentDir.c_str());
-//         }
-//         else
-//         {
-//             char buff[20];
-//             time_t lastWrite = file.getLastWrite();
-//             strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&lastWrite));
-//             writeTo->printf("{\"type\": \"file\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\", \"parent_dir\":\"%s\"}", file.name(), file.size(), buff, currentDir.c_str());
-//         }
-        
-//     }
-//     writeTo->print("]");
-// }
 void esp32_fileio::printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files,string filter = "")
 {
     list<SPIFFS_FileInfo>::iterator it;
@@ -236,17 +190,8 @@ void esp32_fileio::printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>*
     writeTo->print("[");
     for (it = files->begin(); it != files->end(); ++it)
     {
-        auto entry = *it;
-        
-        // File file = SPIFFS.open((*it).c_str());
-
-        string filename = entry.filePath.substr(entry.parentDir.length());
-        // int idx = currentDir.find_last_of('/');
-        // if (idx > 0)
-        //     currentDir.erase(idx);
-        // else
-        //     currentDir = "/";//defaul
-        
+        auto entry = *it;        
+        string filename = entry.filePath.substr(entry.parentDir.length());        
         int idx = strncasecmp(filter.c_str(), filename.c_str(), filter.length());
 
         if (filter != "" && idx != 0)

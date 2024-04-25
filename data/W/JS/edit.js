@@ -91,8 +91,7 @@ function createEditor_ThemeSelector(themeDiv) {
     
 
     themeSelector.onchange = function (ev) {
-        editor.editorTheme = ev.target.value;
-        editor.setTheme('ace/theme/' + ev.target.value);
+        setTheme(ev.target.value);        
     }
 
     refreshThemes();
@@ -148,6 +147,7 @@ function createTree(treeElementId, editorObject) {
         document.getElementById("editor").style.display = "none";
         previewContainerElement.style.visibility = 'visible';
         previewCloseElement.style.visibility = 'visible';
+        m.style.display = 'block';
         m.innerHTML = '<img src="' + a + '" style="max-width:100%; max-height:100%; margin:auto; display:block;" />'
     }
     function fillFileMenu(a, b) {
@@ -577,7 +577,8 @@ function createEditor(e, f, g, h, i) {
         minLines: 30,
         autoScrollEditorIntoView: true,
     });
-    //editor.setTheme("ace/theme/" + h);
+    setTheme(h);
+    
     editor.$blockScrolling = Infinity;
     editor.getSession().setUseSoftTabs(true);
     editor.getSession().setTabSize(2);
@@ -747,3 +748,16 @@ function dragElement(element, direction, handler) {
 
 }
 
+
+function setTheme(theme){
+    editor.editorTheme = theme;
+    editor.setTheme("ace/theme/" + theme);
+    setTimeout( () => {
+        var treeElement = document.getElementById('tree');
+        var editorElement = document.getElementById('editor');
+        if(treeElement !== undefined && editorElement !== undefined)
+            tree.className = editorElement.className;
+    
+    }, 1000);
+}
+    
