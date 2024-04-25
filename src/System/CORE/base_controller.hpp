@@ -33,12 +33,7 @@ class Base_Controller {
         virtual bool isDeleteImplemented(){ return false;}
         virtual bool isOptionsImplemented(){ return false;}
 
-        // template<typename T>
-        // void RegisterCustomAction(string action, void(T::* taget)(HTTPRequest*, HTTPResponse*)){
-        //     Serial.printf("\n\n\nREGISTERING CUSTOM ACTION\n\n%s\n",action.c_str());
-        //     _actions.push_back(action);
-        // }
-
+        
         void SetVariablesFromJSON() {
             std::string jsonPath = controllerTemplate.templateContentFilePath;
             jsonPath.erase(jsonPath.length() - 5);
@@ -63,13 +58,13 @@ class Base_Controller {
             }
         }
 
+        /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
+        /// @param req 
+        /// @param res 
         virtual void Action(HTTPRequest* req, HTTPResponse* res) {
-            /* std::transform(route.action.begin(), route.action.end(), route.action.begin(),
-                [](unsigned char c) { return std::tolower(c); });*/
-           
             //set temlate variables from json file
             SetVariablesFromJSON();
-            Serial.printf("Request for  action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
+            Serial.printf("Request for action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
             if (route.action.compare("list") == 0) {
                 List(req, res);
             } else if (route.action == "put") {
@@ -81,12 +76,6 @@ class Base_Controller {
             else if (route.action == "delete") {
                 Delete(req, res);
             }
-            // else if(HasCustomAction(route.action)){
-            //     //TODO: figure out how to call custom action
-            //     // probably use pair<string, void*> when registering custom actions
-            //     Serial.printf("Custom action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
-            //     //ExecuteCustomAction(route)
-            // }
             else// (action == "Index") {
             {
                 Index(req, res);
@@ -130,34 +119,18 @@ class Base_Controller {
             if(strcmp(action, "post") == 0) return this->isPostImplemented();
             if(strcmp(action, "delete") == 0) return this->isDeleteImplemented();
             if(strcmp(action, "options") == 0) return this->isOptionsImplemented();
+            return false;
         }
 
-        // bool HasCustomAction(string action){
-        //     for(int idx = 0; idx < _actions.size(); idx++){
-        //         auto customAction = _actions.at(idx);
-        //         if(strcmp(customAction.first.c_str(),action.c_str()) == 0)
-        //             Serial.printf("Found custom action %s on controller %s\n", action.c_str(), route.controller.c_str());
-        //     }
-        //     return std::find(_actions.begin(), _actions.end(), action) != _actions.end();
-        // }
+        
     string title="";
     string head="";
     string menu="";
-    string footer="";
-
-    // bool isIndexNotImplemented = true;
-    // bool isListNotImplemented = true;
-    // bool isPutNotImplemented = true;
-    // bool isPostNotImplemented = true;
-    // bool isDeleteNotImplemented = true;
+    string footer="";    
     
 protected:
     esp32_controller_route route;   
 
-private:
-//template<typename T>
-    //vector<pair<string,void(*)(HTTPRequest*, HTTPResponse*)>> _actions;
-    
 };
 
 template<typename T> Base_Controller* createT() { return new T; }
@@ -175,12 +148,8 @@ public:
             if (it->first == reqRoute.controller.c_str()) { //set view
                 auto ctrl = it->second();
                 ctrl->SetRoute(reqRoute);
-                ctrl->SetTemplate();
-                //ctrl->isIndexImplemented = hasIndexAction(*ctrl);
+                ctrl->SetTemplate();                
                 return ctrl;
-                /*it->second()->SetRoute(reqRoute);
-                it->second()->SetTemplate();
-                return it->second();*/
             }
             it++;
         }
@@ -218,11 +187,6 @@ public:
         return false;
        
     }
-    // static bool hasIndexAction(Base_Controller& controller){
-    //     //return (void*)(*(controller.Index)) != (void*)(&Base_Controller::Index);
-    //     //return (&T::Index != &Base_Controller::Index);
-    //     return ((void*)(*(controller.Index)) != &Base_Controller::Index());
-    // }
 
 protected:
     static map_type* map;

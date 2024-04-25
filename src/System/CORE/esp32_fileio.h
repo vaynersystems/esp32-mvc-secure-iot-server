@@ -6,11 +6,19 @@
  //Hard(ish) drive
 #include "FS.h"
 #include "SPIFFS.h"
+using namespace std;
 
 struct SPIFFS_Info{
     int freeBytes;
     int usedBytes;
     int totalBytes;
+};
+
+struct SPIFFS_FileInfo{
+    string parentDir;
+    string filePath;
+    bool isDirectory;
+    size_t size;
 };
 
 enum HTTP_FORMAT {
@@ -26,6 +34,9 @@ enum HTTP_FORMAT {
     PNG = 9,
     BMP = 10,   
 };
+static int SortByPath(SPIFFS_FileInfo first, SPIFFS_FileInfo second){
+    return strcmp(first.filePath.c_str(),second.filePath.c_str());
+}
 //Class to interact with SPIFFS/LITTLEFS/SD attached to MCU
 //TODO: parsing files and writing files though this class
 class esp32_fileio
@@ -33,11 +44,11 @@ class esp32_fileio
 public:
     bool start();
 	static void listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format = HTTP_FORMAT::TEXT);
-    static void buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString, uint8_t levels, std::list<std::string>* list, bool returnDirs = true);
+    static void buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString, uint8_t levels, list<SPIFFS_FileInfo>* list, bool returnDirs = true);
     static SPIFFS_Info getMemoryInfo();
     //output data
-    static void printFileSearchOrdered(Print* writeTo, std::list<std::string>* files, std::string filter);
-    static void printDirOrdered(Print* writeTo, std::list<std::string>* files);
+    static void printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files, string filter);
+    //static void printDirOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files);
 //helper methods
 	static void PrettyFormat(size_t size, String* output) {
         int order = 0;
@@ -69,6 +80,8 @@ public:
 
         }
     }
+protected:
+    
 };
 
 #endif

@@ -221,18 +221,18 @@ function createTree(treeElementId, editorObject) {
 
     function createTreeLeaf(a, b, size, nodeType, createdDate) {
         var d = document.createElement("li");
-        d.id = (((a == "/") ? window.document.URL + "?" : a) + "/" + b);
+        d.id = (((a == "/") ? window.document.URL + "?" : a) + b);
         var f = document.createElement("div");
         f.innerText = b.substring(b.lastIndexOf('/') + 1);
         f.className = 'tooltip'
-        var toolTip = document.createElement("span");
-        toolTip.className = 'tooltiptext';
-        if(size /(1024 * 1024) > 1.05) size = parseFloat(size/1024/1024).toFixed(2) + " MB";
-        else if(size /1024 > 1.05) size = parseFloat(size/1024).toFixed(2) + " KB";
-        else size= size + "B"
-        toolTip.textContent = "Size: " + size +"\nModified: " + createdDate;
-        toolTip.setAttribute('style', 'white-space: pre;');
-        f.appendChild(toolTip);
+        // var toolTip = document.createElement("span");
+        // toolTip.className = 'tooltiptext';
+        // if(size /(1024 * 1024) > 1.05) size = parseFloat(size/1024/1024).toFixed(2) + " MB";
+        // else if(size /1024 > 1.05) size = parseFloat(size/1024).toFixed(2) + " KB";
+        // else size= size + "B"
+        // toolTip.textContent = "Size: " + size ;//+"\nModified: " + createdDate;
+        // //toolTip.setAttribute('style', 'white-space: pre;');
+        // f.appendChild(toolTip);
 
         if (nodeType == "dir") {
             f.className = "list-dir";
@@ -289,16 +289,22 @@ function createTree(treeElementId, editorObject) {
     function addList(treeElementId, rootPath, fileList) {
         var left_margin = 10;
         var rootNode = document.createElement("ul");
-        //a.style.height = (window.innerHeight - 60) + "px|;
+        
         treeElementId.innerHTML = ''; //clear
-        //treeElementId.replaceChildren(...rootNode);
         treeElementId.appendChild(rootNode);
-        var fileCount = fileList.length;
-        for (var i = 0; i < fileCount; i++) {
+
+        var dirs = fileList
+            .filter((v,idx, list) => {
+                return v.type == 'dir' && list.findIndex(e => e.name === v.name) === idx;
+            })
+            .sort((a,b) => a.name > b.name);
+
+        var dirCount = dirs.length;
+        for (var i = 0; i < dirCount; i++) {
            
-            var parentPath = fileList[i].parent_dir;
+            var parentPath = dirs[i].name.substring(0,dirs[i].name.lastIndexOf('/'));
             var parentElement = document.getElementById(parentPath);
-            var child = createTreeLeaf(fileList[i].parent_dir, fileList[i].name, fileList[i].size, fileList[i].type, fileList[i].last_modified);
+            var child = createTreeLeaf(dirs[i].parent_dir, dirs[i].name, dirs[i].size, dirs[i].type, dirs[i].last_modified);
             if (parentElement !== null) {
                 var marginleft = parseInt(parentElement.style.marginLeft.replace('px', ''));
                 child.style.marginLeft = (marginleft + left_margin) + "px";
@@ -307,11 +313,28 @@ function createTree(treeElementId, editorObject) {
                 child.style.marginLeft = "0px";
                 rootNode.appendChild(child);
             }
-            //if (fileList[i].type === "dir")
-            //    d.appendChild()
-            //    d.appendChild(createTreeLeaf(b, fileList[i].name, fileList[i].size))
-            //if (fileList[i].type === "file")
-            //    d.appendChild(createTreeLeaf(b, fileList[i].name, fileList[i].size))
+        }
+
+        var files = fileList
+            .filter((v,idx, list) => {
+                return v.type == 'file' && list.findIndex(e => e.name === v.name) === idx;
+            })
+            .sort((a,b) => a.name > b.name);
+        
+        var fileCount = files.length;
+        for (var i = 0; i < fileCount; i++) {
+           
+            var parentPath = files[i].parent_dir;
+            var parentElement = document.getElementById(parentPath);
+            var child = createTreeLeaf(files[i].parent_dir, files[i].name, files[i].size, files[i].type, files[i].last_modified);
+            if (parentElement !== null) {
+                var marginleft = parseInt(parentElement.style.marginLeft.replace('px', ''));
+                child.style.marginLeft = (marginleft + left_margin) + "px";
+                parentElement.appendChild(child);
+            } else {
+                child.style.marginLeft = "0px";
+                rootNode.appendChild(child);
+            }
         }
     }
     function isTextFile(a) {
@@ -447,9 +470,12 @@ function createEditor(e, f, g, h, i) {
             i = "text/plain"
     }
     var j = null;
-    if(ace === null || ace === undefined){
+    if (typeof ace === 'undefined') {
+    //if(null === ace || undefined=== ace ){
         alert('Critical components failed to load. Refreshing page...');
-        location.reload();
+        if(location.hostname !== 'localhost')
+            location.reload();
+        else return;
     }
     var editor = ace.edit(e);
     editorTheme= 'tomorrow_night';
