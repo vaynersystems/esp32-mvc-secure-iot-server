@@ -174,7 +174,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     }
                 }
                 else {
-                    server.DisplayErrorPage(res, "Failed to authenticate using this username and password!");
+                    res->setStatusCode(401);
+                    res->error();
+                    //server.DisplayErrorPage(res, "Failed to authenticate using this username and password!");
                 }
             }
             else {

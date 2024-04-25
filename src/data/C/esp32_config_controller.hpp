@@ -15,6 +15,7 @@ public:
 
 	// inline virtual void List(HTTPRequest* req, HTTPResponse* res);
     virtual void GetAvailableWifi(HTTPRequest* req, HTTPResponse* res);
+    virtual void LoadConfigData(HTTPRequest* req, HTTPResponse* res);
     
     
 protected:
