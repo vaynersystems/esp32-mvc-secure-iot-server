@@ -1,11 +1,7 @@
 #ifndef _ESP32_SERVER_H
 #define _ESP32_SERVER_H
 
-
-
 #include "../Config.h"
-
-
 
 #include "../AUTH/cert.h"
 #include "../AUTH/key.h"
@@ -13,7 +9,6 @@
 #include "../ROUTER/esp32_router.h"
 
 #include "../AUTH/esp32_middleware.h"
-
 
 #include <HTTPSServer.hpp>
 //#include <SSLCert.hpp>
@@ -35,24 +30,16 @@ public:
     bool start();
     bool stop();
     bool isRunning();
-
     void step();
-    // Create an SSL-enabled server that uses the certificate
-    // The contstructor takes some more parameters, but we go for default values here.
+
     HTTPSServer *secureServer;
     HTTPServer *unsecureServer;
     
-    
-    
-
-    void DisplayLoginPage(HTTPResponse* res);
-    void DisplayErrorPage(HTTPResponse* res, String errorMessage);
     bool RegisterNewCert(SSLCert* cert);
     esp32_middleware* middleware;
 
 private:
-    // Create an SSL certificate object from the files included above
-    
+    // Create an SSL certificate object from the files included above    
     esp32_router* _router;
     SSLCert* _cert;
     hw_timer_t* timer = NULL;

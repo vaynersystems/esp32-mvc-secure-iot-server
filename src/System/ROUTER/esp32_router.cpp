@@ -303,11 +303,13 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
     action = "index";
     //explicit action defined
     int reqIdxSlash = pathString.find_first_of('/');
+    bool actionFound = false;
     if (reqIdxSlash > 0)
     {
         controller = pathString.substr(0, reqIdxSlash);
         pathString.erase(0, reqIdxSlash + 1);
         action = pathString;
+        actionFound = true;
     }
 
     if(strcmp(request->getMethod().c_str(),"GET") != 0){
@@ -320,7 +322,8 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
             pathString.erase(0, reqIdxSlash + 1);
         }
         else {
-            action = pathString;
+            if(actionFound)
+                action = pathString;
             pathString.erase(0);
         }
     }
@@ -501,102 +504,13 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
     // Serial.printf("Uploading file %s completed successfully!\n", name.c_str());
 
 }
-// This is the internal page. It will greet the user with
-// a personalized message and - if the user is in the ADMIN group -
-// provide a link to the admin interface.
-void esp32_router::handleInternalPage(HTTPRequest* req, HTTPResponse* res) {
-    // Header
-    res->setStatusCode(200);
-    res->setStatusText("OK");
-    res->setHeader("Content-Type", "text/html; charset=utf8");
-
-    // Write page
-    res->println("<!DOCTYPE html>");
-    res->println("<html>");
-    res->println("<head>");
-    res->println("<title>Internal Area</title>");
-    res->println("<script src = \"/JS/auth.js\"></script>");
-    res->println("</head>");
-    res->println("<body>");
-
-    // Personalized greeting
-    res->printf("<h1>Hello %s !</h1>", req->getHeader(HEADER_USERNAME).c_str());
-    // We can safely use the header value, this area is only accessible if it's
-    // set (the middleware takes care of this)
-    
-    res->println("<p>Welcome to the internal area. Congratulations on successfully entering your password!</p>");
-
-    // The "admin area" will only be shown if the correct group has been assigned in the authenticationMiddleware
-    if (req->getHeader(HEADER_GROUP) == "ADMIN") {
-        res->println("<div style=\"border:1px solid red;margin: 20px auto;padding:10px;background:#ff8080\">");
-        res->println("<h2>You are an administrator</h2>");
-        res->println("<p>You are allowed to access the admin page:</p>");
-        res->println("<p><a href=\"#\" onclick=\"link('/internal/admin')\">Go to secret admin page</a></p>");
-        res->println("</div>");
-    }
-
-    // Link to the root page
-    res->println("<p><a href=\"/\">Go back home</a></p>");
-    res->println("</body>");
-    res->println("</html>");
-}
-
-void esp32_router::handleAdminPage(HTTPRequest* req, HTTPResponse* res) {
-    // Headers
-    res->setHeader("Content-Type", "text/html; charset=utf8");
-
-    std::string header = "<!DOCTYPE html><html><head><title>Secret Admin Page</title><script src = \"/JS/auth.js\"></script></head><body><h1>Secret Admin Page</h1>";
-    std::string footer = "</body></html>";
-
-    // Checking permissions can not only be done centrally in the middleware function but also in the actual request handler.
-    // This would be handy if you provide an API with lists of resources, but access rights are defined object-based.
-    if (req->getHeader(HEADER_GROUP) == "ADMIN") {
-        res->setStatusCode(200);
-        res->setStatusText("OK");
-        res->printStd(header);
-        res->println("<div style=\"border:1px solid red;margin: 20px auto;padding:10px;background:#ff8080\">");
-        res->println("<h1>Congratulations</h1>");
-        res->println("<p>You found the secret administrator page!</p>");
-        res->println("<p><a href=\"#\" onclick=\"link('/internal')\">Go back</a></p>");
-        res->println("</div>");
-    }
-    else {
-        res->printStd(header);
-        res->setStatusCode(403);
-        res->setStatusText("Unauthorized");
-        res->println("<p><strong>403 Unauthorized</strong> You have no power here!</p>");
-    }
-
-    res->printStd(footer);
-}
-
-// Just a simple page for demonstration, very similar to the root page.
-void esp32_router::handlePublicPage(HTTPRequest* req, HTTPResponse* res) {   
-   /* res->setHeader("Content-Type", "text/html");
-    res->println("<!DOCTYPE html>");
-    res->println("<html>");
-    res->println("<head><title>Hello World!</title></head>");
-    res->println("<body>");
-    res->println("<h1>Hello World!</h1>");
-    res->print("<p>Your server is running for ");
-    res->print((int)(millis() / 1000), DEC);
-    res->println(" seconds.</p>");
-    res->println("<p><a href=\"/\">Go back</a></p>");
-    res->println("</body>");
-    res->println("</html>");*/
-    std::string content = "<H1>Public Page</h1>\n"
-        "<p>Your server is running for\n";
-    content.append(String((int)millis() / 100).c_str());
-    content.append(" seconds.</p>");
-    handleRoot(req, res, &content);
-}
 
 void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* content) {
    
     
     res->setHeader("Content-Type", "text/html");
 
-    esp32_controller_route route;
+    esp32_controller_route route;    
     if (GetControllerRoute(req,route)) {
         //route is under controller
         
@@ -681,130 +595,36 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,std::string* c
     }
 
     
-
-    
-
-    //TODO: fill menu and file from spiffs
 }
 
-//void handleEditPage(HTTPRequest* req, HTTPResponse* res) {
-//    String path = SITE_ROOT;
-//    path += "/edit.htm.gz";
-//    File f = SPIFFS.open(path);
-//
-//    if (f.size() <= 0) return;
-//    Serial.print("Providing Edit.htm.gz file "); Serial.print(f.size()); Serial.println(" bytes.");
-//    res->setHeader("Content-Encoding", "gzip");
-//    char buff[256];
-//    while (true) {
-//        
-//        uint16_t bytestoRead = f.available() < 256 ? f.available() : 256;
-//        if (bytestoRead == 0) break;
-//        f.readBytes(buff, bytestoRead);
-//        res->write((uint8_t*)buff, bytestoRead);
-//        Serial.printf("Wrote %u bytes from %s\n", bytestoRead, f.name());
-//    }
-//
-//}
 void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
-    //Check if we zip
-    bool useGZ = false;
-    bool download = false;
-    //check if gz version exists
-    String fileName = String(req->getRequestString().c_str());
-    if (!fileName.startsWith(SITE_ROOT))
-        fileName = SITE_ROOT + fileName;
-
-    Serial.printf("[3.1] Loading file %s.\n", fileName.c_str());
-    //url decode
-    fileName = urlDecode(fileName.c_str()).c_str();
-    //if part of parameter
-    int startIdx = fileName.indexOf("?");
-    if (startIdx > 0) {
-        startIdx++;
-        fileName = fileName.substring(startIdx);
+    
+    esp32_route_file_info fileInfo = parseFileRequestInfo(req->getRequestString().c_str());
+    if(!fileInfo.exists){
+        res->setStatusCode(404);
+        res->setStatusText("File" + fileInfo.fileName + " not found");
+        return;
     }
-    //check if we have an end
-    int endIdx = fileName.indexOf("?");
-    if (endIdx > 0) {
-        if (fileName.substring(endIdx + 1).compareTo("download=true") == 0)
-            download = true;
-        else
-            //Serial.printf("Found second ? but expected download=true not found. [%s]\n", fileName.substring(endIdx + 1).c_str());
-        fileName = fileName.substring(0, endIdx);
-    }
-
-    String gzName = fileName + ".gz";
-    if (SPIFFS.exists(gzName))
-        useGZ = true;
-    String ext = fileName.substring(fileName.lastIndexOf('.') + 1).c_str();
-
-    File f;
-    Serial.printf("[3.2] Loading file %s.\n", (useGZ ? gzName : fileName).c_str());
-    if (!SPIFFS.exists(useGZ ? gzName : fileName)) {
-        //Serial.printf("File not found: %s\n", useGZ ? gzName.c_str() : fileName.c_str());
-        string fileName = SITE_ROOT;
-        fileName +=
-            ext == "js" ? "/JS/" :
-            ext == "css" ? "/CSS/" : "/";
-        fileName += req->getRequestString().substr(fileName.find_last_of('/') + 1).c_str();
-       //Serial.printf("[HTTP]1. Opening file %s\n", fileName.c_str());
-        f = SPIFFS.open(fileName.c_str());
-        if (f.size() < 0)
-        {
-            //finnaly check if its gz file
-            fileName += ".gz";
-            //Serial.printf("[1.1 - GZ loosely linked] Opening file %s\n", fileName.c_str());
-            f = SPIFFS.open(fileName.c_str());
-            if (f.size() <= 0)
-                return;
-            else useGZ = true;
-        }
-    }
-    else {
-        Serial.printf("Found file %s in %s format with extention %s\n", useGZ ? gzName.c_str() : fileName.c_str(), useGZ ? "GZ" : "REG", ext);
-        f = SPIFFS.open(useGZ ? gzName : fileName);
-    }
-    // if (f.size() <= 0) {
-    //     f.close();
-    //     //try corrected path
-
-    //     String fileName = SITE_ROOT;
-    //     fileName +=
-    //         ext == "js" ? "/JS/" :
-    //         ext == "css" ? "/CSS/" : "/";
-    //     fileName += req->getRequestString().substr(req->getRequestString().find_last_of('/') + 1).c_str();
-    //     Serial.printf("[HTTP]2. Opening file %s\n", fileName.c_str());
-    //     f = SPIFFS.open(fileName);
-    //     if (f.size() <= 0)
-    //     {
-    //         f.close();
-    //         //finnaly check if its gz file
-    //         fileName += ".gz";
-    //         Serial.printf("[2.1 - GZ loosely linked] Opening file %s\n", fileName.c_str());
-    //         f = SPIFFS.open(fileName);
-    //         if (f.size() <= 0){
-    //             Serial.printf("[2.2 - GZ Failed to load. Quitting]");
-    //             return;
-    //         }
-    //         else useGZ = true;
-    //     }
-    // }
-    Serial.printf("Providing %s file ", f.name());  Serial.print(f.size()); Serial.println(" bytes.");
-    if (useGZ) res->setHeader("Content-Encoding", "gzip");
+    
+    File f = SPIFFS.open(fileInfo.filePath.c_str(),"r");
+    //Serial.printf("Providing %s file ", f.name());  Serial.print(f.size()); Serial.println(" bytes.");
+    if (fileInfo.isGZ) 
+        res->setHeader("Content-Encoding", "gzip");
+    
     res->setHeader("Cache-Control", strstr(f.name(),"list?") != nullptr || String(req->getHeader("Refer").c_str()).endsWith("edit.html") ? "no-store" : "private, max-age=604800");
-    if (download) {
+    
+    if (fileInfo.isDownload) {
         char dispStr[128];
-        sprintf(dispStr, " attachment; filename = \"%s\"", fileName);
+        sprintf(dispStr, " attachment; filename = \"%s\"", fileInfo.fileName);
         res->setHeader("Content - Disposition", dispStr);
-        ext = "application/octet-stream";
+        fileInfo.fileExtension = "application/octet-stream";
     }
     else {
-        if (ext == "htm") ext = "html"; //workaround for encoding
-        else if (ext == "js") ext = "javascript"; //workaround for encoding
-        ext = "text/" + ext;
+        if (fileInfo.fileExtension == "htm") fileInfo.fileExtension = "html"; //workaround for encoding
+        else if (fileInfo.fileExtension == "js") fileInfo.fileExtension = "javascript"; //workaround for encoding
+        fileInfo.fileExtension = "text/" + fileInfo.fileExtension;
     }
-    res->setHeader("Content-Type", ext.c_str());
+    res->setHeader("Content-Type", fileInfo.fileExtension.c_str());
     char buff[256];
     while (true) {
 

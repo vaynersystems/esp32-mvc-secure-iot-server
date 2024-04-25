@@ -1,6 +1,7 @@
 #include "esp32_config_controller.hpp"
 #include "string_extensions.h"
 #include <WiFi.h>
+#define SYSTEM_CONFIG_FILE "/INT/system_config.json"
 
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
@@ -30,6 +31,9 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
     if (route.action.compare("GetAvailableWifi") == 0) {
         GetAvailableWifi(req,res);
+    }
+    else if (route.action.compare("LoadConfigData") == 0) {
+        LoadConfigData(req,res);
     }
     else
         Base_Controller::Action(req,res);
@@ -85,4 +89,20 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* r
     String outputstring;
     serializeJson(doc,outputstring);   
     res->print(outputstring.c_str());    
+}
+
+/// @brief Load configuration information from json file
+/// @param req 
+/// @param res 
+void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res) {
+    File f = SPIFFS.open(SYSTEM_CONFIG_FILE,"r");
+    byte buff[32];
+    int bytesToRead = 0;
+    while(true){
+        bytesToRead = f.available() > sizeof(buff) ? sizeof(buff) : f.available();
+        f.readBytes((char*)buff,bytesToRead);
+        res->write(buff,bytesToRead);
+    }
+    f.close();
+    
 }
