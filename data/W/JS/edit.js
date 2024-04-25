@@ -224,20 +224,9 @@ function createTree(treeElementId, editorObject) {
         d.id = (((a == "/") ? window.document.URL + "?" : a) + b);
         var f = document.createElement("div");
         f.innerText = b.substring(b.lastIndexOf('/') + 1);
-        f.className = 'tooltip'
-        // var toolTip = document.createElement("span");
-        // toolTip.className = 'tooltiptext';
-        // if(size /(1024 * 1024) > 1.05) size = parseFloat(size/1024/1024).toFixed(2) + " MB";
-        // else if(size /1024 > 1.05) size = parseFloat(size/1024).toFixed(2) + " KB";
-        // else size= size + "B"
-        // toolTip.textContent = "Size: " + size ;//+"\nModified: " + createdDate;
-        // //toolTip.setAttribute('style', 'white-space: pre;');
-        // f.appendChild(toolTip);
-
+        
         if (nodeType == "dir") {
             f.className = "list-dir";
-            //if old exists, clear it
-            //att.value = "dir";
         }
 
         d.appendChild(f);
@@ -259,17 +248,8 @@ function createTree(treeElementId, editorObject) {
             } else if (isImageFile(d.id.toLowerCase())) {
                 loadPreview(d.id);
                 // att.value = "binary";
-            } else if (d.childElementCount > 1 /* == "dir"*/) {
-                //toggle collapse/expand
-                if (d.classList.contains("collapsed")) {
-                    //expand
-                    d.classList.remove("collapsed");
-                    f.classList.add("list-dir");
-                } else {
-                    d.classList.add("collapsed");
-                    f.classList.remove("list-dir");
-                }
-            }
+            } else 
+                toggleDir(d);
             //todo: add for directory
             //d.setAttributeNode(att)
             e.cancelBubble = true;
@@ -565,6 +545,7 @@ function createEditor(e, f, g, h, i) {
         j = new XMLHttpRequest();
         j.onreadystatechange = httpGetProcessRequest;
         j.open("GET", a, true);
+        j.setRequestHeader('Cache-Control','no-cache');
         j.send(null)
     }
     if (g !== "plain")
@@ -671,9 +652,10 @@ function onBodyLoad() {
         treeRefresh.addEventListener('click', function() { 
             showLoading();
             n = document.getElementById('tree-root');
-            if(n!== undefined)
+            if(n!== undefined){
                 vs_tree.refreshPath();
-            hideLoading();
+            }                
+            
         });
     }
     
@@ -750,6 +732,7 @@ function dragElement(element, direction, handler) {
 
 
 function setTheme(theme){
+    showLoading();
     editor.editorTheme = theme;
     editor.setTheme("ace/theme/" + theme);
     setTimeout( () => {
@@ -757,7 +740,21 @@ function setTheme(theme){
         var editorElement = document.getElementById('editor');
         if(treeElement !== undefined && editorElement !== undefined)
             tree.className = editorElement.className;
-    
+        hideLoading();
     }, 1000);
 }
     
+function toggleDir(dirElement){
+    if (dirElement.childElementCount > 1 /* == "dir"*/) {
+        innerTag = dirElement.child(0);
+        //toggle collapse/expand
+        if (dirElement.classList.contains("collapsed")) {
+            //expand
+            dirElement.classList.remove("collapsed");
+            innerTag.classList.add("list-dir");
+        } else {
+            dirElement.classList.add("collapsed");
+            innerTag.classList.remove("list-dir");
+        }
+    }
+}

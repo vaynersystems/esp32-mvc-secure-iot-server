@@ -28,6 +28,12 @@ static bool iequals(const char* s1, const char* s2, size_t n) {
     return true;
 }
 
+static inline bool ends_with(std::string const & value, std::string const & ending)
+{
+    if (ending.size() > value.size()) return false;
+    return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
+}
+
 static vector<string> explode( const string &str, const string &delimiter)
 {
     vector<string> arr;

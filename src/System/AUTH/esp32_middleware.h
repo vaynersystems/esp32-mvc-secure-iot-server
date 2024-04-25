@@ -31,11 +31,11 @@ private:
     //for token based access (instead of basic)
     
     ArduinoJWT* jwtTokenizer;
-
-
-
     //Get JWT Token
-    String GetJwtToken(HTTPRequest* request);
+    //String GetJwtTokenFromHeader(HTTPRequest* request);
+
+    static bool denyIfNotPublic(HTTPRequest* req, HTTPResponse* res);
+    static bool denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res);
 };
 
 #endif

@@ -116,7 +116,7 @@ protected:
             //file not found
             fileRequestInfo.exists = false;
         }
-
+#ifdef DEBUG
         Serial.printf("[3.2] Request for file %s from path %s with extension %s in %s format%s %s.\n", 
             fileRequestInfo.fileName.c_str() , 
             fileRequestInfo.filePath.c_str(), 
@@ -125,6 +125,7 @@ protected:
             fileRequestInfo.isDownload ? " with DOWNLOAD flag" : "",
             fileRequestInfo.exists ? " OK" : " FAILED"
         );
+#endif
         return fileRequestInfo.fileExtension.length() > 0 && fileRequestInfo.exists;
     }
 private:
