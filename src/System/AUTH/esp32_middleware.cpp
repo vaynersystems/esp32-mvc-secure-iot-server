@@ -2,6 +2,7 @@
 #include "esp32_middleware.h"
 
 #include "../CORE/esp32_server.h"
+#include <string_extensions.h>
 extern esp32_server server;
 #define STR_LINES PROGMEM "--------------------------------------------------------------------"
 /**
@@ -74,12 +75,15 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     }
     else //check auth
     {
-        //Serial.printf("Checking auth token %s received from Cookie", jwtTokenFromCookie.c_str());
+        
         if(jwtTokenFromCookie.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromCookie,jwtDecodedString)){
             jwtTokenValid = true;
+            //Serial.printf("Decoded auth token %s received from Cookie", jwtTokenFromCookie.c_str());
         } else {
+            //Serial.printf("Failed to decode auth token %s received from Cookie", jwtTokenFromCookie.c_str());
             reqUsername = req->getBasicAuthUser();
             reqPassword = req->getBasicAuthPassword();
+            Serial.printf("Using %s and %s from basic auth headers", reqUsername.c_str(), reqPassword.c_str());
         }
     }
 
@@ -90,18 +94,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     if (!jwtTokenValid){          
         if(req->getRequestString().substr(0, 6) == "/login" && req->getMethod() == "POST") {
 
-            //Serial.print("Read from Authorization header: "); Serial.println(jwtDecodedString.c_str());
-
-            // Get login information from request
-            // If you use HTTP Basic Auth, you can retrieve the values from the request.
-            // The return values will be empty strings if the user did not provide any data,
-            // or if the format of the Authorization header is invalid (eg. no Basic Method
-            // for Authorization, or an invalid Base64 token)
-
-            /*char* jwtToken = (char* )malloc(req->getHeader("Authoriztion").length());
-            strcpy(jwtToken, req->getHeader("Authoriztion").c_str());*/
-
-            // If the user entered login information, we will check it
+            // Get login information from request       
             if (reqUsername.length() > 0 && reqPassword.length() > 0) {
                 Serial.println("Checking loging info..");
                 // _Very_ simple hardcoded user database to check credentials and assign the group
@@ -165,9 +158,6 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 }
             }
             else {
-                //Serial.println("No log info passed..");
-                // No attempt to authenticate
-                // -> Let the request pass through by calling next()
                 res->setStatusText("Unauthorized");
                 res->setStatusCode(401);
                 res->setHeader("Content-Type", "text/plain");
@@ -203,17 +193,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 #ifdef DEBUG
             Serial.printf("Improperly Formed Token [%s]\n", jwtDecodedString.c_str());
 #endif
-            //res->setStatusCode(401);
-            //res->setStatusText("Unauthorized");
-            //res->setHeader("Content-Type", "text/plain");
-
-            // This should trigger the browser user/password dialog, and it will tell
-            // the client how it can authenticate
             res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
-
-            // Small error text on the response document. In a real-world scenario, you
-            // shouldn't display the login information on this page, of course ;-)
-            //res->println("401. Unauthorized [Invalid JWT Token] (try admin/secret or user/test)");
         }
     }
 
@@ -243,11 +223,11 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     if (jwtTokenFromRequest.length() > 7) {
         jwtTokenFromRequest.remove(0, 7);
         //Serial.print("Parsing JWT Token: "); Serial.println(jwtTokenFromRequest);
-
     }
     if(reqPath.equalsIgnoreCase("/logout")){
+        //redirect to login
         res->setStatusCode(303);
-        res->setHeader("Location","logout.html");
+        res->setHeader("Location","/logout.html");
         next();
         return;
     }
@@ -258,76 +238,67 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     } else //otherwise try from request
         decodeResult = jwtTokenFromRequest.length() > 48 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString);
 
-    bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
-
-    //Serial.printf("**Authorization**\t Decoded: %s, Is Internal: %s\n", decodeResult ? "Yes" : "No", isInternalPath ? "Yes" : "No");
-    if (!decodeResult
-        && isInternalPath) {
-
-        // Check that only logged-in users may get to the internal area (All URLs starting with /internal)
-       
-        res->setStatusCode(303);
-        res->setHeader("Location", "login");
-    }
-    else if (decodeResult) {        
+    
+    Serial.printf("**Authorization**\t Decoded: %s\n", decodeResult ? "Yes" : "No");
+    if (decodeResult) {        
         DynamicJsonDocument doc(jwtDecodedString.length() * 2);
-        //username = std::string(doc["user"].as<char*>());
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
-            Serial.print("User: "); Serial.println(doc["user"].as<const char*>());
+            //Serial.print("User: "); Serial.println(doc["user"].as<const char*>());
             req->setHeader(HEADER_USERNAME, doc["user"].as<const char*>());
             req->setHeader(HEADER_GROUP, doc["role"].as<const char*>());
             next();
+            return;
         }
-        else
-        {
-            res->setStatusCode(303);
-            res->setHeader("Location", "login");
-        }
+        Serial.printf("ERROR OCCURED DESERIALIZING JWT TOKEN: %s\n", jwtDecodedString.c_str());
+        
     }
-    else // Everything else will be allowed, so we call next()
-        next();
+    // Everything else will be allowed, so we call next()
+    if(denyIfNotPublic(req,res)) return;
+    if(denyIfNotAuthorized(req,res)) return;
+    Serial.printf("Request for resource %s authorized.\n", req->getRequestString().c_str());
+    next();
 }
 
-
-//Get JWT Token
-String esp32_middleware::GetJwtToken(HTTPRequest* request) {
-    std::string authstr = request->getHeader(HEADER_AUTH);
-    // Get the length of the token
-    size_t sourceLength = authstr.length();
-    // Only handle basic auth tokens
-    if (authstr.substr(0, 7) != "Bearer ") {
-        return String();
+bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
+    bool exclusion = false;
+    string request = req->getRequestString();
+    if(request.substr(0, 6) == "/login") exclusion = true;
+    else if(request.substr(0, 7) == "/logout") exclusion = true;
+    else if(request.substr(0, 11) == "/index.html") exclusion = true;
+    else if(request.substr(0, 11) == "/login.html") exclusion = true;
+    else if(request.substr(0, 12) == "/logout.html") exclusion = true;
+    else if (request.substr(0, strlen("/CSS/style.css")) == "/CSS/style.css") exclusion = true;
+    else if (request.substr(0, strlen("/JS/auth.js")) == "/JS/auth.js") exclusion = true;
+    else if (request.substr(0, strlen("/favicon.ico")) == "/favicon.ico") exclusion = true;
+    else if (request.substr(0, strlen("/JS/esp32_home.js")) == "/JS/esp32_home.js") exclusion = true;
+     
+   
+    if(!exclusion){            
+        Serial.printf("Request for resource %s rejected. Resource is not public.", request.c_str());
+        if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css"))
+            return true;
+        //if not resource file, redirect user
+        res->setStatusCode(303);
+        res->setHeader("Location", "/login?to=" + request);
+        res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
+        return true;
     }
-    // If the token is too long, skip
-    if (sourceLength > 500) {
-        return String();
-    }
-    else {
-        // Try to decode. As we are using mbedtls anyway, we can use that function
-        unsigned char* bufOut = new unsigned char[authstr.length()];
-
-        size_t outputLength = 0;
-        int res = mbedtls_base64_decode(
-            bufOut,
-            sourceLength,
-            &outputLength,
-            ((const unsigned char*)authstr.substr(7).c_str()), // Strip "Bearer "
-            sourceLength - 7 // Strip "Basic "
-        );
-        // Failure of decoding
-        if (res != 0) {
-            delete[] bufOut;
-            return String();
-        }
-        String tokenRes = String((char*)bufOut);
-        delete[] bufOut;
-        return tokenRes;
-
-    }
+    return false;
 }
 
+bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
+    bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
+    if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
+        Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
+        res->setStatusCode(303);
+        res->setHeader("Location", req->getHeader("Origin"));
+        res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
+        return true;
+    }
+    return false;
+}
 
 void esp32_middleware::middlewareSetTokenizer(char* pkData) {
     jwtTokenizer = new ArduinoJWT(pkData);

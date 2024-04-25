@@ -57,8 +57,6 @@ Navigate to /edit to use the advanced system editor
  ┃ ┃ ┣ edit.html                    ***  File Editor to modify your html, css and javascript files for rapid development
  ┃ ┃ ┣ favicon.ico                  ***  Site icon
  ┃ ┃ ┣ index.html                   ***  Fallback landing page if MVC fails
- ┃ ┃ ┣ login.html                   ***  Needs to be reworked into a controller.
- ┃ ┃ ┗ logout.html                  ***  Needs to be reworked into a controller.
  ┣ src
  ┃ ┣ System                         ***  ESP32 Secure Server System Files
  ┃ ┃ ┣ AUTH                         ***        Authentication related files

@@ -329,7 +329,7 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
             pathString.erase(0);
         }
     }
-    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
     
     routeObj.action = action;
     routeObj.controller = controller;
@@ -616,8 +616,6 @@ void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
     //     res->setStatusText("File not found");
     //     return;
     // }
-    Serial.printf("Providing %s file ", fileInfo.filePath.c_str());  
-    //Serial.print(f.size()); Serial.println(" bytes.");
     File f = SPIFFS.open(fileInfo.filePath.c_str(),"r");
     
     if (fileInfo.isGZ) 
