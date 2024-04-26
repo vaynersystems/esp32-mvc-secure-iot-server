@@ -36,6 +36,7 @@ private:
 
     static bool denyIfNotPublic(HTTPRequest* req, HTTPResponse* res);
     static bool denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res);
+    static void setAuthHeaders(HTTPRequest* req, const char * user, const char * password, const char * token);
 };
 
 #endif

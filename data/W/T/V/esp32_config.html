@@ -1,8 +1,181 @@
-<div>Fresh Content from list html template</div>
-<div>$_CUSTOM_MESSAGE</div>
-<div class="header">
-    <h1>$_WELCOME_MESSAGE</h1>
-    <p class="important">Content can be added here </p>
-    <p style="margin-left:20px;display:inline-block;">or here </p>
-    <p>The current run time is $_TIME</p>
+<style>
+    .content{
+        display: flex;
+        flex-direction: row;
+        border-style: none;
+        margin:5px 0px;
+    }
+    .config-menu{
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;        
+        width: 20%;
+        max-width: 300px;
+        min-width: 150px;
+        background: rgb(98,65,149);
+        background: linear-gradient(90deg, rgba(98,65,149,1) 0%, rgba(86,52,139,1) 41%, rgba(65,26,125,1) 84%, rgba(43,7,99,1) 100%);
+        color: #fff;
+        font-size: 20px;
+        padding: 15px 10px;
+        border-radius: 32px 0px 0px 32px;
+    }
+    .menu-item{
+       
+        color:#fff;
+        font-size: 20px;
+        padding:15px 10px;
+        border-radius: 22px;
+    }
+    .menu-item:hover{
+        
+       
+    }
+    .menu-item ul{
+        list-style: none;
+        margin: 0px;
+        padding: 5px 0px;
+    }
+    .menu-item li{
+        padding: 4px 13px;
+    }
+    .menu-item li:hover{
+        background-color: #fff;
+        color:#237;
+        cursor: pointer;
+    }
+    #config-content{
+        display: flex;
+        flex-grow: 1;
+        border-style: solid;
+        border-width: 1px 5px 1px 0px;
+        border-radius: 0 32px 32px 0;
+        border-color: #0b0b37;
+        border-color: linear-gradient(90deg, rgba(11,11,55,1) 0%, rgba(9,22,83,1) 41%, rgba(14,21,79,1) 84%, rgba(44,49,117,1) 100%);        
+    }
+    .section-collection{
+        display: none;
+    }
+    .section{
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;        
+        
+    }
+    .header{
+        font-size: 20px;
+        border-radius: 0 27px 0 0;
+        color: #fff;
+        background-color: #0b0b37;
+        padding: 10px;
+    }
+    .hidden{
+        display: none;
+    }
+</style>
+<div class="content">
+
+
+    <div class="config-menu">
+        <div class="menu-item">
+            <div class="menu-header">Devices</div>
+            <ul>
+                <li id="devices">Manage Devices</li>
+                <li id="schedules">Manage Schedules</li>
+            </ul>
+        </div>
+        <div class="menu-item">
+            <div class="menu-header">Network</div>
+            <ul>
+                <li id="wifi">Wifi</li>
+                <!-- <li>IP</li> -->
+            </ul>
+        </div>
+        <div class="menu-item">
+            <div class="menu-header">System</div>
+            <ul>
+                <li id="system">General</li>
+                <li id="ntp">NTP</li>
+            </ul>
+        </div>
+        <div class="menu-item">
+            <div class="menu-header">Server</div>
+            <ul>
+                <li id="boot">Boot</li>
+                <li id="backup">Backup</li>
+                <li id="restore">Restore</li>
+                <li id="reset">Reset</li>
+            </ul>
+        </div>
+    </div>
+    <div id="config-content">
+
+    </div>
+
+    <div class="hidden" id="section-collection">
+        <div class="section" name="devices">
+            <div class="header">Device Manager</div>
+        </div>
+        <div class="section" name="schedules">
+            <div class="header">Schedule Manager</div>
+        </div>
+        <div class="section" name="wifi">
+            <div class="header">Wifi Settings</div>
+        </div>
+        <div class="section" name="system">
+            <div class="header">System Manager</div>
+        </div>
+        <div class="section" name="ntp">
+            <div class="header">NTP</div>
+        </div>
+        <div class="section" name="boot">
+            <div class="header">Boot Settings</div>
+        </div>
+        <div class="section" name="backup">
+            <div class="header">Backup</div>
+        </div>
+        <div class="section" name="restore">
+            <div class="header">Restore</div>
+        </div>
+        <div class="section" name="reset">
+            <div class="header">Reset System</div>
+        </div>
+    </div>
 </div>
+
+<script type="text/javascript">
+    pendingChanges = false;
+    selectedSection = 'device'
+    function selectView(section){
+        if(pendingChanges){
+            const retval = confirm("Are you sure you want to quit without saving changes?")
+            if(retval === false)
+                return;
+        }
+        pendingChanges = false;
+        var sectionElement = document.getElementsByClassName('section').namedItem(section);
+        if(sectionElement === undefined) return;
+
+        var contentElement = document.getElementById('config-content');
+        if(contentElement === undefined) return;
+
+        var sectionCollectionElement = document.getElementById('section-collection');
+        if(sectionCollectionElement === undefined) return;
+
+        //move any attached children back to body
+        for (const child of contentElement.children) {
+            sectionCollectionElement.appendChild(child);
+            console.log(child.tagName);
+        }
+
+        contentElement.appendChild(sectionElement);
+    }
+
+    window.onload = function() {
+        var links = document.getElementsByTagName('li');
+        for(let link of links){
+            link.addEventListener('click', (e) => {selectView(link.id)});
+        }
+    }
+    
+</script>
+    

@@ -10,6 +10,7 @@ function getToken(url, user, pass) {
     request.open("POST", url, true);
     request.setRequestHeader("Content-type", "application/json");
     request.setRequestHeader("Authorization", "Basic " + btoa(user + ":" + pass));
+    request.setRequestHeader("X_RETURN_URL", "");
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
             if (request.status == 401) {
@@ -26,7 +27,7 @@ function getToken(url, user, pass) {
             document.cookie = token_.substring(7);
             const urlParams = new URLSearchParams(window.location.search);
             const redirectTo = urlParams.get('to');
-            if(redirectTo !== undefined){
+            if(redirectTo !== undefined && redirectTo !== null){
                 window.document.location = redirectTo;
             } else
                 window.document.location = "/";
