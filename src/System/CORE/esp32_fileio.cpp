@@ -1,6 +1,7 @@
 #include "esp32_fileio.h"
 
 #include "../ROUTER/esp32_router.h"
+#include <esp_task_wdt.h>
 
 bool esp32_fileio::start(){
     if (!SPIFFS.begin(true)) {
@@ -60,6 +61,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                 writeTo->printf("{\"type\": \"file\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\"}", file.name() + 1, file.size(), buff);
             }
             file = root.openNextFile();
+            //esp_task_wdt_reset();
         }
         writeTo->print("]");
     }
@@ -98,6 +100,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                 totalSize += file.size();
             }
             file = root.openNextFile();
+            //esp_task_wdt_reset();
         }
         file.close();
         String sizeStr;
@@ -145,9 +148,9 @@ void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const c
                 esp32_fileio::buildOrderedFileList(fs, file.path(), searchString, levels - 1, list);
             }
         }
-                  
             
         file = root.openNextFile();
+        //esp_task_wdt_reset();
     }
 
     list.sort(SortByPath);

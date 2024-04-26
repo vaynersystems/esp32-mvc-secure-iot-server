@@ -1,5 +1,6 @@
 #include "esp32_server.h"
 #include <HTTPMiddlewareFunction.hpp>
+#include <esp_task_wdt.h>
 
 esp32_server::esp32_server(SSLCert* cert) : secureServer(new HTTPSServer(cert)), unsecureServer(new HTTPServer())
 {
@@ -18,7 +19,7 @@ esp32_server::esp32_server(SSLCert* cert) : secureServer(new HTTPSServer(cert)),
 
 bool esp32_server::start() {
     
-
+    //sp_task_wdt_init(32,false);
     _router = new esp32_router();
     middleware = new esp32_middleware();
     middleware->middlewareSetTokenizer((char*)_cert->getPKData());
@@ -59,8 +60,9 @@ bool esp32_server::stop()
 {
     if (isRunning()){
         secureServer->stop();
-        unsecureServer->stop();
+        unsecureServer->stop();        
     }
+    //esp_task_wdt_deinit();
     return true;
 }
 
