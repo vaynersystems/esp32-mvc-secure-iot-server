@@ -6,7 +6,10 @@
  //Hard(ish) drive
 #include "FS.h"
 #include "SPIFFS.h"
+#include "HTTPMultipartBodyParser.hpp"
+
 using namespace std;
+
 
 struct SPIFFS_Info{
     int freeBytes;
@@ -48,7 +51,10 @@ public:
     static SPIFFS_Info getMemoryInfo();
     //output data
     static void printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files, string filter);
-    //static void printDirOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files);
+    
+    static bool CreateFile(const char * filename);
+    static size_t UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser);    
+    static bool DeleteFile(const char * filename);
 //helper methods
 	static void PrettyFormat(size_t size, String* output) {
         int order = 0;

@@ -1,79 +1,5 @@
-<style>
-    .content{
-        display: flex;
-        flex-direction: row;
-        border-style: none;
-        margin:5px 0px;
-    }
-    .config-menu{
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;        
-        width: 20%;
-        max-width: 300px;
-        min-width: 150px;
-        background: rgb(98,65,149);
-        background: linear-gradient(90deg, rgba(98,65,149,1) 0%, rgba(86,52,139,1) 41%, rgba(65,26,125,1) 84%, rgba(43,7,99,1) 100%);
-        color: #fff;
-        font-size: 20px;
-        padding: 15px 10px;
-        border-radius: 32px 0px 0px 32px;
-    }
-    .menu-item{
-       
-        color:#fff;
-        font-size: 20px;
-        padding:15px 10px;
-        border-radius: 22px;
-    }
-    .menu-item:hover{
-        
-       
-    }
-    .menu-item ul{
-        list-style: none;
-        margin: 0px;
-        padding: 5px 0px;
-    }
-    .menu-item li{
-        padding: 4px 13px;
-    }
-    .menu-item li:hover{
-        background-color: #fff;
-        color:#237;
-        cursor: pointer;
-    }
-    #config-content{
-        display: flex;
-        flex-grow: 1;
-        border-style: solid;
-        border-width: 1px 5px 1px 0px;
-        border-radius: 0 32px 32px 0;
-        border-color: #0b0b37;
-        border-color: linear-gradient(90deg, rgba(11,11,55,1) 0%, rgba(9,22,83,1) 41%, rgba(14,21,79,1) 84%, rgba(44,49,117,1) 100%);        
-    }
-    .section-collection{
-        display: none;
-    }
-    .section{
-        display: flex;
-        flex-direction: column;
-        flex-grow: 1;        
-        
-    }
-    .header{
-        font-size: 20px;
-        border-radius: 0 27px 0 0;
-        color: #fff;
-        background-color: #0b0b37;
-        padding: 10px;
-    }
-    .hidden{
-        display: none;
-    }
-</style>
-<div class="content">
-
+<link rel="stylesheet" href="/CSS/config.css">
+<div class="config-view">
 
     <div class="config-menu">
         <div class="menu-item">
@@ -107,75 +33,175 @@
             </ul>
         </div>
     </div>
-    <div id="config-content">
+    <div class="config-content">
+        <div id="config-content">
 
+        </div>
+        <div class="config-actions">
+            <button onclick="saveSettings()">Save</button>
+        </div>
     </div>
+    
+    <div id="error"></div>
 
     <div class="hidden" id="section-collection">
         <div class="section" name="devices">
-            <div class="header">Device Manager</div>
+            <div class="section-header">Device Manager</div>
+            <div class="section-content"></div>
         </div>
         <div class="section" name="schedules">
-            <div class="header">Schedule Manager</div>
+            <div class="section-header">Schedule Manager</div>
+            <div class="section-content"></div>
         </div>
         <div class="section" name="wifi">
-            <div class="header">Wifi Settings</div>
+            <div class="section-header">Wifi Settings</div>
+            <div class="section-content">
+                <div class="grid-2">
+                    <span>Wifi Mode</span>
+                    <select name="network-mode" id="network-mode">
+                        <option value="access-point">Acess Point</option>
+                        <option  value="client">Client</option>
+                    </select>                
+                </div>
+                <div id="wifi-access-point" class="hidden">
+                    <div class="grid-2">
+                        <div>Name your Access Point</div>
+                        <input type="text" name="wifi-network-name" id="wifi-network-name">
+                    </div>
+                    <div class="grid-2">
+                        <div>IP Address of the access point</div>
+                        <input type="text" name="wifi-network-ap-ip" id="wifi-network-ap-ip">
+                    </div>
+                    <div class="grid-2">
+                        <div>Subnet Mask</div>
+                        <input type="text" name="wifi-network-ap-subnet" id="wifi-network-ap-subnet">
+                    </div>
+    
+                </div>
+                <div id="wifi-client" class="hidden">
+                    <div class="grid-2">
+                        <div class="row">
+                            <div>Wifi Network</div>
+                            <div id="wifi-wait" class="wait"></div>
+                        </div>
+                        <div class="row">                        
+                            <select name="wifi-network" id="wifi-network"></select>
+                            <button onclick="getAvailableWifiNetworks()">Refresh</button>
+                        </div>
+                    </div>
+                    <div class="grid-2">
+                        <div>Network Password</div>
+                        <div>
+                            <input type="password" id="wifi-network-password" value=""/>                         
+                        </div>
+                        
+                    </div>
+                    <div class="grid-2">
+                        <div>Use DHCP</div>
+                        <div>
+                            <label for="wifi-network-dhcp-yes">Yes</label>
+                            <input type="radio" id="wifi-network-dhcp-yes" name="wifi-network-dhcp" value="dhcp" checked/>
+                            <label for="wifi-network-dhcp-no">No</label>
+                            <input type="radio" id="wifi-network-dhcp-no" name="wifi-network-dhcp" value="manual" />
+                        </div>
+                        
+                    </div>
+                    <div id="wifi-client-dhcp" class="hidden">
+    
+                    </div>
+                    <div id="wifi-client-manual" class="hidden">
+                        <div class="grid-2">
+                            <div>IP Address</div>
+                            <input type="text" name="wifi-network-client-ip" id="wifi-network-client-ip">
+                        </div>
+                        <div class="grid-2">
+                            <div>Subnet Mask <span class="hint"> e.g. 255.255.0.0</span></div>
+                            <input type="text" name="wifi-network-client-subnet" id="wifi-network-client-subnet">
+                        </div>
+                        <div class="grid-2">
+                            <div>Gateway IP</div>
+                            <input type="text" name="wifi-network-client-gateway" id="wifi-network-client-gateway">
+                        </div>
+                        <div class="grid-2">
+                            <div>DNS IP</div>
+                            <input type="text" name="wifi-network-client-dns" id="wifi-network-client-dns">
+                        </div>
+                    </div>
+                    
+                </div>
+            </div>
+            
+            
         </div>
         <div class="section" name="system">
-            <div class="header">System Manager</div>
+            <div class="section-header">System Manager</div>
+            <div class="section-content">
+                <div class="grid-2">
+                    <span>Host Name</span>
+                    <input type="text" name="host-name" id="host-name"/>                        
+                </div>                
+            </div>
         </div>
         <div class="section" name="ntp">
-            <div class="header">NTP</div>
+            <div class="section-header">NTP</div>
+            <div class="section-content">
+                <div class="grid-2">
+                    <span>Device Time</span>
+                    <input type="text" name="device-time" id="device-time"/>                        
+                </div> 
+                <div class="grid-2">
+                    <span>NTP Server</span>
+                    <input type="text" name="ntp-host-name" id="ntp-host-name"/>                        
+                </div> 
+                <div class="grid-2">
+                    <span>Time Zone</span>
+                    <select name="time-zone" id="time-zone">
+                        <option value="-5">(GMT -5:00) Eastern Time (US & Canada), Bogota, Lima</option>
+                        <option  value="-6">(GMT -6:00) Central Time (US & Canada), Mexico City</option>
+                        <option  value="-7">(GMT -7:00) Mountain Time (US & Canada)</option>
+                        <option  value="-8">(GMT -8:00) Pacific Time (US & Canada)</option>
+                    </select>                       
+                </div> 
+            </div>
         </div>
         <div class="section" name="boot">
-            <div class="header">Boot Settings</div>
+            <div class="section-header">Boot Settings</div>
+            <div class="section-content">
+                <div class="grid-2">
+                    <span>Disable Wifi After</span>
+                    <select name="disable-wifi-timer" id="disable-wifi-timer">
+                        <option value="5">5 minutes</option>
+                        <option  value="10">10 minutes</option>
+                        <option  value="30">30 minutes</option>
+                        <option  value="60">1 hour</option>                        
+                    </select>                       
+                </div> 
+            </div>
         </div>
         <div class="section" name="backup">
-            <div class="header">Backup</div>
+            <div class="section-header">Backup</div>
+            <div class="section-content">
+                <a href="$_CONFIG_FILE?download=true" target="_blank">Download a copy</a> of your configuration so you can restore.
+            </div>
         </div>
         <div class="section" name="restore">
-            <div class="header">Restore</div>
+            <div class="section-header">Restore</div>
+            <div class="section-content">
+                <label for="restoreSettings" class="link">Restore Settings</label><h6 class="text-muted">Restore from backup file.</h6>                
+                <input id="restoreSettings" type="file" accept="text/json" onchange="restoreSettings();" style="display:none;">
+            </div>
         </div>
         <div class="section" name="reset">
-            <div class="header">Reset System</div>
+            <div class="section-header">Reset System</div>
+            <div class="section-content"></div>
         </div>
     </div>
 </div>
 
+<script type="text/javascript" src="JS/esp32_config.js"></script>
 <script type="text/javascript">
-    pendingChanges = false;
-    selectedSection = 'device'
-    function selectView(section){
-        if(pendingChanges){
-            const retval = confirm("Are you sure you want to quit without saving changes?")
-            if(retval === false)
-                return;
-        }
-        pendingChanges = false;
-        var sectionElement = document.getElementsByClassName('section').namedItem(section);
-        if(sectionElement === undefined) return;
-
-        var contentElement = document.getElementById('config-content');
-        if(contentElement === undefined) return;
-
-        var sectionCollectionElement = document.getElementById('section-collection');
-        if(sectionCollectionElement === undefined) return;
-
-        //move any attached children back to body
-        for (const child of contentElement.children) {
-            sectionCollectionElement.appendChild(child);
-            console.log(child.tagName);
-        }
-
-        contentElement.appendChild(sectionElement);
-    }
-
     window.onload = function() {
-        var links = document.getElementsByTagName('li');
-        for(let link of links){
-            link.addEventListener('click', (e) => {selectView(link.id)});
-        }
+        esp32_config_init('$_CONFIGURATION_DATA');
     }
-    
 </script>
     

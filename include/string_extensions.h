@@ -1,4 +1,6 @@
 #include <sstream>
+#ifndef _ESP32_STRING_EXTENSIONS_H
+#define _ESP32_STRING_EXTENSIONS_H
 
 template <typename T>
 std::string to_string_with_precision(const T a_value, const int n = 6)
@@ -27,7 +29,11 @@ static bool iequals(const char* s1, const char* s2, size_t n) {
     }
     return true;
 }
-
+static inline bool starts_with(std::string const & value, std::string const & beginning)
+{
+    if (beginning.size() > value.size()) return false;
+    return std::equal(beginning.begin(), beginning.end(), value.begin());
+}
 static inline bool ends_with(std::string const & value, std::string const & ending)
 {
     if (ending.size() > value.size()) return false;
@@ -64,3 +70,4 @@ static vector<string> explode( const string &str, const string &delimiter)
     arr.push_back(  str.substr(k, i-k) );
     return arr;
 }
+#endif

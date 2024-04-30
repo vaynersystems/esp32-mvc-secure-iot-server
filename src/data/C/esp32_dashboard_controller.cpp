@@ -95,6 +95,8 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$STACK_USED", usedBytesSTACKPretty.c_str());
     controllerTemplate.SetTemplateVariable("$STACK_TOTAL", totalBytesSTACKPretty.c_str());
     controllerTemplate.SetTemplateVariable("$STACK_PERCENT_USED", (to_string_with_precision(round(((float)(STACK_SIZE - stackFreeBytes)/(float)STACK_SIZE)*100),1).c_str()));    
+
+    Base_Controller::Index(req,res);    
 }
 
 void esp32_dashboard_controller::prettyFlashModeString(String &flashMode){

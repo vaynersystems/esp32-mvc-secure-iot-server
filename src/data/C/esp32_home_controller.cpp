@@ -7,10 +7,6 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     title = "ESP32 Web Server Home Page";
 
-    // DynamicJsonDocument doc(256);
-    // JsonArray arr = doc.createNestedArray();
-    //link to controllers
-    //res->printf("<p class='debug-small'>");
     string ctrString = "[";
     int numOfControllers = BaseFactory::getInstanceCount();
     //Serial.printf("Found %i controllers\n", numOfControllers);
@@ -22,21 +18,16 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         vector<string> actions = {};
         controller.second()->GetActions(&actions);
         Serial.printf("Controller %d of %d: %s with %i actions\n",i, numOfControllers,controller.first.c_str(), actions.size());
-        for(const string& action : actions) 
-        // for(int actionsIdx = 0; i < actions.size(); actionsIdx++)
+        for(const string& action : actions)     
              ctrString += "{\"" + controller.first + "\": \"" + action + "\"}, ";
-        // //ctrString += controller.first + ", ";
-        // actions.~vector();
+    
     }
     if(ctrString.length() > 2) //trim off trailing comma
         ctrString = ctrString.substr(0,ctrString.length() - 2); 
 
         ctrString += "]";
     
-    //doc["controllers"] = arr;
-    
-    //serializeJsonPretty(doc, ctrString);
     controllerTemplate.SetTemplateVariable("$_Controllers", ctrString.c_str());
-    //res->printf("</p>");
+    Base_Controller::Index(req,res);    
 }
 

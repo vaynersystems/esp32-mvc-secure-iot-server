@@ -37,6 +37,7 @@ void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
         serializeJson(doc, outputString);
     //set to template variable
     controllerTemplate.SetTemplateVariable("$_TASKS", outputString.c_str());
+    Base_Controller::Index(req,res);    
     
 }
 void custom_task_manager_controller::Put(HTTPRequest* req, HTTPResponse* res) {
@@ -72,7 +73,7 @@ void custom_task_manager_controller::Post(HTTPRequest* req, HTTPResponse* res) {
             
             for(auto task : inputTasks){
                 String taskName = String(task["name"].as<const char *>());
-                Serial.printf("Comparing task %s to %s", taskName.c_str(), value.c_str());
+                //Serial.printf("Comparing task %s to %s", taskName.c_str(), value.c_str());
                 if(taskName.equalsIgnoreCase(value)){
                     bool isCompleted = task["completed"].as<bool>();
                     task["completed"] = !isCompleted;

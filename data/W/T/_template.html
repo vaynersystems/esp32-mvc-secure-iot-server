@@ -2,6 +2,21 @@
 <html>
 <head>
     <title>$title</title>
+    <script type="text/javascript">
+        function showLoading() {
+            var l = document.getElementById('page-wait');
+            if (l !== null) l.style.visibility = 'visible';
+        }
+        function hideLoading() {
+            var l = document.getElementById('page-wait');
+            if (l !== null) l.style.visibility = 'hidden';
+        }
+    </script>
+    <script src="/JS/jquery-3.7.1.min.js"></script>
+
+    <!-- jQuery Modal -->
+    <script src="/JS/jquery.modal.min.js"></script>
+    <link rel="stylesheet" href="/CSS/jquery.modal.min.css" />
     $doc_head
 </head>
 <body>
@@ -9,5 +24,6 @@
     <div class="menu">$menu</div>
     <div class="content">$content</div>
     <div class="footer">$footer</div>
+    <div id="page-wait"></div>
 </body>
 </html>

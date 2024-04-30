@@ -10,6 +10,8 @@
 #include "../ROUTER/esp32_template.h"
 #include <ArduinoJson.h>
 
+#include "string_extensions.h"
+
 #include <algorithm>
 using namespace httpsserver;
 
@@ -18,8 +20,11 @@ class Base_Controller {
         Base_Controller() {};
 
         esp32_template controllerTemplate = esp32_template();
+        virtual void GenericIndex(HTTPRequest* req, HTTPResponse* res);
 
-        virtual void Index(HTTPRequest* req, HTTPResponse* res) {  /*res->println("This action has not been implemented");*/ }
+        virtual void Index(HTTPRequest* req, HTTPResponse* res){
+            GenericIndex(req,res); //if not overwritten, build page using MVC framework
+        }
         virtual void List(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Put(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Post(HTTPRequest* req, HTTPResponse* res) { }
@@ -34,7 +39,74 @@ class Base_Controller {
         virtual bool isOptionsImplemented(){ return false;}
 
         
-        void SetVariablesFromJSON() {
+        /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
+        /// @param req 
+        /// @param res 
+        virtual void Action(HTTPRequest* req, HTTPResponse* res) {
+            //set temlate variables from json file
+            LoadModel();
+            Serial.printf("Request for action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
+            if (iequals(route.action.c_str(), "LIST", 4)) {
+                List(req, res);
+            } else if (iequals(route.action.c_str(), "PUT", 3)) {
+                Put(req, res);
+            }
+            else if (iequals(route.action.c_str(), "POST", 4)) {
+                Post(req, res);
+            }
+            else if (iequals(route.action.c_str(), "DELETE", 6)) {
+                Delete(req, res);
+            }
+            else if (iequals(route.action.c_str(), "OPTIONS", 7)) {
+                Options(req, res);
+            }
+            else// (action == "Index") {
+            {
+                Index(req, res);
+            }
+        }
+        virtual void GetActions(vector<string> *actions){
+            if((*this).isIndexImplemented()) actions->push_back("index");
+            if((*this).isListImplemented()) actions->push_back("list");
+            if((*this).isPutImplemented()) actions->push_back("put");
+            if((*this).isPostImplemented()) actions->push_back("post");
+            if((*this).isDeleteImplemented()) actions->push_back("delete");
+            if((*this).isOptionsImplemented()) actions->push_back("options");
+        // }
+               
+        }
+        virtual bool HasAction(const char * action){
+            if(iequals(action, "index", 5)) return this->isIndexImplemented();
+            if(iequals(action, "list",4)) return this->isListImplemented();
+            if(iequals(action, "put",3)) return this->isPutImplemented();
+            if(iequals(action, "post",4)) return this->isPostImplemented();
+            if(iequals(action, "delete",6)) return this->isDeleteImplemented();
+            if(iequals(action, "options",7)) return this->isOptionsImplemented();
+            return false;
+        }
+
+
+        void SetRoute(esp32_controller_route reqRoute) {
+            route = esp32_controller_route(reqRoute);
+        }
+        void SetTemplate(std::string customPath = std::string()) {
+            controllerTemplate.templateContentFilePath = SITE_ROOT;
+            controllerTemplate.templateContentFilePath += "/T/V/"; //views folder
+            if (customPath.length() > 0) {                
+                controllerTemplate.templateContentFilePath += customPath;
+            }
+            else {
+                
+                controllerTemplate.templateContentFilePath += route.controller.c_str();
+                if (route.action != "index") { //suffix not required for index(default) action
+                    controllerTemplate.templateContentFilePath += "_";
+                    controllerTemplate.templateContentFilePath += route.action.c_str();
+                }
+                controllerTemplate.templateContentFilePath += ".html";
+            }
+        }
+
+        void LoadModel() {
             std::string jsonPath = controllerTemplate.templateContentFilePath;
             jsonPath.erase(jsonPath.length() - 5);
             jsonPath.append(".json");
@@ -58,69 +130,7 @@ class Base_Controller {
             }
         }
 
-        /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
-        /// @param req 
-        /// @param res 
-        virtual void Action(HTTPRequest* req, HTTPResponse* res) {
-            //set temlate variables from json file
-            SetVariablesFromJSON();
-            Serial.printf("Request for action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
-            if (route.action.compare("list") == 0) {
-                List(req, res);
-            } else if (route.action == "put") {
-                Put(req, res);
-            }
-            else if (route.action == "post") {
-                Post(req, res);
-            }
-            else if (route.action == "delete") {
-                Delete(req, res);
-            }
-            else// (action == "Index") {
-            {
-                Index(req, res);
-            }
         
-        }
-        void SetRoute(esp32_controller_route reqRoute) {
-            route = esp32_controller_route(reqRoute);
-        }
-        void SetTemplate(std::string customPath = std::string()) {
-            controllerTemplate.templateContentFilePath = SITE_ROOT;
-            controllerTemplate.templateContentFilePath += "/T/V/"; //views folder
-            if (customPath.length() > 0) {                
-                controllerTemplate.templateContentFilePath += customPath;
-            }
-            else {
-                
-                controllerTemplate.templateContentFilePath += route.controller.c_str();
-                if (route.action != "index") { //suffix not required for index(default) action
-                    controllerTemplate.templateContentFilePath += "_";
-                    controllerTemplate.templateContentFilePath += route.action.c_str();
-                }
-                controllerTemplate.templateContentFilePath += ".html";
-            }
-        }
-
-        void GetActions(vector<string> *actions){
-            if((*this).isIndexImplemented()) actions->push_back("index");
-            if((*this).isListImplemented()) actions->push_back("list");
-            if((*this).isPutImplemented()) actions->push_back("put");
-            if((*this).isPostImplemented()) actions->push_back("post");
-            if((*this).isDeleteImplemented()) actions->push_back("delete");
-            if((*this).isOptionsImplemented()) actions->push_back("options");
-        // }
-               
-        }
-        bool HasAction(const char * action){
-            if(strcmp(action, "index") == 0) return this->isIndexImplemented();
-            if(strcmp(action, "list") == 0) return this->isListImplemented();
-            if(strcmp(action, "put") == 0) return this->isPutImplemented();
-            if(strcmp(action, "post") == 0) return this->isPostImplemented();
-            if(strcmp(action, "delete") == 0) return this->isDeleteImplemented();
-            if(strcmp(action, "options") == 0) return this->isOptionsImplemented();
-            return false;
-        }
 
         
     string title="";
