@@ -9,20 +9,21 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     title = "Module Configuration Page";
 
+    File f = SPIFFS.open(SYSTEM_CONFIG_FILE,"r");
+    StaticJsonDocument<1024> configDoc;
+    auto error = deserializeJson(configDoc, f);
+    string configData;
+    serializeJson(configDoc, configData);
+
+    controllerTemplate.SetTemplateVariable("$_CONFIGURATION_DATA", configData.c_str());
+    controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", SYSTEM_CONFIG_FILE);
     
+    Base_Controller::Index(req,res);    
+}
 
-    controllerTemplate.SetTemplateVariable("$_CUSTOM_MESSAGE", "<B>[Dynamic - Template Driven Data]</B>");
-
-    int paramCount = req->getParams()->getQueryParameterCount();
-    res->printf("<p class='debug-small'>Page from ip [%s] with [%u]parameters\n", req->getClientIP().toString().c_str(), paramCount);
-    if (paramCount > 0) {
-        auto ittr = req->getParams()->beginQueryParameters();
-        for (int i = 0; i < paramCount; i++) {
-            res->printf("\tParam [%s]: [%s]\n", ittr->first.c_str(), ittr->second.c_str());
-            ittr++;
-        }
-    }
-    res->printf("</p>");
+void esp32_config_controller::Post(HTTPRequest* req, HTTPResponse* res) {
+    SaveConfigData(req,res);
+    Serial.println("Completed POST method");
 }
 
 /// @brief Overwrite Action since we have custom action implemented
@@ -35,8 +36,26 @@ void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
     else if (route.action.compare("LoadConfigData") == 0) {
         LoadConfigData(req,res);
     }
+    else if (route.action.compare("SaveConfigData") == 0) {
+        SaveConfigData(req,res);
+    }
     else
         Base_Controller::Action(req,res);
+}
+
+bool esp32_config_controller::HasAction(const char * action){
+    if (strcmp(action,"GetAvailableWifi") == 0) {
+        return true;
+    }
+    else if (strcmp(action, "LoadConfigData") == 0) {
+        return true;
+    }
+    else if (strcmp(action, "SaveConfigData") == 0) {
+        return true;
+    }
+    
+    else
+        Base_Controller::HasAction(action);
 }
 
 
@@ -89,9 +108,10 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* r
     String outputstring;
     serializeJson(doc,outputstring);   
     res->print(outputstring.c_str());    
+    res->setStatusCode(200);
 }
 
-/// @brief Load configuration information from json file
+/// @brief Load configuration information from json file on disk
 /// @param req 
 /// @param res 
 void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res) {
@@ -100,9 +120,54 @@ void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res
     int bytesToRead = 0;
     while(true){
         bytesToRead = f.available() > sizeof(buff) ? sizeof(buff) : f.available();
+        if(bytesToRead <= 0) break;
         f.readBytes((char*)buff,bytesToRead);
         res->write(buff,bytesToRead);
     }
-    f.close();
+    f.close();    
+
+    res->setStatusCode(200);
+}
+
+/// @brief Save configuration json to disk
+/// @param req 
+/// @param res 
+/// @return 
+bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res){
+    const int length = req->getContentLength();
     
+    DynamicJsonDocument doc(length * 2);
+    string content;
+    Serial.printf("Saving configuration to %s...\n", SYSTEM_CONFIG_FILE);
+    char * buf = new char[32];
+    while(true){
+        
+        int bytesRead = req->readBytes((byte*)buf,32); 
+        if(bytesRead <= 0) break;       
+        content.append(buf,bytesRead);
+    }
+    delete[] buf;
+
+    #ifdef DEBUG
+    Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
+    #endif
+    auto error = deserializeJson(doc, content);
+
+    if(error.code() == DeserializationError::Ok){
+        File f = SPIFFS.open(SYSTEM_CONFIG_FILE, "w");
+        serializeJson(doc,f);
+        f.close();
+        res->setStatusCode(200);
+        Serial.printf("Saved configuration to %s\n", SYSTEM_CONFIG_FILE);
+    } else{
+        res->setStatusCode(500);
+        // String errorText = "Error saving configuration: ";
+        // errorText += error.c_str();
+        res->setStatusText(error.c_str());
+        Serial.printf(error.c_str());
+        return false;
+    }    
+    Serial.printf("Completed SaveConfigData, returning control\n");    
+    
+    return true;
 }

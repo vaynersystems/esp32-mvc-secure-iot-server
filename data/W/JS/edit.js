@@ -538,13 +538,14 @@ function createEditor(e, f, g, h, i) {
                 editor.setValue(j.responseText);
             else
                 editor.setValue("");
-            editor.clearSelection()
+            editor.clearSelection();
+            hideLoading();
         }
     }
-    function httpGet(a) {
+    function httpGet(url) {
         j = new XMLHttpRequest();
         j.onreadystatechange = httpGetProcessRequest;
-        j.open("GET", a, true);
+        j.open("GET", url, true);
         j.setRequestHeader('Cache-Control','no-cache');
         j.send(null)
     }
@@ -581,7 +582,7 @@ function createEditor(e, f, g, h, i) {
         showLoading();
         httpPost(f, editor.getValue() + "", i);
     };
-    editor.commands.addCommand({
+    editor.commands.undoCommand({
         name: 'undoCommand',
         bindKey: {
             win: 'Ctrl-Z',
@@ -592,7 +593,7 @@ function createEditor(e, f, g, h, i) {
         },
         readOnly: false
     });
-    editor.commands.addCommand({
+    editor.commands.redoCommand({
         name: 'redoCommand',
         bindKey: {
             win: 'Ctrl-Shift-Z',
@@ -746,7 +747,7 @@ function setTheme(theme){
     
 function toggleDir(dirElement){
     if (dirElement.childElementCount > 1 /* == "dir"*/) {
-        innerTag = dirElement.child(0);
+        innerTag = dirElement.childNodes[0];
         //toggle collapse/expand
         if (dirElement.classList.contains("collapsed")) {
             //expand

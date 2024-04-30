@@ -24,7 +24,7 @@ void serverTask(void* params);
 #else
     #define ARDUINO_RUNNING_CORE 1
 #endif
-extern const int STACK_SIZE = 1024*10;
+extern const int STACK_SIZE = 1024*32;
 //for starting and looping server task
 void serverTask(void* params) {
     server.start();

@@ -4,8 +4,7 @@
 DerivedController<esp32_login_controller> esp32_login_controller::reg("login");
 
 void esp32_login_controller::Index(HTTPRequest* req, HTTPResponse* res) {
-    //just serve the login page
-    //res->printf("Serving index action for esp32_login_controller\n");
+    Base_Controller::Index(req,res);    
 }
 
 // /// @brief Login request

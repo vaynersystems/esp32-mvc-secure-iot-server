@@ -73,10 +73,16 @@ public:
 
 protected:
 	static DerivedController<Base_Controller>* controllerFactory;
-    static bool parseFileRequestInfo(esp32_route_file_info& fileRequestInfo){
-        
+    static bool parseFileRequest(HTTPRequest* req, esp32_route_file_info& fileRequestInfo){
         String fileName = String(fileRequestInfo.requestPath.c_str());
-        if (!fileName.startsWith(SITE_ROOT))
+
+        bool internalFile = fileName.startsWith(INTERNAL_ROOT);
+        bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";
+        if(internalFile && !isAdminUser){
+            return false;
+        }
+                
+        if (!fileName.startsWith(SITE_ROOT) && !internalFile)
             fileName = SITE_ROOT + fileName;
         fileName = urlDecode(fileName.c_str()).c_str();
         

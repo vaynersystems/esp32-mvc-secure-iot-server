@@ -213,3 +213,59 @@ void esp32_fileio::printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>*
     }
     writeTo->print("]");
 }
+
+bool esp32_fileio::CreateFile(const char * filename){
+    string name = filename;
+    if(!starts_with(string(SITE_ROOT), name)){
+        name = SITE_ROOT + name;
+    }
+    if(SPIFFS.exists(name.c_str()))return false;
+    File f = SPIFFS.open(name.c_str(),"w");
+    f.close();
+    return true;
+}
+/// @brief Update file on SPIFFS.
+/// @brief Will make sure file in is the SITE_ROOT path
+/// @param filename path of file to save
+/// @param HTTPMultipartBodyParser object from the request
+/// @return number of bytes saved. -1 if failed
+size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser){
+    string name = filename;
+    if(name[0] != '/') name = "/" + name;
+    if(!iequals(SITE_ROOT, name.c_str(),strlen(SITE_ROOT))){
+        name = SITE_ROOT + name;
+    }
+
+    size_t fieldLength = 0;
+    if(!SPIFFS.exists(name.c_str())){
+        Serial.printf("File %s not found \n", name.c_str());
+        return -1;
+    }
+    File file = SPIFFS.open(name.c_str(), "w");
+    byte* buf = new byte[80]; //must be at least 72 chars to detect boundary
+    size_t readLength = 0;
+    while (!parser->endOfField()) {
+        
+        readLength = parser->read(buf, 80);
+        file.write(buf, readLength);
+        //Serial.write(buf,readLength);
+        fieldLength += readLength;
+    }
+    delete[] buf;
+    file.close();  
+    return fieldLength;  
+}
+
+bool esp32_fileio::DeleteFile(const char * filename){
+    if (filename == "") {
+       return false;
+    }
+    string name = filename;
+    if(!starts_with(string(SITE_ROOT), name)){
+        name = SITE_ROOT + name;
+    }
+    if (!SPIFFS.exists(name.c_str())) {
+        return false;
+    }
+    return SPIFFS.remove(name.c_str());
+}

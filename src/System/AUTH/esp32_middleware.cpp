@@ -1,6 +1,6 @@
 
 #include "esp32_middleware.h"
-
+#include "esp32_authentication.h"
 #include "../CORE/esp32_server.h"
 #include <string_extensions.h>
 #include <esp_task_wdt.h>
@@ -86,32 +86,22 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             // Get login information from request       
             if (reqUsername.length() > 0 && reqPassword.length() > 0) {
                 Serial.println("Checking loging info..");
-                // _Very_ simple hardcoded user database to check credentials and assign the group
-                bool authValid = true;
-                std::string group = "";
-                if (reqUsername == "admin" && reqPassword == "secret") {
-                    group = "ADMIN";
-                }
-                else if (reqUsername == "user" && reqPassword == "test") {
-                    group = "USER";
-                }
-                else {
-                    authValid = false;
-                }
-
-                // If authentication was successful issue JWT token
-                if (authValid) {
+                esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
+                Serial.printf("Authentication result: username: %s, password: %s, valid: %s\n", info.username.c_str(), info.password.c_str(), info.authenticated ? "VALID" : "INVALID");
+                
+                // if authentication was successful issue JWT token
+                if (info.authenticated) {
                     DynamicJsonDocument doc(128);
                     doc["user"] = reqUsername;
                     doc["password"] = reqPassword;
-                    doc["role"] = group;
+                    doc["role"] = info.role.c_str();
                     jwtTokenPayload.clear();
                     serializeJson(doc, jwtTokenPayload);
 
                     jwtToken = "Bearer ";
                     jwtToken += String(server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload));
                     
-                    setAuthHeaders(req, reqUsername.c_str(), group.c_str(),jwtToken.c_str());
+                    setAuthHeaders(req, reqUsername.c_str(), info.role.c_str(),jwtToken.c_str());
 
                     std::string token = std::string(jwtToken.c_str());
                     //verify
@@ -199,15 +189,13 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
  * This function plays together with the middlewareAuthentication(). While the first function checks the
  * username/password combination and stores it in the request, this function makes use of this information
  * to allow or deny access.
- *
- * This example only prevents unauthorized access to every ResourceNode stored under an /internal/... path.
  */
 void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* res, std::function<void()> next) {
     // Get the username (if any)
     std::string username = req->getHeader(HEADER_USERNAME);
     std::string authHeader = req->getHeader(HEADER_AUTH);
     String reqPath = String(req->getRequestString().c_str());
-    String jwtTokenFromCookie = req->getHeader("Cookie").c_str();
+    String jwtTokenFromCookie = req->getHeader(HEADER_COOKIE).c_str();
     bool decodeResult = false;
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
@@ -291,7 +279,7 @@ bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
     bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
     if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
         Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
-        res->setStatusCode(303);
+        res->setStatusCode(401);
         res->setHeader("Location", req->getHeader("Origin"));
         res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
         return true;

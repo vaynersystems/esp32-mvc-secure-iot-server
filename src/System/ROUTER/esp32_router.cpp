@@ -228,16 +228,13 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, S
         Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fFileName.c_str());
         res->print(line.substring(0, idx).c_str());
         
-        //Serial.printf("[PREFIX] %s\n", line.substring(0, idx).c_str());
-
         if (SPIFFS.exists(fFileName.c_str())) {
             File fPagePart = SPIFFS.open(fFileName);
 
             while (fPagePart.available()) {
                 String docLine = fPagePart.readStringUntil('\n');
                 res->print(docLine.c_str());
-                if (fPagePart.available()) res->print('\n'); //write new line if not last line
-                //Serial.printf("[CONTENT] %s\n", docLine.c_str());
+                if (fPagePart.available()) res->print('\n'); //write new line if not last line                
             }
             fPagePart.close();
 
@@ -248,7 +245,6 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, S
             res->printf("Page Part %s file %s NOT FOUND!",searchString,fFileName.c_str());
         }
         res->println(line.substring(idx + strlen(searchString)).c_str());
-        //Serial.printf("[SUFFIX] %s\n\n", line.substring(idx + strlen(searchString)).c_str());
     }
     
 
@@ -258,17 +254,9 @@ int esp32_router::handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res,
 
     int idx = line.indexOf(searchString);
     if (idx >= 0) {
-
-
-        //Serial.printf("[PagePart Parser]. Found %s in %s. Filling from string. ", searchString, line.c_str());
         res->print(line.substring(0, idx).c_str());
-
-       // Serial.printf("[PREFIX] %s\n", line.substring(0, idx).c_str());
         res->print(content.c_str());
-        //Serial.printf("[CONTENT] %s\n", content.c_str());
-
-        res->println(line.substring(idx + strlen(searchString)).c_str());
-        //Serial.printf("[SUFFIX] %s\n\n", line.substring(idx + strlen(searchString)).c_str());
+        res->println(line.substring(idx + strlen(searchString)).c_str());        
     }
 
     return idx;// > 0 ? idx : 0;
@@ -279,64 +267,66 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
 
     string controller(""), action("");
     string pathString(""), queryString("");
+    
     pathString = request->getRequestString();
-    /*
-        If request is not a get, route to the proper action
-        Otherwise, decode action from url
-    */
+    // Decode path:
+    // 1. Check for query string, if present, parse it out
+    // 2. get controller.
+    // 3. check if action is specified, if so parse it. otherwise default to html method as action
 
     int queryStart = pathString.find_first_of('?');
     if (queryStart > 0)
     {
         queryString = pathString.substr(queryStart + 1);
         pathString = pathString.substr(0,queryStart);
-        //Serial.printf("Query string detected with %s path and %s query", pathString.c_str(), queryString.c_str());
+        //Serial.printf("Query string detected with %s path and %s query\n", pathString.c_str(), queryString.c_str());
         //reqString.erase(queryStart);
     }
     if (pathString.find_first_of('/') == 0) //remove leading slash
         pathString.erase(0, 1);
 
     //default controller if none is specified
-    controller = "invalid";//"esp32_home";
+    controller = "error";
     if(strstr(pathString.c_str(),"index.html") != nullptr || pathString.length() == 0)
         controller = "esp32_home";
     else controller = pathString;
-    //default action
-    action = "index";
-    //explicit action defined
+    
     int reqIdxSlash = pathString.find_first_of('/');
     bool actionFound = false;
-    if (reqIdxSlash > 0)
+    if (reqIdxSlash > 0) //explicit action defined
     {
         controller = pathString.substr(0, reqIdxSlash);
         pathString.erase(0, reqIdxSlash + 1);
         action = pathString;
         actionFound = true;
-    }
+    } else //default action
+        action = "index";
 
-    if(strcmp(request->getMethod().c_str(),"GET") != 0){
-        action = request->getMethod();
-    }else {
-        reqIdxSlash = pathString.find_first_of('/');
-        if (reqIdxSlash > 0)
-        {
-            action = pathString.substr(0, reqIdxSlash);
-            pathString.erase(0, reqIdxSlash + 1);
-        }
-        else {
-            if(actionFound)
-                action = pathString;
-            pathString.erase(0);
-        }
+    // if(iequals(request->getMethod().c_str(),"GET",3)){
+    //     action = request->getMethod();
+    // }else {
+    reqIdxSlash = pathString.find_first_of('/');
+    if (reqIdxSlash > 0)
+    {
+        action = pathString.substr(0, reqIdxSlash);
+        pathString.erase(0, reqIdxSlash + 1);
     }
-    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    else {
+        if(actionFound)
+            action = pathString;
+        else if (!iequals(request->getMethod().c_str(),"GET",3))
+         action = request->getMethod();
+        if(pathString[0] == '/')
+            pathString.erase(0);
+    }
+    //}
+    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
     
     routeObj.action = action;
     routeObj.controller = controller;
     routeObj.params = urlDecode(queryString);
     //return IsValidRoute(routeObj);
-    return controllerFactory->hasInstance(controller.c_str());
-    
+    return controllerFactory->hasInstance(controller.c_str());    
 }
 
 bool esp32_router::IsValidRoute(esp32_controller_route & route){
@@ -366,38 +356,40 @@ bool esp32_router::IsValidRoute(esp32_controller_route & route){
 }
 void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
     if (req->getMethod() == "DELETE") {
-        res->println("<html><head><title>File Deleted</title><head><body><h1>File Deleted</h1>");
+        
 
         HTTPURLEncodedBodyParser parser(req);
         string filename, filePath;
         bool savedFile = false;
         while (parser.nextField()) {
             string name = parser.getFieldName();
-            Serial.printf("Parsing field %s\n", name.c_str());
-            if (name.substr(0, strlen("------WebKitFormBoundary")).compare("------WebKitFormBoundary") == 0) {
-                char buf[512];
-                size_t readLength = parser.read((byte*)buf, 512);
-                filePath = string(buf, readLength);
-                Serial.printf("Parsing substring from idx %d to idx %d\n", filePath.find_first_of("://"), filePath.find_first_of("------"));
-                filePath = filePath.erase(0, filePath.find_first_of("://"));
-                filePath = filePath.erase(filePath.find_first_of("------") - 2);
-                Serial.printf("Received request to delete %s.\n", filePath.c_str());
+            //Serial.printf("Parsing field %s\n", name.c_str());
+            //if (name.substr(0, strlen("------WebKitFormBoundary")).compare("------WebKitFormBoundary") == 0) {
+            if (name.substr(0, strlen("------------------------")).compare("------------------------") == 0) {
+                byte buf[32];
+                //adding
+                while (!parser.endOfField()) {                
+                    memset(buf,0,sizeof(buf));
+                    size_t readLength = parser.read(buf, sizeof(buf));
+                    filename.append((const char *)buf);
+                }
 
-                filename = filePath.substr(filePath.find_first_of('?') + 1);
-                if (filename == "") {
-                    res->println("<p>Error: form contained content before filename.</p>");
-                    break;
+                filePath = filename;
+                filePath = filePath.erase(0, filePath.find_first_of("/"));
+                filePath = filePath.erase(filePath.find_first_of(13));
+                Serial.printf("Received request to delete %s.\n", filePath.c_str());
+                //filename = filePath.substr(filePath.find_first_of('?') + 1);
+
+                bool deleted = esp32_fileio::DeleteFile(filePath.c_str());
+                if(!deleted){
+                    res->printf("File [%s] not found.", filePath);
+                }else {               
+                    res->printf("<p>Deleted %s</p>", filePath.c_str());
+                    savedFile = true;
                 }
-                if (!SPIFFS.exists(filename.c_str())) {
-                    res->printf("File [%s] with at path %s not found.", filename.c_str(), filePath.c_str());
-                    //break;
-                }
-                SPIFFS.remove(filename.c_str());
-                res->printf("<p>Deleted %s</p>", filename.c_str());
-                savedFile = true;
             }
             else {
-                Serial.printf("Expected string %s. Instead found %s\n", "------WebKitFormBoundary", name.substr(0, strlen("------WebKitFormBoundary")).c_str());
+                Serial.printf("Expected string %s. Instead found %s\n", "------------------------", name.substr(0, strlen("------------------------")).c_str());
             }
             /* else {
                  res->printf("<p>Unexpected field %s</p>", name.c_str());
@@ -409,101 +401,87 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
         res->println("</body></html>");
         return;
     }
-    else if (req->getMethod() == "GET") {}
+    else if (req->getMethod() == "GET") {
 
-    res->println("<html><head><title>File Edited</title><head><body><h1>File Edited</h1>");
-    HTTPMultipartBodyParser* parser;
-    string contentType = req->getHeader("Content-Type");
-    size_t semicolonPos = contentType.find(";");
-    bool savedFile = false;
-    if (semicolonPos != string::npos) {
-        contentType = contentType.substr(0, semicolonPos);
-    }
-    if (contentType == "multipart/form-data") {
-        parser = new HTTPMultipartBodyParser(req);
-    }
-    else {
-        Serial.printf("Unknown POST Content-Type: %s\n", contentType.c_str());
-        return;
-    }
-    string filename;
-    while (parser->nextField()) {
-        string name = parser->getFieldName();
-        Serial.printf("Parsing field %s\n", name.c_str());
-        char buf[512];
-        if (name == "filename") {
+    } else if (req->getMethod() == "POST" || req->getMethod() == "PUT") {
 
-            size_t readLength = parser->read((byte*)buf, 512);
-            filename = string("/") + string(buf, readLength);
+        res->println("<html><head><title>File Edited</title><head><body><h1>File Edited</h1>");
+        HTTPMultipartBodyParser* parser;
+        string contentType = req->getHeader("Content-Type");
+        size_t semicolonPos = contentType.find(";");
+        bool savedFile = false;
+        if (semicolonPos != string::npos) {
+            contentType = contentType.substr(0, semicolonPos);
         }
-        else if (name == "data") {
-            filename = parser->getFieldFilename();
-            //size_t readLength = parser->read((byte*)buf, 512);
-            //string filePath = string(buf, readLength);
-            //check if it comes from 
-            int startIdx = filename.find_first_of("?");
-            if (startIdx < 0) //no filename yet
-            {
-                //    res->printf("File path not valid\n");
-                //    break;
-                //} else
-                //if (startIdx == 0) //no filename yet
-                //{
-                res->printf("POST.. no prefix\n");
-                //break;
-            }
-            else {
-                startIdx++;
-                filename = filename.substr(startIdx);
-            }
-
-            // Serial.printf("Uploading %s\n", filename.c_str());
-             //Serial.printf("Parsing substring from idx %d\n", ++startIdx);
-
-            if (filename == "") {
-                res->println("<p>Error: form contained content before filename.</p>");
-                break;
-            }
-            else
-            {
-                Serial.printf("Writing %u bytes to file [%s]..", req->getContentLength(), filename.c_str());
-                size_t fieldLength = 0;
-                //if(!SPIFFS.exists(filename.c_str())) break;
-                File file = SPIFFS.open(filename.c_str(), "w");
-                savedFile = true;
-                while (!parser->endOfField()) {
-                    byte buf[512];
-                    size_t readLength = parser->read(buf, 512);
-                    file.write(buf, readLength);
-                    fieldLength += readLength;
-                }
-                file.close();
-                Serial.println("Done.");
-                res->printf("<p>Saved %d bytes to %s</p>", int(fieldLength), filename.c_str());
-            }
-        }
-        else if (name == "path"){
-            string fileName = "";
-            byte buf[512];
-            //adding
-            while (!parser->endOfField()) {                
-                memset(buf,0,sizeof(buf));
-                size_t readLength = parser->read(buf, 512);
-                filename.append((const char *)buf);
-            }
-            Serial.printf("File to create: %s\n", filename.c_str());
-            SPIFFS.open(filename.c_str(),"w");
-            
+        if (contentType == "multipart/form-data") {
+            parser = new HTTPMultipartBodyParser(req);
         }
         else {
-            res->printf("<p>Unexpected field %s</p>", name.c_str());
+            Serial.printf("Unknown POST Content-Type: %s\n", contentType.c_str());
+            return;
         }
-    }
-    if (!savedFile) {
-        res->println("<p>No file to save...</p>");
-    }
-    res->println("</body></html>");
+        string filename;
+        while (parser->nextField()) {
+            string name = parser->getFieldName();
+            Serial.printf("Parsing field %s\n", name.c_str());
+            char buf[512];
+            if (name == "filename") {
+
+                size_t readLength = parser->read((byte*)buf, 512);
+                filename = string("/") + string(buf, readLength);
+            }
+            else if (name == "data") {
+                filename = parser->getFieldFilename();
+                //size_t readLength = parser->read((byte*)buf, 512);
+                //string filePath = string(buf, readLength);
+                //check if it comes from 
+                int startIdx = filename.find_first_of("?");
+                if (startIdx < 0) //no filename yet
+                {
+                    res->printf("POST.. no prefix\n");
+                }
+                else {
+                    startIdx++;
+                    filename = filename.substr(startIdx);
+                }
+
+                // Serial.printf("Uploading %s\n", filename.c_str());
+                //Serial.printf("Parsing substring from idx %d\n", ++startIdx);
+
+                if (filename == "") {
+                    res->println("<p>Error: form contained content before filename.</p>");
+                    break;
+                }
+                else
+                {
+                    Serial.printf("Writing %u bytes to file [%s].. \n", req->getContentLength(), filename.c_str());
+                    size_t bytes = esp32_fileio::UpdateFile(filename.c_str(),parser);                    
+                    savedFile = bytes > 0;
+                    res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
+                }
+            }
+            else if (name == "path"){
+                byte buf[512];
+                //adding
+                while (!parser->endOfField()) {                
+                    memset(buf,0,sizeof(buf));
+                    size_t readLength = parser->read(buf, 512);
+                    filename.append((const char *)buf);
+                }
+                Serial.printf("File to create: %s\n", filename.c_str());
+                esp32_fileio::CreateFile(filename.c_str());
+                
+            }
+            else {
+                res->printf("<p>Unexpected field %s</p>", name.c_str());
+            }
+        }
+        if (!savedFile) {
+            res->println("<p>No file to save...</p>");
+        }
+        res->println("</body></html>");
     // Serial.printf("Uploading file %s completed successfully!\n", name.c_str());
+    }
 
 }
 
@@ -521,73 +499,19 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* conten
         
         //esp32_template controllerTemplate = esp32_template();
         if (controllerObj == NULL) {
+            res->println("Controller not found");
             handle404(req, res);
             return;
         }
+
+        if(!controllerObj->HasAction(route.action.c_str())) {
+            esp32_router::handle404(req,res);
+            return; //404
+        }
        
         controllerObj->Action(req, res);
-
-        if(strcmp(req->getMethod().c_str(),"GET") != 0)
-            return;
-
-        if(!controllerObj->HasAction(route.action.c_str())) return; //custom action or 404
-
-        //serve get request using template engine
-        String path = SITE_ROOT;
-        path += "/T/_template.html";
-        File f = SPIFFS.open(path);
-        res->setStatusCode(200);
-        res->setStatusText("OK");
-        res->setHeader("Content-Type", "text/html");
-        Serial.printf("[esp32_router::handleRoot] Opening file %s\n", f.path());
-        while (f.available()) {
-            String line = f.readStringUntil('\n');
-            //if we already processed a section, skip trying to reprocess
-            int titleidx = 0,
-                headidx = 0,
-                menuidx = 0,
-                headeridx = 0,
-                contentidx = 0,
-                footeridx = 0;
-
-            titleidx = handlePagePart_Title(req, res, line, controllerObj->title);
-            if (titleidx > 0) {
-                continue;
-            }
-            headidx = handlePagePart_Head(req, res, line, controllerObj->head);
-            if (headidx > 0) {
-                continue;
-            }
-            menuidx = handlePagePart_Menu(req, res, line, controllerObj->menu);
-            if (menuidx > 0) {
-               continue;
-            }
-            headeridx = handlePagePart_Header(req, res, line,"");//TODO: oops .. missed that one
-            if (headeridx > 0) {
-                continue;
-            }
-            //serve content from stream or controller object
-            content != nullptr && content->length() > 0 ?
-                contentidx = handlePagePart_Content(req, res, line, *content):
-                handlePagePart_Content(req, res, line, controllerObj);
-            if (contentidx > 0) {
-               continue;
-            }
-            footeridx = handlePagePart_Footer(req, res, line,controllerObj->footer);
-            if (footeridx > 0) {
-                continue;
-            }
-
-
-            bool anyReplaced = titleidx >= 0 || headidx >= 0 || headeridx >= 0 || menuidx >= 0 || contentidx >= 0 || footeridx >= 0;
-            if (!anyReplaced) {
-               /* Serial.printf("[CONTENT WRITER] %s\n", line.c_str());*/
-                res->println(line);
-            }
-
-        }
-        f.close();
-        Serial.printf("[ESP ROUTER]Serving page from template %s\n", path.c_str());
+        
+        Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
     }
     else
     {
@@ -605,7 +529,7 @@ void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
     esp32_route_file_info fileInfo = esp32_route_file_info();
     fileInfo.requestPath = req->getRequestString().c_str();
     
-    if(!parseFileRequestInfo(fileInfo))
+    if(!parseFileRequest(req, fileInfo))
     {
         handle404(req,res);        
         return;
@@ -635,10 +559,11 @@ void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
         fileInfo.fileExtension = "text/" + fileInfo.fileExtension;
     }
     res->setHeader("Content-Type", fileInfo.fileExtension.c_str());
-    char buff[256];
+    res->setStatusCode(200);
+    char buff[32];
     while (true) {
 
-        uint16_t bytestoRead = f.available() < 256 ? f.available() : 256;
+        uint16_t bytestoRead = f.available() < sizeof(buff) ? f.available() : sizeof(buff);
         if (bytestoRead == 0) break;
         f.readBytes(buff, bytestoRead);
         res->write((uint8_t*)buff, bytestoRead);

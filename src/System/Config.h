@@ -2,6 +2,7 @@
 #include <string>
 #define FIRMWARE_VERSION "0.03"
 #define SITE_ROOT "/W"
+#define INTERNAL_ROOT "/INT"
 #define TEMPLE_VAR_COUNT 50
 
 #define HTML_REF_CONST_TITLE "$title"
@@ -14,6 +15,7 @@
 #define HEADER_USERNAME "X-USERNAME"
 #define HEADER_GROUP    "X-GROUP"
 #define HEADER_AUTH "Authorization"
+#define HEADER_COOKIE "Cookie"
 
 using namespace std;
 struct esp32_controller_route {
