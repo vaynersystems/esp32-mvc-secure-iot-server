@@ -39,6 +39,9 @@ void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
     else if (route.action.compare("SaveConfigData") == 0) {
         SaveConfigData(req,res);
     }
+    else if (route.action.compare("ResetDevice") == 0) {
+        ResetDevice(req,res);
+    }
     else
         Base_Controller::Action(req,res);
 }
@@ -47,10 +50,16 @@ bool esp32_config_controller::HasAction(const char * action){
     if (strcmp(action,"GetAvailableWifi") == 0) {
         return true;
     }
+    
     else if (strcmp(action, "LoadConfigData") == 0) {
         return true;
     }
+    
     else if (strcmp(action, "SaveConfigData") == 0) {
+        return true;
+    }
+    
+    else if (strcmp(action, "ResetDevice") == 0) {
         return true;
     }
     
@@ -170,4 +179,8 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     Serial.printf("Completed SaveConfigData, returning control\n");    
     
     return true;
+}
+
+void esp32_config_controller::ResetDevice(HTTPRequest* req, HTTPResponse* res){
+    esp_restart();
 }
