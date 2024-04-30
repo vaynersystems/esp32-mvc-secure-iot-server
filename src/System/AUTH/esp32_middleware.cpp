@@ -232,9 +232,12 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         if (err.code() == err.Ok)
         {
             setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
-            //next();
             if(isLoginPage && isPostRequest)
                 return;
+            //verify token is valid    
+            auto authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
+            if(authResult.authenticated)
+                next();
         }
         else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
         
@@ -249,7 +252,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
 bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
     bool exclusion = false;
     string request = req->getRequestString();
-    if(strstr(request.c_str(),"/") != nullptr) exclusion = true;
+    //if(strstr(request.c_str(),"/") != nullptr) exclusion = true; //EXCLUDE EVERYTHING, making all public
     if(request.substr(0, 6) == "/login") exclusion = true;
     else if(request.substr(0, strlen("/logout")) == "/logout") exclusion = true;
     else if(request.substr(0, strlen("/index.html")) == "/index.html") exclusion = true;

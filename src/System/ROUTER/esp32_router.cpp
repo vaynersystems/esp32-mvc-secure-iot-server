@@ -200,19 +200,19 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
         auto footerModule = /*controllerFactory->hasInstance(route.controller) ? */
             controllerFactory->createInstance("_footer", "index");// : NULL;
 
-        if (footerModule != NULL) {
-            //module found
-            footerModule->Action(req, res); //execute module action
+        // if (footerModule != NULL) {
+        //     //module found
+        //     footerModule->Action(req, res); //execute module action
 
-            //render module output
-            if (!footerModule->controllerTemplate.RenderTemplate(req, res))
-                HTTPS_LOGE("Failure to render footer template");     
+        //     //render module output
+        //     if (!footerModule->controllerTemplate.RenderTemplate(req, res))
+        //         HTTPS_LOGE("Failure to render footer template");     
 
-            res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
-            return idx;
+        //     res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
+        //     return idx;
                 
-        }
-        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_FOOTER, "/W/T/V/_footer.html");
+        // }
+        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_FOOTER, "/T/V/_footer.html");
     }    
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_FOOTER, content);
@@ -222,14 +222,14 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, S
     
     int idx = line.indexOf(searchString);
     if (idx >= 0) {
-        String fFileName = SITE_ROOT;
-        fFileName += fileName;
+        if(!fileName.startsWith(SITE_ROOT))
+            fileName += fileName;
 
-        Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fFileName.c_str());
+        Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
         
-        if (SPIFFS.exists(fFileName.c_str())) {
-            File fPagePart = SPIFFS.open(fFileName);
+        if (SPIFFS.exists(fileName.c_str())) {
+            File fPagePart = SPIFFS.open(fileName.c_str());
 
             while (fPagePart.available()) {
                 String docLine = fPagePart.readStringUntil('\n');
@@ -241,8 +241,8 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, S
         }
         else
         {
-            Serial.printf("File %s not found.\n", fFileName.c_str());
-            res->printf("Page Part %s file %s NOT FOUND!",searchString,fFileName.c_str());
+            Serial.printf("File %s not found.\n", fileName.c_str());
+            res->printf("Page Part %s file %s NOT FOUND!",searchString,fileName.c_str());
         }
         res->println(line.substring(idx + strlen(searchString)).c_str());
     }

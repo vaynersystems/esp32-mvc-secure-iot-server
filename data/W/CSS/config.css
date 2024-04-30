@@ -21,14 +21,13 @@ body{
     color: #0b0b37;
     font-size: 20px;
     padding: 15px 10px;
-    border-radius: 6px 0px 0px 6px;
+    border-radius: 10px 0px 0px 10px;
 }
 .menu-item{
    
     /* color:#fff; */
     font-size: 20px;
-    padding:15px 10px;
-    border-radius: 22px;
+    padding:15px 10px;    
 }
 .menu-item ul{
     list-style: none;
@@ -53,7 +52,7 @@ body{
     flex-grow: 1;
     border-style: solid;
     border-width: 0 1px 0 0;
-    border-radius: 0 30px 0 0;
+    border-radius: 0 10px 0 0;
     border-color: #0b0b37;
     border-color: linear-gradient(90deg, rgba(11,11,55,1) 0%, rgba(9,22,83,1) 41%, rgba(14,21,79,1) 84%, rgba(44,49,117,1) 100%);      
     overflow: hidden;  
@@ -71,7 +70,7 @@ body{
 }
 .section-header{
     font-size: 20px;
-    border-radius: 0 27px 0 0;
+    border-radius: 0 10px 0 0;
     color: #fff;
     background-color: #0b0b37;
     padding: 10px;
@@ -95,7 +94,7 @@ body{
     display: flex;        
     border-style: solid;
     border-width: 1px 5px 1px 0px;
-    border-radius: 0 0 6px 0;
+    border-radius: 0 0 10px 0;
     border-color: #0b0b37;
     background-color: #0b0b37;
     padding: 6px 0px;
@@ -150,4 +149,12 @@ body{
 @keyframes spin {
     from {transform:rotate(0deg);}
     to {transform:rotate(360deg);}
+}
+.link{
+    text-decoration: underline;
+    color: #0e0ed5;
+}
+.link:hover{
+    cursor: pointer;
+    color:#0b0b37;
 }

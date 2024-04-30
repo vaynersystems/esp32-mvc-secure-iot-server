@@ -38,17 +38,17 @@ inline void Base_Controller::GenericIndex(HTTPRequest* req, HTTPResponse* res) {
                     continue;
                 }
                 
-                int idx = line.indexOf(HTML_REF_CONST_CONTENT);
-                if (idx >= 0){ 
-                    res->print(line.substring(0, idx));
+                contentidx = line.indexOf(HTML_REF_CONST_CONTENT);
+                if (contentidx >= 0){ 
+                    res->print(line.substring(0, contentidx));
                     if (!this->controllerTemplate.RenderTemplate(req,res))
                         esp32_router::handle404(req, res);//if not able to render template, handle with 404
-                    res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));
+                    res->println(line.substring(contentidx + sizeof(HTML_REF_CONST_CONTENT) - 1));
 
                 }
                 // esp32_router::handlePagePart_Content(req, res, line, controller);
                 if (contentidx > 0) {
-                continue;
+                    continue;
                 }
                 footeridx = esp32_router::handlePagePart_Footer(req, res, line,footer);
                 if (footeridx > 0) {
@@ -56,7 +56,7 @@ inline void Base_Controller::GenericIndex(HTTPRequest* req, HTTPResponse* res) {
                 }
 
 
-                bool anyReplaced = titleidx >= 0 || headidx >= 0 || headeridx >= 0 || menuidx >= 0 || contentidx >= 0 || footeridx >= 0;
+                bool anyReplaced = titleidx > 0 || headidx > 0 || headeridx > 0 || menuidx > 0 || contentidx > 0 || footeridx > 0;
                 if (!anyReplaced) {
                 /* Serial.printf("[CONTENT WRITER] %s\n", line.c_str());*/
                     res->println(line);
