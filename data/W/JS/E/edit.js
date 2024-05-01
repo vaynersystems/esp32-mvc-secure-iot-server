@@ -460,6 +460,10 @@ function createEditor(e, f, g, h, i) {
     var editor = ace.edit(e);
     editorTheme= 'tomorrow_night';
     require('ace/ext/searchbox');
+
+    var UndoManager = require("ace/undomanager").UndoManager;
+    var undoManager = new UndoManager();
+    editor.getSession().setUndoManager(undoManager);
     
     
     var refs = {};
@@ -582,28 +586,28 @@ function createEditor(e, f, g, h, i) {
         showLoading();
         httpPost(f, editor.getValue() + "", i);
     };
-    editor.commands.undoCommand({
-        name: 'undoCommand',
-        bindKey: {
-            win: 'Ctrl-Z',
-            mac: 'Command-Z'
-        },
-        exec: function (a) {
-            a.getSession().getUndoManager().undo(false)
-        },
-        readOnly: false
-    });
-    editor.commands.redoCommand({
-        name: 'redoCommand',
-        bindKey: {
-            win: 'Ctrl-Shift-Z',
-            mac: 'Command-Shift-Z'
-        },
-        exec: function (a) {
-            a.getSession().getUndoManager().redo(false)
-        },
-        readOnly: false
-    });
+    // editor.commands.undoCommand({
+    //     name: 'undoCommand',
+    //     bindKey: {
+    //         win: 'Ctrl-Z',
+    //         mac: 'Command-Z'
+    //     },
+    //     exec: function (a) {
+    //         a.getSession().getUndoManager().undo(false)
+    //     },
+    //     readOnly: false
+    // });
+    // editor.commands.redoCommand({
+    //     name: 'redoCommand',
+    //     bindKey: {
+    //         win: 'Ctrl-Shift-Z',
+    //         mac: 'Command-Shift-Z'
+    //     },
+    //     exec: function (a) {
+    //         a.getSession().getUndoManager().redo(false)
+    //     },
+    //     readOnly: false
+    // });
     httpGet(f);
     editor.loadUrl = function (a) {
         f = a;
@@ -636,7 +640,7 @@ function onBodyLoad() {
     //$('#loading').hide();
     //});
 
-    var c = { 'file': 'index.html', 'lang': 'html', 'theme': 'tomorrow_night' };
+    var c = { 'file': 'index.html', 'lang': 'html', 'theme': 'textmate' };
     var d = window.location.href.replace(/[?&]+([^=&]+)=([^&]*)/gi, function (m, a, b) {
         c[a] = b
     });

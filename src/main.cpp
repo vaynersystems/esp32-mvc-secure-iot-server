@@ -35,12 +35,13 @@ void serverTask(void* params) {
 void setup() {
     // For logging
     Serial.begin(115200);
-    //Create Server
-    xTaskCreatePinnedToCore(serverTask, "secureserver", STACK_SIZE, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
     // Connect to WiFi
     wifi.start();       
     //Get Spiffs Online
-    disk.start();   
+    disk.start();       
+    //Create Server
+    xTaskCreatePinnedToCore(serverTask, "secureserver", STACK_SIZE, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    
 }
 
 void loop() {   

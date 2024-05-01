@@ -31,7 +31,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         }
         //see if we have a matching entry
         for(JsonObject entry : d.as<JsonArray>()) {        
-            Serial.printf("Comparing %s with password %s\n", entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str());
+            //Serial.printf("Comparing %s with password %s\n", entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str());
             if(strcmp(entry["username"].as<const char *>(),username) == 0 && strcmp(entry["password"].as<const char *>(), password) == 0 ){             
                 info.username = username;
                 info.password = password;

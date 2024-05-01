@@ -1,7 +1,7 @@
 body{
     height: 100%;
     width: 100%;
-    margin:0px;
+    margin:0px !important;
 }
 .config-view{
     display: flex;
@@ -22,6 +22,7 @@ body{
     font-size: 20px;
     padding: 15px 10px;
     border-radius: 10px 0px 0px 10px;
+    overflow: scroll;
 }
 .menu-item{
    
@@ -67,6 +68,8 @@ body{
 }
 .section-content{
     overflow-y: scroll;
+    display: flex;
+    flex-direction: column;
 }
 .section-header{
     font-size: 20px;
@@ -108,7 +111,13 @@ body{
 .grid-2{
     display: grid;
     grid-template-columns: 50% 50%;
-    padding: 5px 10px;
+    padding: 5px 10px;    
+    
+        text-align: left;
+    
+}
+.right{
+    text-align: right;
 }
 #error{
     color:red;
@@ -157,4 +166,28 @@ body{
 .link:hover{
     cursor: pointer;
     color:#0b0b37;
+}
+
+.device-grid-header{
+    background-color: #191955;
+    color: #fff;
+}
+
+.device-grid{
+    display: grid;
+    grid-template-columns: 15% 25% 20% 15% 15%;
+    div{
+        padding:4px;     
+    }    
+}
+.device-row:nth-child(2n){
+    background-color: rgb(221, 225, 233);
+}
+.device-row:hover{
+    background-color: rgb(163, 173, 192);
+    cursor: pointer;
+}
+#device-list{
+    flex-grow: 1;
+    align-content: flex-start;   
 }
