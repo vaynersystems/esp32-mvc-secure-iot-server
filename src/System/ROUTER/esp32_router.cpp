@@ -200,18 +200,18 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
         auto footerModule = /*controllerFactory->hasInstance(route.controller) ? */
             controllerFactory->createInstance("_footer", "index");// : NULL;
 
-        // if (footerModule != NULL) {
-        //     //module found
-        //     footerModule->Action(req, res); //execute module action
+        if (footerModule != NULL) {
+            //module found
+            footerModule->Action(req, res); //execute module action
 
-        //     //render module output
-        //     if (!footerModule->controllerTemplate.RenderTemplate(req, res))
-        //         HTTPS_LOGE("Failure to render footer template");     
+            //render module output
+            if (footerModule->controllerTemplate.RenderTemplate(req, res) != true)
+                HTTPS_LOGE("Failure to render footer template");     
 
-        //     res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
-        //     return idx;
+            res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
+            return idx;
                 
-        // }
+        }
         return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_FOOTER, "/T/V/_footer.html");
     }    
 
@@ -223,7 +223,7 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, S
     int idx = line.indexOf(searchString);
     if (idx >= 0) {
         if(!fileName.startsWith(SITE_ROOT))
-            fileName += fileName;
+            fileName = SITE_ROOT + fileName;
 
         Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
@@ -264,7 +264,6 @@ int esp32_router::handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res,
 //Get the route information for a controler/action syntax. returns true if controller found, false otherwise
 bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj)
 {
-
     string controller(""), action("");
     string pathString(""), queryString("");
     
@@ -320,7 +319,7 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
             pathString.erase(0);
     }
     //}
-    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
     
     routeObj.action = action;
     routeObj.controller = controller;

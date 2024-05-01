@@ -76,7 +76,8 @@ function selectWifiMode(wifiMode){
             option.textContent = networkName + "(persisted)";
             networkNameElement.appendChild(option);
         }
-        networkPasswordElement.innerHTML = networkPassword.length === 0 ? '' : '*'.repeat(networkPassword.length);
+        const maskedPassword = networkPassword.length === 0 ? '' : '*'.repeat(networkPassword.length);
+        networkPasswordElement.setAttribute('value', maskedPassword);
     }
     
 }
@@ -139,7 +140,7 @@ function getAvailableWifiNetworks(){
                 return;
             }
             var response = request.responseText;
-            if(response.length <= 0) return;
+            if(response.length <= 0 || response[0] !== '[') return;
             var networks = JSON.parse(response);
             //add networks to drop down
             var dropDownElement = document.getElementById('wifi-network');
@@ -161,13 +162,134 @@ function getAvailableWifiNetworks(){
     showWait('wifi');
 }
 
-document.getElementById('network-mode').addEventListener('change', function(){
-    const modeSelectorElement = document.getElementById('network-mode');
 
-    if(modeSelectorElement === undefined) return;
-    selectWifiMode(modeSelectorElement.value);
-})
 /* END OF WIFI */
+
+/* DEVICES */
+deviceTypes = [
+    {name: 'termometer', description: 'Thermometer', Type: 'input'},
+    {name: 'relay', description: 'Relay', Type: 'output'}
+]
+function loadDevices(devices){
+    const deviceListElement = document.getElementById('device-list');
+    if(deviceListElement === null) return;
+
+    deviceListElement.innerHTML = '';
+    loadDeviceTypes();
+
+    for(var device of devices){
+        const rowElement = document.createElement('div');
+        const idElement = document.createElement('div');
+        const nameElement = document.createElement('div');
+        const typeElement = document.createElement('div');
+        const pinElement = document.createElement('div');
+        const signalElement = document.createElement('div');
+
+        idElement.textContent = device.id;
+        nameElement.textContent = device.name;
+        typeElement.textContent = device.type;
+        pinElement.textContent = device.pin;
+        signalElement.textContent = device.signal;
+
+        rowElement.appendChild(idElement);
+        rowElement.appendChild(nameElement);
+        rowElement.appendChild(typeElement);
+        rowElement.appendChild(pinElement);
+        rowElement.appendChild(signalElement);
+
+        rowElement.setAttribute('data', JSON.stringify(device));
+        rowElement.className = "device-row device-grid";
+        rowElement.addEventListener('click', () => showDeviceEditor(JSON.parse(rowElement.getAttribute('data'))))
+        deviceListElement.appendChild(rowElement);
+    }
+}
+
+
+function loadDeviceTypes(){
+    const deviceList = document.getElementById('editor-device-type');
+    if(deviceList === undefined || deviceList === null) return;
+
+    for(var device in deviceTypes){
+        const opt = document.createElement('opt');
+        opt.value = device.name;
+        opt.textContent = device.description;
+    }
+
+}
+
+//Save device edited in the form
+function saveDevice(){
+    modalElement = document.getElementById("system-modal-content");
+    
+    device = {};
+    device.id = modalElement.querySelector('#editor-device-id').innerHTML;
+    device.name = modalElement.querySelector('#editor-device-name').value;
+    device.type = modalElement.querySelector('#editor-device-type').value;
+    device.pin = modalElement.querySelector('#editor-device-pin').value;
+    device.signal = modalElement.querySelector('#editor-device-signal').value;
+    console.log('saving device', device);
+
+    //update in active config. refresh list
+    if(activeConfig.devices === undefined)
+        activeConfig.devices = [];
+    const d = activeConfig.devices.find(d => d.id == device.id);
+    if(d === undefined) // add
+        activeConfig.devices.push(device);
+    else{ // update
+        d.name = device.name;
+        d.type = device.type;
+        d.pin = device.pin;
+        d.signal = device.signal;
+    }
+    loadDevices(activeConfig.devices);
+
+}
+function showDeviceEditor(device){
+    const deviceEditorElement = document.getElementById('device-editor');
+    if(deviceEditorElement === null) return;
+
+    //let device = activeConfig.devices.find(d => d.id === device.id);
+    if(device === undefined){        
+        const maxId = activeConfig.devices.length > 0 ? Math.max(...activeConfig.devices.map(d => d.id)) : 0;
+        device = {
+            id: maxId+1,
+            name:'New Device',
+            type:'',
+            pin:'',
+            signal:''
+        }
+    }
+
+    const deviceIdElement = document.getElementById('editor-device-id');
+    const deviceNameElement = document.getElementById('editor-device-name');
+    const deviceTypeElement = document.getElementById('editor-device-type');
+    const devicePinElement = document.getElementById('editor-device-pin'); 
+    const deviceSignalElement = document.getElementById('editor-device-signal'); 
+    
+    if(deviceIdElement !== null) deviceIdElement.innerHTML =  device.id;
+    if(deviceNameElement !== null) deviceNameElement.setAttribute('value', device.name);
+    if(deviceTypeElement !== null) {
+        deviceTypeElement.setAttribute('value', device.type);
+        if(device.type.length > 0) deviceTypeElement.value = device.type;
+    }
+    if(devicePinElement !== null) {
+        devicePinElement.setAttribute('value', device.pin);
+        if(device.pin.length > 0) devicePinElement.value = device.pin;
+    }
+    if(deviceSignalElement !== null) {
+        deviceSignalElement.setAttribute('value', device.signal);
+        if(device.signal.length > 0) deviceSignalElement.value = device.signal;
+    }
+
+
+    showModalComponent(deviceEditorElement,'Device Editor', 
+        [
+            { text:'Cancel',action: () => { closeModal();}},
+            { text: 'Save', action:  () => {saveDevice();closeModal();}}
+        ]
+    );
+}
+/* END OF DEVICES */
 
 
 function loadSettings(configData){
@@ -191,24 +313,30 @@ function loadSettings(configData){
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
-    if(disableWifiElement !== null) disableWifiElement.value = configData.system.disableWifiTimer;
+    if(disableWifiElement !== null) disableWifiElement.value = configData.server.disableWifiTimer;
+
+    //devices
+    loadDevices(configData.devices);
+    
 }
 function seveSettingsFromForm(){
     var config = persistedConfig;
     //devices
+    config.devices = activeConfig.devices;
     if(config.devices === undefined)
         config.devices = [];
 
+
     //schedules
     if(config.schedules === undefined)
-        config.system = [];
+        config.schedules = [];
 
     //system
     if(config.system === undefined)
-        config.system = {};
-    config.system.hostname = document.getElementById('host-name').value;
-    config.system.NTPServer = document.getElementById('ntp-host-name').value;
-    config.system.timezone = document.getElementById('time-zone').value;
+        config.system = {};    
+    config.system.hostname = document.getElementById('host-name').value ?? config.system.hostname;
+    config.system.ntp.server = document.getElementById('ntp-host-name').value;
+    config.system.ntp.timezone = document.getElementById('time-zone').value;
 
     //server
     if(config.server === undefined)
@@ -251,12 +379,11 @@ function seveSettingsFromForm(){
 }
 //parse form, collecting all of the input, provide as json to post
 function saveSettings(config){
-    //TODO: bind controls to activeConfiguration model, just persist it here
-    
+    //TODO: bind controls to activeConfiguration model, just persist it here   
 
     console.log(config);
-
-    const url = location.href + "/" + 'SaveConfigData'
+    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+    const url = base + "/" + 'SaveConfigData';
     request.open("POST", url, true);
     request.setRequestHeader("Content-type", "application/json");
     request.onreadystatechange = function () {
@@ -269,7 +396,7 @@ function saveSettings(config){
             }
             var response = request.responseText;
             if(request.status == 200){
-                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No'}, {text:'Yes', action:() => {reset()}}]);
+                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal();}}]);
             }
                             
         }
@@ -311,7 +438,7 @@ function restoreSettings() {
                     // }
                     var writeToDevice = confirm("You are about to overwrite your device settings. Are you sure you want to continue?");
                     if(writeToDevice)
-                        saveSettings(JSON.parse(json));
+                        saveSettings(json);
                 }
             };
             reader.readAsText(input.files[0]);
@@ -321,6 +448,14 @@ function restoreSettings() {
 
 
 function esp32_config_init(configDataSting){
+    
+    document.getElementById('network-mode').addEventListener('change', function(){
+        const modeSelectorElement = document.getElementById('network-mode');
+    
+        if(modeSelectorElement === undefined) return;
+        selectWifiMode(modeSelectorElement.value);
+    })
+
     const links = document.getElementsByTagName('li');
     for(let link of links){
         link.addEventListener('click', (e) => {selectView(link.id)});
@@ -337,8 +472,12 @@ function esp32_config_init(configDataSting){
     if(persistedConfig.type === undefined){
         persistedConfig.type = 'esp32-config';
     }
+
+    if(persistedConfig.devices === undefined){
+        persistedConfig.devices = [];
+    }
+
     if(persistedConfig.wifi === undefined || persistedConfig.wifi.mode === undefined){
-        persistedConfig = {};
         persistedConfig.wifi = {};
         persistedConfig.wifi.mode = 'client';
         persistedConfig.wifi.dhcp = true;
@@ -373,13 +512,7 @@ function esp32_config_init(configDataSting){
 
 //should be moved to a global file
 
-function reset(){
-    if(confirm("Are you sure you want to restart the device?")){
-        const url = base + "/" + 'ResetDevice'
-        request.open("POST", url, true);
-        request.send(null);
-    }
-}
+
 
 function checkOctects(input) {
     var ipformat = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;

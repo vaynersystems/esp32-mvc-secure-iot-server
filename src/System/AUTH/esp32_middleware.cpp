@@ -199,6 +199,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     bool decodeResult = false;
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
+    esp32_user_auth_info authResult;
     
     if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
         jwtTokenFromCookie = jwtTokenFromCookie.substring(7);
@@ -225,27 +226,35 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
 
-    //Serial.printf("**Authorization**\t Decoded: %s\n JWT Encoded: %s\nJWT Decoded: %s\n", decodeResult ? "Yes" : "No", jwtToken.c_str(), jwtDecodedString.c_str());
+    //Serial.printf("**Authorization**\t Decoded: %s\nJWT Encoded: %s\nJWT Decoded: %s\n", decodeResult ? "Yes" : "No", jwtToken.c_str(), jwtDecodedString.c_str());
     if (decodeResult) {        
         DynamicJsonDocument doc(jwtDecodedString.length() * 2);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
             setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
-            if(isLoginPage && isPostRequest)
+            if(isLoginPage && isPostRequest) //special case for posting login info
                 return;
+
+            //TODO: create config setting to force verify token
             //verify token is valid    
-            auto authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
-            if(authResult.authenticated)
-                next();
+            //authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
+            authResult.authenticated = true;
+            // Serial.printf(
+            //     "**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
+            //     authResult.authenticated ? "Authenticated" : "Unauthorized", 
+            //     authResult.username.c_str(), 
+            //     authResult.password.c_str(), 
+            //     authResult.role.c_str()
+            // );            
         }
         else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
         
     }
     // Everything else will be allowed, so we call next()
-    if(denyIfNotPublic(req,res)) return;
-    if(denyIfNotAuthorized(req,res)) return;
-    Serial.printf("Request for resource %s authorized.\n", req->getRequestString().c_str());
+    if(!authResult.authenticated && denyIfNotPublic(req,res)) return;
+    if(!authResult.authenticated && denyIfNotAuthorized(req,res)) return;
+    //Serial.printf("Request for resource %s authorized.\n", req->getRequestString().c_str());
     next();
 }
 
@@ -261,6 +270,7 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
     else if(request.substr(0, strlen("/CSS/style.css")) == "/CSS/style.css") exclusion = true;
     else if(request.substr(0, strlen("/JS/auth.js")) == "/JS/auth.js") exclusion = true;
     else if(request.substr(0, strlen("/favicon.ico")) == "/favicon.ico") exclusion = true;
+    else if(request.substr(0, strlen("/T/V/_footer.html")) == "/T/V/_footer.html") exclusion = true;
     else if(request.substr(0, strlen("/esp32_home")) == "/esp32_home") exclusion = true;
     else if(request.substr(0, strlen("/JS/esp32_home.js")) == "/JS/esp32_home.js") exclusion = true;
      

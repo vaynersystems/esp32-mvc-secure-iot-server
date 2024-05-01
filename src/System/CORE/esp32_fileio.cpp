@@ -16,7 +16,7 @@ bool esp32_fileio::start(){
         Serial.printf("Mounted vol %s. Used %s bytes of %s.\n",
             "[DEFAULT]", usedText, sizeText);
 
-        esp32_fileio::listDir(SPIFFS, &Serial,"/", 2);
+        //esp32_fileio::listDir(SPIFFS, &Serial,"/", 2);
         Serial.println("-----------------------");
     }
     return true;
@@ -167,7 +167,7 @@ void esp32_fileio::buildOrderedFileList(fs::FS& fs, const char* dirname, const c
         //check if dir needs to be written
         if (currentDir.compare(prevDir) != 0) {
             if (currentDir.length() > 0) {
-                Serial.printf("Adding dir [%s] after previous dir [%s]\n", currentDir.c_str(), prevDir.c_str());
+                //Serial.printf("Adding dir [%s] after previous dir [%s]\n", currentDir.c_str(), prevDir.c_str());
                 SPIFFS_FileInfo dir;
                 dir.isDirectory = true;
                 dir.size = 0;
