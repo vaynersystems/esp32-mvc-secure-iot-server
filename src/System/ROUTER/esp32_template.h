@@ -17,12 +17,18 @@ public:
 	//static std::string templateFilePath;
 	std::string templateContentFilePath;
 	std::map<std::string, std::string> templateVars;
+    ~esp32_template(){
+        templateContentFilePath = "";
+        templateVars.clear();
+        templateVars.~map();
+    }
 	
 	bool RenderTemplate(HTTPRequest* req, HTTPResponse* res);
 
 
 	void SetTemplateVariable(std::string name, std::string value);
 	void SetGlobalVariables(HTTPRequest* req, HTTPResponse* res);
+    void ClearVariables();
 
 	std::pair<std::string, std::string> GetTemplateVariable(int idx);
 	std::pair<std::string, std::string> GetTemplateVariable(std::string name);

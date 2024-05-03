@@ -3,6 +3,7 @@
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include "System/CORE/base_controller.hpp"
+#include "string_extensions.h"
 
 using namespace httpsserver;
 

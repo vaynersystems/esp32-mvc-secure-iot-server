@@ -1,6 +1,32 @@
 {
     "wifi": {
-        "ssid": "none",
-        "pass": "youwish"
-    }
+        "mode": "client",
+        "dhcp": true,
+        "network": "dd-wrt",
+        "password": "4409420820"
+    },
+    "type": "esp32-config",
+    "devices": [
+        {
+            "id": "1",
+            "name": "Pool thermometer",
+            "type": "thermometer",
+            "pin": "21",
+            "signal": "high"
+        },
+        {
+            "id": "2",
+            "name": "Heater switch",
+            "type": "switch",
+            "pin": "26",
+            "signal": "high"
+        }
+    ],
+    "preferences": { "lastPage": "devices" },
+    "system": {
+        "hostname": "ESP32-HOST",
+        "ntp": { "server": "us.pool.ntp.org", "timezone": "-5" }
+    },
+    "server": { "disableWifiTimer": "never" },
+    "schedules": []
 }

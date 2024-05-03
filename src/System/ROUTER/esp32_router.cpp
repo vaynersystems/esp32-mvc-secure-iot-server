@@ -90,7 +90,7 @@ void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallb
 
 
 void esp32_router::handleCORS(HTTPRequest* req, HTTPResponse* res) {
-    Serial.println(">> CORS here...");
+    //Serial.println(">> CORS here...");
     res->setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res->setHeader("Access-Control-Allow-Origin", "*");
     res->setHeader("Access-Control-Allow-Headers", "*");
@@ -110,7 +110,7 @@ void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
 
         list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
         
-        Serial.printf("Searching for files only in path %s\n", path.c_str());
+        //Serial.printf("Searching for files only in path %s\n", path.c_str());
         esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, files);
         esp32_fileio::printFileSearchOrdered(res, &files,filter);
     }
@@ -153,6 +153,7 @@ int esp32_router::handlePagePart_Header(HTTPRequest* req, HTTPResponse* res, Str
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_HEADER, content);
 }
+
 int esp32_router::handlePagePart_Menu(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
 {
     if (content.length() <= 0)
@@ -185,8 +186,8 @@ int esp32_router::handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, St
     res->print(line.substring(0, idx));
     if (!controller->controllerTemplate.RenderTemplate(req, res))
         handle404(req, res);//if not able to render template, handle with 404
-    res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));
-
+    controller->controllerTemplate.ClearVariables();
+    res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));    
     return idx;
 }
 
@@ -203,11 +204,13 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
         if (footerModule != NULL) {
             //module found
             footerModule->Action(req, res); //execute module action
+            handlePagePart_Content(req, res, HTML_REF_CONST_CONTENT, footerModule);
+            // //render module output
+            // if (!footerModule->controllerTemplate.RenderTemplate(req, res)){
+            //     HTTPS_LOGE("Failure to render footer template");     
+            // }
 
-            //render module output
-            if (footerModule->controllerTemplate.RenderTemplate(req, res) != true)
-                HTTPS_LOGE("Failure to render footer template");     
-
+            delete footerModule;
             res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
             return idx;
                 
@@ -219,13 +222,12 @@ int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, Str
 }
 
 int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, String line, const char * searchString, String fileName){
-    
     int idx = line.indexOf(searchString);
     if (idx >= 0) {
         if(!fileName.startsWith(SITE_ROOT))
             fileName = SITE_ROOT + fileName;
 
-        Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
+        //Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
         
         if (SPIFFS.exists(fileName.c_str())) {
@@ -343,7 +345,7 @@ bool esp32_router::IsValidRoute(esp32_controller_route & route){
                 if(iequals(route.controller.c_str(),controller.first.c_str(),route.controller.length())
                     && iequals(route.action.c_str(), action.c_str(),action.length())
                 ){
-                    Serial.printf("Matched route controller %s action %s against cataloged controller %s action %s\n", route.controller.c_str(), route.action.c_str(),controller.first.c_str(), action.c_str());
+                    //Serial.printf("Matched route controller %s action %s against cataloged controller %s action %s\n", route.controller.c_str(), route.action.c_str(),controller.first.c_str(), action.c_str());
                     //case correct action
                     route.action = action;
                     return true;
@@ -492,6 +494,7 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* conten
     esp32_controller_route route;    
     if (GetControllerRoute(req,route)) {
         //route is under controller
+
         
         auto controllerObj = /*controllerFactory->hasInstance(route.controller) ? */
             controllerFactory->createInstance(route);// : NULL;
@@ -504,13 +507,15 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* conten
         }
 
         if(!controllerObj->HasAction(route.action.c_str())) {
-            esp32_router::handle404(req,res);
-            return; //404
-        }
+            esp32_router::handle404(req,res);                    
+        } else {
        
-        controllerObj->Action(req, res);
-        
-        Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+            controllerObj->Action(req, res);
+            controllerObj->controllerTemplate.ClearVariables();        
+            
+            // Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+        }
+        delete controllerObj;
     }
     else
     {

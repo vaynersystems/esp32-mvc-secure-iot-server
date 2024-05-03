@@ -18,6 +18,8 @@ using namespace httpsserver;
 class Base_Controller {
     public:
         Base_Controller() {};
+        ~Base_Controller() {            
+        };
 
         esp32_template controllerTemplate = esp32_template();
         virtual void GenericIndex(HTTPRequest* req, HTTPResponse* res);
@@ -25,7 +27,9 @@ class Base_Controller {
         virtual void Index(HTTPRequest* req, HTTPResponse* res){
             GenericIndex(req,res); //if not overwritten, build page using MVC framework
         }
-        virtual void List(HTTPRequest* req, HTTPResponse* res) { }
+        virtual void List(HTTPRequest* req, HTTPResponse* res) {
+            GenericIndex(req,res); //if not overwritten, build page using MVC framework
+         }
         virtual void Put(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Post(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Delete(HTTPRequest* req, HTTPResponse* res) { }
@@ -116,7 +120,9 @@ class Base_Controller {
             File dataFile = SPIFFS.open(jsonPath.c_str());
             DynamicJsonDocument doc(dataFile.size() * 2);
             DeserializationError err = deserializeJson(doc, dataFile);
+            dataFile.close();
             JsonObject configVals = doc.as<JsonObject>();
+            
 
             if (err == err.Ok) {
                 for (int i = 0; i < configVals.size(); i++)
@@ -217,7 +223,13 @@ public:
     DerivedController(std::string const& s) {
         auto t = &createT<T>;
         getMap()->insert(std::make_pair(s, t ));
-    }    
+        _name = s.c_str();
+    }  
+    ~DerivedController(){
+        getMap()->erase(_name.c_str());
+    }  
+private:
+    string _name;
 };
 #include "../ROUTER/esp32_router.h"
 

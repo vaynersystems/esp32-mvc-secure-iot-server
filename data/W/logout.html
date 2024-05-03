@@ -5,16 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" href="data:,">
     <link rel="stylesheet" type="text/css" href="/CSS/style.css">
-    <script src="/JS/startup.js"></script>
     <script src="/JS/auth.js"></script>
     <script defer>
-         document.cookie = '';
+        clearCookies();
          window.sessionStorage.clear();
          window.location.href='/index.html';
     </script>
 </head>
 <body>
-    <div id="lgout" name="logout">
+    <div id="logout" name="logout">
         You are being redirected back to home soon
 
     </div>

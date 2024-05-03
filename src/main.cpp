@@ -1,3 +1,4 @@
+#include "System/Config.h"
 #include "System/AUTH/cert.h"
 #include "System/AUTH/key.h"
 
@@ -25,24 +26,46 @@ void serverTask(void* params);
     #define ARDUINO_RUNNING_CORE 1
 #endif
 extern const int STACK_SIZE = 1024*32;
+unsigned long lastreport = millis();
+String freeBytesHEAPSPretty("");
+
+
 //for starting and looping server task
 void serverTask(void* params) {
     server.start();
     while (true)         
         server.step();
 }
-
+#ifdef DEBUG
+void heapMonitor(void* params){
+    while(true)
+        if(millis() - lastreport > 1000){
+            esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
+            Serial.printf("Free heap: %s\n", freeBytesHEAPSPretty.c_str());
+            lastreport = millis(); 
+        }
+}
+#endif
 void setup() {
     // For logging
     Serial.begin(115200);
+    //Get Spiffs Online
+    disk.start();    
     // Connect to WiFi
     wifi.start();       
-    //Get Spiffs Online
-    disk.start();       
+       
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", STACK_SIZE, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    #ifdef DEBUG
+    //xTaskCreatePinnedToCore(heapMonitor, "heapmonitor", 256, NULL, 1, NULL, ARDUINO_RUNNING_CORE);
+    #endif
     
 }
 
+
+
 void loop() {   
+
+   
+    
 }

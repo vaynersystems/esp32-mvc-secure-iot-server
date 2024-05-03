@@ -51,7 +51,7 @@
         <div class="section" name="devices">
             <div class="section-header">Device Manager</div>
             <div class="section-content flex grow">
-                <div class="device-grid device-grid-header">
+                <div class="grid grid-header">
                     <div>ID</div>
                     <div>Name</div>
                     <div>Type</div>
@@ -83,6 +83,10 @@
                     <div class="grid-2">
                         <div>Name your Access Point</div>
                         <input type="text" name="wifi-network-name" id="wifi-network-name">
+                    </div>
+                    <div class="grid-2">
+                        <div>Secure your Access Point (optional password)</div>
+                        <input type="text" name="wifi-network-password" id="wifi-network-password">
                     </div>
                     <div class="grid-2">
                         <div>IP Address of the access point</div>
@@ -155,7 +159,15 @@
                 <div class="grid-2">
                     <span>Host Name</span>
                     <input type="text" name="host-name" id="host-name"/>                        
-                </div>                
+                </div> 
+                <div class="grid-2">
+                    <span>Enable SSL</span>
+                    <input type="checkbox" name="host-enable-ssl" id="host-enable-ssl"/>                        
+                </div> 
+                <div class="grid-2">
+                    <span>Enable MDNS (name discovery service used to access this device by name)</span>
+                    <input type="checkbox" name="host-enable-msdns" id="host-enable-msdns"/>                        
+                </div>               
             </div>
         </div>
         <div class="section" name="ntp">
@@ -283,8 +295,8 @@
     }
 </script>
     
-
-<!-- <div id="system-modal">        
+<!-- 
+<div id="system-modal">        
     <div id="system-modal-content">
         <div class="row">
             <div id="system-modal-header"></div>

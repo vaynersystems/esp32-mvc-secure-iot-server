@@ -23,6 +23,18 @@
         flex-direction: column;
     }
 </style>
-<div>Copyright $footer_year</div>
-<div>We are proudly sponsored by $_SPONSORS</div>
+<div class="grid-2">
+    <div>Copyright $footer_year</div>
+    <div id="welcome"></div>
+</div>
 
+<div>We are proudly sponsored by $_SPONSORS</div>
+<script>
+    document.onload = function(){
+        var userName = '$_USERNAME';
+        if(userName[0] != '$'){
+            const welcomeElement = document.getElementById('welcome');
+            if(welcomeElement !== null) welcomeElement.innerHTML = 'Welcome, ' + userName;
+        }
+    }
+</script>

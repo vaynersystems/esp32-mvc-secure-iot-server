@@ -1,11 +1,11 @@
 #include "esp32_authentication.h"
-
+#include "system_helper.h"
 
 esp32_user_auth_info esp32_authentication::authenticateUser(const char* username, const char* password){
     esp32_user_auth_info info;
     bool firstUser = false;
     // Read the file
-    auto filename = std::string(AUTH_FILE_PATH);
+    auto filename = std::string(PATH_AUTH_FILE);
     // Check if the file exists
     if (!SPIFFS.exists(filename.c_str()))
     {     
@@ -22,8 +22,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     } else { // check if valid user
         File file = SPIFFS.open(filename.c_str());
         StaticJsonDocument<512> d;
-        DeserializationError error = deserializeJson(d,file);
-        Serial.print(file);
+        DeserializationError error = deserializeJson(d,file);        
         if (error) {
             Serial.print("deserializeJson() failed: ");
             Serial.println(error.c_str());
@@ -35,7 +34,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
             if(strcmp(entry["username"].as<const char *>(),username) == 0 && strcmp(entry["password"].as<const char *>(), password) == 0 ){             
                 info.username = username;
                 info.password = password;
-                info.role =  entry["group"].as<const char *>();
+                info.role =  entry["role"].as<const char *>();
                 info.authenticated = true;
                 break;            
             }
@@ -48,7 +47,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     
 }
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role){
-    File authFile = SPIFFS.open(AUTH_FILE_PATH,"r");    
+    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
@@ -56,7 +55,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
 
     if(error){
         Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(AUTH_FILE_PATH);
+        //SPIFFS.remove(PATH_AUTH_FILE);
     }
 
     JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
@@ -64,13 +63,17 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     if(!existingUser.isNull()){
         return false;
     }
+    
 
     JsonObject newUser = doc.createNestedObject();
     newUser["username"] = username;
     newUser["password"] = password;
-    newUser["group"] = role;    
+    newUser["role"] = role;
+    newUser["enabled"] = true;
+    newUser["created"] =   getCurrentTime();
     
-    authFile = SPIFFS.open(AUTH_FILE_PATH, "w");
+    
+    authFile = SPIFFS.open(PATH_AUTH_FILE, "w");
     serializeJson(doc, authFile);
     authFile.flush();
     authFile.close();
@@ -79,7 +82,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
 
 bool esp32_authentication::changePassword(const char* username, const char* oldPassword, const char* newPassword){
     //Read auth data
-    File authFile = SPIFFS.open(AUTH_FILE_PATH,"r");    
+    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
@@ -102,7 +105,7 @@ bool esp32_authentication::changePassword(const char* username, const char* oldP
     existingUser["password"] = newPassword;
 
     //write back
-    authFile = SPIFFS.open(AUTH_FILE_PATH, "w");
+    authFile = SPIFFS.open(PATH_AUTH_FILE, "w");
     serializeJson(doc, authFile);
     authFile.flush();
     authFile.close();
@@ -111,19 +114,19 @@ bool esp32_authentication::changePassword(const char* username, const char* oldP
 
 
 
-JsonVariant esp32_authentication::findNestedKey(JsonObject obj, const char* key) {
-    JsonVariant foundObject = obj[key];
-    if (!foundObject.isNull())
-        return foundObject;
+// JsonVariant esp32_authentication::findNestedKey(JsonObject obj, const char* key) {
+//     JsonVariant foundObject = obj[key];
+//     if (!foundObject.isNull())
+//         return foundObject;
 
-    for (JsonPair pair : obj) {
-        JsonVariant nestedObject = findNestedKey(pair.value(), key);
-        if (!nestedObject.isNull())
-            return nestedObject;
-    }
+//     for (JsonPair pair : obj) {
+//         JsonVariant nestedObject = findNestedKey(pair.value(), key);
+//         if (!nestedObject.isNull())
+//             return nestedObject;
+//     }
 
-    return JsonVariant();
-}
+//     return JsonVariant();
+// }
 
 JsonObject esp32_authentication::findUser(JsonArray users, const char* userName){
     for(JsonObject seekingUser : users){

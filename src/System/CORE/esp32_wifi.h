@@ -7,10 +7,11 @@
 // We will use wifi
 #include <WiFi.h>
 #include "lwip/apps/sntp.h"
+#include <ESPmDNS.h>
 
-//TODO: move to config file
-#define WIFI_SSID "dd-wrt"
-#define WIFI_PSK  "4409420820"
+#include <SPIFFS.h>
+#include "ArduinoJson.h"
+#include "esp32_config.h"
 
 
 class esp32_wifi
@@ -20,6 +21,7 @@ public:
     bool start();
     bool startAP();
     bool startSTA();
+    bool end();
 
 
 };

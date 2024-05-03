@@ -39,6 +39,8 @@ bool esp32_server::start() {
     ResourceNode* nodeRoot = new ResourceNode("", "GET", &esp32_router::handleRoot);
     ResourceNode* nodeSpecial = new ResourceNode("/special/*", "GET", &esp32_router::handleFileList);
     ResourceNode* corsNode = new ResourceNode("/*", "OPTIONS", &esp32_router::handleCORS);
+
+    WebsocketNode * persistanceNode = new WebsocketNode("/persistance", &esp32_socket::createSocket);
     _router->RegisterHandler( corsNode);
     _router->RegisterHandler( node404);
     _router->RegisterHandler( nodeSpecial);

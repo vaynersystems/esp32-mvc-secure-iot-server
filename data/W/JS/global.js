@@ -13,6 +13,7 @@ function showModalComponent(component, header, actions){
 
     var t = document.getElementById('system-modal-text');
     if (t !== null) {
+        //t.innerHTML = component.innerHTML;        
         t.innerHTML = '';
         t.appendChild(component);
     }
@@ -34,6 +35,10 @@ function showModalComponent(component, header, actions){
             a.appendChild(button);
         }    
     }
+    window.addEventListener('keydown', function(key) {
+        if(key.code == 'Escape')
+            closeModal();
+    })
 }
 
 function showModal(text, header, actions){
@@ -67,6 +72,18 @@ function closeModal(){
     var l = document.getElementById('system-modal');
     if (l !== null) l.style.display = 'none';
 }
+
+function showWait(which){
+    const waitElement = document.getElementById(which + '-wait');
+    if(waitElement !== null && waitElement !== null) waitElement.style.display = 'block';
+}
+
+function hideWait(which){
+    const waitElement = document.getElementById(which + '-wait');
+    if(waitElement !== undefined && waitElement !== null ) waitElement.style.display = 'none'; //hide wait indicator
+}
+
+
 
 function reset(check){
     var request = new XMLHttpRequest();
