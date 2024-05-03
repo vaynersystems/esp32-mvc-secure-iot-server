@@ -1,7 +1,7 @@
 #include "esp32_config_controller.hpp"
 #include "string_extensions.h"
 #include <WiFi.h>
-#define SYSTEM_CONFIG_FILE "/INT/system_config.json"
+
 
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
@@ -9,14 +9,14 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     title = "Module Configuration Page";
 
-    File f = SPIFFS.open(SYSTEM_CONFIG_FILE,"r");
+    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
     StaticJsonDocument<1024> configDoc;
     auto error = deserializeJson(configDoc, f);
     string configData;
     serializeJson(configDoc, configData);
 
     controllerTemplate.SetTemplateVariable("$_CONFIGURATION_DATA", configData.c_str());
-    controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", SYSTEM_CONFIG_FILE);
+    controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", PATH_SYSTEM_CONFIG);
     
     Base_Controller::Index(req,res);    
 }
@@ -124,7 +124,7 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* r
 /// @param req 
 /// @param res 
 void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res) {
-    File f = SPIFFS.open(SYSTEM_CONFIG_FILE,"r");
+    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
     byte buff[32];
     int bytesToRead = 0;
     while(true){
@@ -147,7 +147,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    Serial.printf("Saving configuration to %s...\n", SYSTEM_CONFIG_FILE);
+    Serial.printf("Saving configuration to %s...\n", PATH_SYSTEM_CONFIG);
     char * buf = new char[32];
     while(true){
         
@@ -163,11 +163,11 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     auto error = deserializeJson(doc, content);
 
     if(error.code() == DeserializationError::Ok){
-        File f = SPIFFS.open(SYSTEM_CONFIG_FILE, "w");
+        File f = SPIFFS.open(PATH_SYSTEM_CONFIG, "w");
         serializeJson(doc,f);
         f.close();
         res->setStatusCode(200);
-        Serial.printf("Saved configuration to %s\n", SYSTEM_CONFIG_FILE);
+        Serial.printf("Saved configuration to %s\n", PATH_SYSTEM_CONFIG);
     } else{
         res->setStatusCode(500);
         // String errorText = "Error saving configuration: ";
@@ -182,5 +182,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
 }
 
 void esp32_config_controller::ResetDevice(HTTPRequest* req, HTTPResponse* res){
-    esp_restart();
+    if(strcmp(req->getHeader(HEADER_GROUP).c_str(),"ADMIN") == 0)
+        esp_restart();
+    else res->setStatusCode(401);
 }

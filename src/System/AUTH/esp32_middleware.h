@@ -10,6 +10,7 @@
 #include <HTTPResponse.hpp>
 #include <ArduinoJson.h>
 #include "ArduinoJWT.h"
+#include <system_helper.h>
 #include <HTTPBodyParser.hpp>
 #include <HTTPMultipartBodyParser.hpp>
 #include <HTTPURLEncodedBodyParser.hpp>

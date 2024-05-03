@@ -2,7 +2,7 @@
 #include <iterator>
 #include "WiFi.h"
 
-
+//TODO: rework to "Set Model Variable". Need to be able to specify model path
 void esp32_template::SetTemplateVariable(std::string name, std::string value)
 {
 	//auto itr = templateVars.begin();
@@ -16,6 +16,17 @@ void esp32_template::SetTemplateVariable(std::string name, std::string value)
 
 	templateVars.emplace(name, value);
 }
+
+void esp32_template::ClearVariables(){
+    //roll through and destruct
+    // std::map<std::string, std::string>::iterator itr = templateVars.begin();
+	// for (std::pair<std::string, std::string> element : templateVars) {
+	// 	element.first.~basic_string();
+    //     element.second.~basic_string(); 		
+	// }
+    templateVars.clear();
+}
+
 void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
 	time_t now;
 	char strftime_buf[64];
@@ -35,10 +46,13 @@ void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
 	SetTemplateVariable("$_UPTIME", String((uint32_t)(esp_timer_get_time() / 1000000)).c_str());
 	SetTemplateVariable("$_SERVER_IP", WiFi.localIP().toString().c_str());
 	SetTemplateVariable("$_REQUEST_URL", req->getRequestString().c_str());
+    SetTemplateVariable("$_USERNAME", req->getHeader(HEADER_USERNAME).c_str());
+    SetTemplateVariable("$_USERROLE", req->getHeader(HEADER_GROUP).c_str());
 }
 
-bool esp32_template::RenderTemplate(HTTPRequest* req, HTTPResponse* res)
+bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
 {
+    unsigned long timer = millis();
 	//update globals
 	SetGlobalVariables(req,res);
     Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
@@ -64,11 +78,11 @@ bool esp32_template::RenderTemplate(HTTPRequest* req, HTTPResponse* res)
 				//if found
 				line.replace(element.first.c_str(), element.second.c_str());
 			}
-			res->println(line.c_str());
+			res->println(line.c_str());            
 		}
 	}
 	templateFile.close();
-    Serial.println("Completed rendering template");
+    Serial.printf("Completed rendering template in %d ms\n", millis() - timer);
 	return true;
 }
 

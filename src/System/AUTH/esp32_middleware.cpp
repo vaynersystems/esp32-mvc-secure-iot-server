@@ -4,6 +4,7 @@
 #include "../CORE/esp32_server.h"
 #include <string_extensions.h>
 #include <esp_task_wdt.h>
+#include <BLEEddystoneTLM.h>
 extern esp32_server server;
 #define STR_LINES PROGMEM "--------------------------------------------------------------------"
 
@@ -25,11 +26,10 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
 
 
-    //Serial.printf("Middlware authentication with jwt [%s]\n", jwtTokenFromRequest.c_str());
     
     if (req->getRequestString().substr(0, 7) == "/logout") {
         jwtTokenFromRequest.clear();
-        res->setHeader("Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;");
+        res->setHeader("Set-Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;auth=");
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
         next();
@@ -85,9 +85,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 
             // Get login information from request       
             if (reqUsername.length() > 0 && reqPassword.length() > 0) {
-                Serial.println("Checking loging info..");
+                //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                Serial.printf("Authentication result: username: %s, password: %s, valid: %s\n", info.username.c_str(), info.password.c_str(), info.authenticated ? "VALID" : "INVALID");
+                //Serial.printf("Authentication for: %s : %s\n", info.username.c_str(), info.authenticated ? "VALID" : "INVALID");
                 
                 // if authentication was successful issue JWT token
                 if (info.authenticated) {
@@ -95,6 +95,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     doc["user"] = reqUsername;
                     doc["password"] = reqPassword;
                     doc["role"] = info.role.c_str();
+                    doc["exp"] = getTime() +( 3600 * 24 * 7);
                     jwtTokenPayload.clear();
                     serializeJson(doc, jwtTokenPayload);
 
@@ -158,7 +159,12 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 // return;
                 res->print(jwtToken);     
                 //return;
-            }    
+            }   
+
+            if(doc["exp"].as<unsigned long>() < getTime()){
+                res->setStatusCode(401);
+
+            } 
 
             #ifdef DEBUG
             if (doc["user"] == "admin") {
@@ -192,33 +198,44 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
  */
 void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* res, std::function<void()> next) {
     // Get the username (if any)
-    std::string username = req->getHeader(HEADER_USERNAME);
-    std::string authHeader = req->getHeader(HEADER_AUTH);
+    string username = req->getHeader(HEADER_USERNAME);
+    string authHeader = req->getHeader(HEADER_AUTH);
+    string cookieHeader = req->getHeader(HEADER_COOKIE).c_str();
+    string jwtTokenFromCookie = "";
     String reqPath = String(req->getRequestString().c_str());
-    String jwtTokenFromCookie = req->getHeader(HEADER_COOKIE).c_str();
+    
     bool decodeResult = false;
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
     esp32_user_auth_info authResult;
-    
-    if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
-        jwtTokenFromCookie = jwtTokenFromCookie.substring(7);
 
+    //check if cookie has auth
+    vector<string> chunks = explode(cookieHeader,";");
+    for(size_t idx = 0; idx < chunks.size(); idx++){
+        vector<string> parts = explode(chunks[idx],"=");
+        if(parts.size() == 1) //no name
+            Serial.printf("Invalid cookie parsed without name %s\n", parts[0].c_str());
+        else if(strcmp(parts[0].c_str(),"auth") == 0){
+            jwtTokenFromCookie = parts[1];
+            //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());
+        }
+    }
+       
 
     String jwtTokenFromRequest = String(authHeader.c_str());
     if (jwtTokenFromRequest.length() > 7) {
         jwtTokenFromRequest.remove(0, 7);
-        //Serial.print("Parsing JWT Token: "); Serial.println(jwtTokenFromRequest);
+        //Serial.print("Parsing JWT Token from header: "); Serial.println(jwtTokenFromRequest);
     }
 
     //if an auth header is passed, it gets priority over cookie
-    String jwtToken = jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie ;
+    String jwtToken = jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie.c_str() ;
     if(reqPath.equalsIgnoreCase("/logout")){
         //redirect to login
         //esp_task_wdt_reset();
         res->setStatusCode(303);
         res->setHeader("Location","/logout.html");
-        next();
+        next(); 
         return;
     }
     
@@ -232,21 +249,23 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
-            setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
-            if(isLoginPage && isPostRequest) //special case for posting login info
-                return;
-
             //TODO: create config setting to force verify token
             //verify token is valid    
-            //authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
-            authResult.authenticated = true;
+            authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
+            //authResult.authenticated = true;
             // Serial.printf(
             //     "**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
             //     authResult.authenticated ? "Authenticated" : "Unauthorized", 
             //     authResult.username.c_str(), 
             //     authResult.password.c_str(), 
             //     authResult.role.c_str()
-            // );            
+            // ); 
+            if(authResult.authenticated){                
+            
+                setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
+                if(isLoginPage && isPostRequest) //special case for posting login info
+                    return;        
+            }
         }
         else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
         
@@ -289,7 +308,7 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
 }
 
 bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
-    bool isInternalPath = req->getRequestString().substr(0, 5) == "/INT/";
+    bool isInternalPath = req->getRequestString().substr(0, 5) == INTERNAL_ROOT;
     if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
         Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
         res->setStatusCode(401);

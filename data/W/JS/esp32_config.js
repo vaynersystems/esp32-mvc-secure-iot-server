@@ -39,6 +39,8 @@ function selectView(section){
     }
     contentElement.appendChild(sectionElement);
     selectedSection = section;
+
+    persistedConfig.preferences.lastPage = section;
 }
 
 /* WIFI  */
@@ -53,7 +55,14 @@ function selectWifiMode(wifiMode){
     const selectedComponentName = 'wifi-' + wifiMode;
     if(selectedComponentName == wifiAccessPointElement.id){
         wifiAccessPointElement.className = 'visible';
-        wifiClientElement.className = 'hidden';            
+        wifiClientElement.className = 'hidden';
+        const config = persistedConfig;       
+        
+        //load name, password, ip, subnet for access point
+        document.getElementById('wifi-network-name').value = config.wifi.ap.name;
+        document.getElementById('wifi-network-ap-password').value = config.wifi.ap.password;
+        document.getElementById('wifi-network-ap-ip').value = config.wifi.ap.ip;
+        document.getElementById('wifi-network-ap-subnet').value = config.wifi.ap.subnet;
     } else {
         wifiAccessPointElement.className = 'hidden';
         wifiClientElement.className = 'visible';      
@@ -198,7 +207,7 @@ function loadDevices(devices){
         rowElement.appendChild(signalElement);
 
         rowElement.setAttribute('data', JSON.stringify(device));
-        rowElement.className = "device-row device-grid";
+        rowElement.className = "grid-row grid";
         rowElement.addEventListener('click', () => showDeviceEditor(JSON.parse(rowElement.getAttribute('data'))))
         deviceListElement.appendChild(rowElement);
     }
@@ -304,12 +313,19 @@ function loadSettings(configData){
     selectDHCPMode(configData);
     //system
     const hostNameElement = document.getElementById('host-name');
+    const hostEnableSSLElement = document.getElementById('host-enable-ssl');
+    const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    
+    
     const ntpServerElement = document.getElementById('ntp-host-name');
     const timeZoneElement = document.getElementById('time-zone');
 
     if(hostNameElement !== null) hostNameElement.value = configData.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = configData.system.ntp.server;
     if(timeZoneElement !== null) timeZoneElement.value = configData.system.ntp.timezone;
+
+    if(hostEnableSSLElement !== null) hostEnableSSLElement.value = configData.server.enableSSL;
+    if(hostEnableMDNSElement !== null) hostEnableMDNSElement.value = configData.server.enableMDNS;
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
@@ -337,6 +353,10 @@ function seveSettingsFromForm(){
     config.system.hostname = document.getElementById('host-name').value ?? config.system.hostname;
     config.system.ntp.server = document.getElementById('ntp-host-name').value;
     config.system.ntp.timezone = document.getElementById('time-zone').value;
+    const hostEnableSSLElement = document.getElementById('host-enable-ssl');
+    const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').value;
+    if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').value;
 
     //server
     if(config.server === undefined)
@@ -371,8 +391,9 @@ function seveSettingsFromForm(){
         if(config.wifi.ap === undefined)
             config.wifi.ap = {};
         config.wifi.ap.name = document.getElementById('wifi-network-name')?.value;
+        config.wifi.ap.password = document.getElementById('wifi-network-ap-password')?.value;
         config.wifi.ap.ip = document.getElementById('wifi-network-ap-ip')?.value;
-        config.wifi.ap.subnet = document.getElementById('wifi-network-ap-subnet')?.value;            
+        config.wifi.ap.subnet = document.getElementById('wifi-network-ap-subnet')?.value;
     }
     config.type = 'esp32-config'
     saveSettings(config);
@@ -405,15 +426,7 @@ function saveSettings(config){
     showWait('page');
 }
 
-function showWait(which){
-    const waitElement = document.getElementById(which + '-wait');
-    if(waitElement !== null && waitElement !== null) waitElement.style.display = 'block';
-}
 
-function hideWait(which){
-    const waitElement = document.getElementById(which + '-wait');
-    if(waitElement !== undefined && waitElement !== null ) waitElement.style.display = 'none'; //hide wait indicator
-}
 
 function restoreSettings() {
     var input = document.getElementById("restoreSettings");
@@ -487,14 +500,13 @@ function esp32_config_init(configDataSting){
     }
     if(persistedConfig.system === undefined){
         persistedConfig.system = {};
-        var d = new Date().getDay();
-        var m = new Date().getMonth();
-        var y = new Date().getFullYear();
-        persistedConfig.system.hostname = 'ESP32 Host' + y + "-" + m + "-" + d; 
+        persistedConfig.system.hostname = 'ESP32-Dev-Host' + new Date().getMinutes(); 
+        persistedConfig.system.enableSSL = true;
+        persistedConfig.system.enableMDNS = false;
     }
     if(persistedConfig.system.ntp === undefined){
         persistedConfig.system.ntp = {};
-        persistedConfig.system.ntp.server = '0.us.pool.ntp.org';
+        persistedConfig.system.ntp.server = 'us.pool.ntp.org';
         persistedConfig.system.ntp.timezone = '-5';
     }
 

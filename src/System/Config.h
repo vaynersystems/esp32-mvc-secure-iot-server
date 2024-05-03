@@ -5,6 +5,11 @@
 #define INTERNAL_ROOT "/INT"
 #define TEMPLE_VAR_COUNT 50
 
+#define SOCKET_MAX 10
+
+#define PATH_AUTH_FILE "/INT/authorized.dat"
+#define PATH_SYSTEM_CONFIG "/INT/system_config.json"
+
 #define HTML_REF_CONST_TITLE "$title"
 #define HTML_REF_CONST_HEAD "$doc_head"
 #define HTML_REF_CONST_HEADER "$header"
@@ -16,6 +21,8 @@
 #define HEADER_GROUP    "X-GROUP"
 #define HEADER_AUTH "Authorization"
 #define HEADER_COOKIE "Cookie"
+
+
 
 using namespace std;
 struct esp32_controller_route {
