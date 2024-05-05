@@ -7,7 +7,8 @@ body{
     display: flex;
     flex-direction: row;
     border-style: none;        
-    height: inherit;
+    flex-grow: 1;
+    flex-shrink: 1;
 }
 .config-menu{
     display: flex;
@@ -16,13 +17,13 @@ body{
     max-width: 250px;
     min-width: 150px;
     border-color: #0b0b37;
-    border-width: 45px 1px;
+    border-width: 0 1px 0 0;
     border-style: solid;
     color: #0b0b37;
     font-size: 20px;
-    padding: 15px 10px;
     border-radius: 10px 0px 0px 10px;
     overflow: scroll;
+    margin-right: 11px;
 }
 .menu-item{
    
@@ -51,11 +52,7 @@ body{
 #config-content{
     display: flex;
     flex-grow: 1;
-    border-style: solid;
-    border-width: 0 1px 0 0;
-    border-radius: 0 10px 0 0;
-    border-color: #0b0b37;
-    border-color: linear-gradient(90deg, rgba(11,11,55,1) 0%, rgba(9,22,83,1) 41%, rgba(14,21,79,1) 84%, rgba(44,49,117,1) 100%);      
+    margin-right: 5px;
     overflow: hidden;  
 }
 .section-collection{
@@ -74,8 +71,7 @@ body{
 .section-header{
     font-size: 20px;
     border-radius: 0 10px 0 0;
-    color: #fff;
-    background-color: #0b0b37;
+    color: #0b0b37;
     padding: 10px;
 }
 
@@ -92,24 +88,15 @@ body{
 .config-actions{
     flex-direction: row;
     justify-content: end;
-    display: flex;        
+    display: flex;
     border-style: solid;
-    border-width: 1px 5px 1px 0px;
-    border-radius: 0 0 10px 0;
+    border-width: 1px 0px 0 0;    
     border-color: #0b0b37;
-    background-color: #0b0b37;
     padding: 6px 0px;
     height: 31px;
-}
-.row{
-    display: flex;
-    flex-direction: row;
-    justify-content: space-between;
+    margin: 5px 5px 0 0;
 }
 
-.right{
-    text-align: right;
-}
 #error{
     color:red;
 }
@@ -150,24 +137,14 @@ body{
     from {transform:rotate(0deg);}
     to {transform:rotate(360deg);}
 }
-.link{
-    text-decoration: underline;
-    color: #0e0ed5;
-}
-.link:hover{
-    cursor: pointer;
-    color:#0b0b37;
-}
 
-
-.device-row:nth-child(2n){
-    background-color: rgb(221, 225, 233);
-}
-.device-row:hover{
-    background-color: rgb(163, 173, 192);
-    cursor: pointer;
-} */
 #device-list{
     flex-grow: 1;
     align-content: flex-start;   
+}
+#editor-device-trigger-panel{
+    display: none;
+}
+.content{
+    border-style: none !important;
 }
