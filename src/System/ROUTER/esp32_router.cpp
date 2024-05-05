@@ -320,7 +320,7 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
             pathString.erase(0);
     }
     //}
-    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
     
     routeObj.action = action;
     routeObj.controller = controller;
@@ -507,13 +507,18 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* conten
         }
 
         if(!controllerObj->HasAction(route.action.c_str())) {
-            esp32_router::handle404(req,res);                    
+            esp32_router::handle404(req,res);  
+            vector<string>actions;
+            controllerObj->GetActions(&actions);          
+            // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());        
+            // for(int i = 0; i < actions.size(); i++)
+            //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());        
         } else {
        
             controllerObj->Action(req, res);
             controllerObj->controllerTemplate.ClearVariables();        
             
-            // Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+            Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
         }
         delete controllerObj;
     }

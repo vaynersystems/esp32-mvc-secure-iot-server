@@ -109,6 +109,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                         // -> We proceed with this request.
                         DynamicJsonDocument tokenDoc(384);
                         tokenDoc["access_token"] = jwtToken;
+                        jwtToken = "";
                         serializeJson(tokenDoc, jwtToken);
                         res->print(jwtToken.c_str());
                     }
@@ -138,18 +139,18 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == DeserializationError::Ok) {
 
-            if(req->getRequestString().substr(0, 6) == "/login" && req->getMethod() == "POST") {
-                //redirect
-                // auto returnUrl = req->getHeader("X_RETURN_URL");
-                // if(returnUrl.length() == 0)
-                // returnUrl = "index.html";
-                // res->setStatusCode(303);
+            // if(req->getRequestString().substr(0, 6) == "/login" && req->getMethod() == "POST") {
+            //     //redirect
+            //     // auto returnUrl = req->getHeader("X_RETURN_URL");
+            //     // if(returnUrl.length() == 0)
+            //     // returnUrl = "index.html";
+            //     // res->setStatusCode(303);
                 
-                // res->setHeader("Location",returnUrl);
-                // return;
-                res->print(jwtToken.c_str());     
-                //return;
-            }   
+            //     // res->setHeader("Location",returnUrl);
+            //     // return;
+            //     res->print(jwtToken.c_str());     
+            //     //return;
+            // }   
 
             if(doc["exp"].as<unsigned long>() < getTime()){
                 res->setStatusCode(401);
@@ -259,14 +260,14 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //verify token is valid    
             authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
             //authResult.authenticated = true;
-            Serial.printf(
-                //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
-                "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
-                authResult.authenticated ? "Authenticated" : "Unauthorized", 
-                authResult.username.c_str(), 
-               // authResult.password.c_str(), 
-                authResult.role.c_str()
-            ); 
+            // Serial.printf(
+            //     //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
+            //     "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
+            //     authResult.authenticated ? "Authenticated" : "Unauthorized", 
+            //     authResult.username.c_str(), 
+            //    // authResult.password.c_str(), 
+            //     authResult.role.c_str()
+            // ); 
             if(authResult.authenticated){                
             
                 setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            

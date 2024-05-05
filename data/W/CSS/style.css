@@ -225,7 +225,8 @@ input,select{
     width: 600px;
     text-align: center;
     align-content: center;
-    background: #fff;
+    background: var(--primary-control-background);
+    color:var(--primary-control-color);
     margin: 15px;
     box-shadow: 6px 6px;
     
@@ -250,7 +251,7 @@ input,select{
     justify-content: end;
     margin:5px 10px;
     button{
-        background-color: varl(--secondary-button-background);
+        background-color: var(--secondary-button-background);
         color:var(--secondary-button-color);
         width:90px;
     }
@@ -299,7 +300,7 @@ input,select{
 }
 
 .grid-header{
-    background-color: varl(--secondary-background);
+    background-color: var(--secondary-background);
     
     font-size: 16px;
     flex-grow:0;

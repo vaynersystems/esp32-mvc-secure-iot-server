@@ -80,36 +80,44 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     return true;
 }
 
-bool esp32_authentication::changePassword(const char* username, const char* oldPassword, const char* newPassword){
-    //Read auth data
-    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
-    
-    DynamicJsonDocument doc(1024); 
-    DeserializationError error = deserializeJson(doc, authFile);
-    authFile.close();
-    if(error){
-        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        return false;     
+ChangePasswordResult esp32_authentication::changePassword(const char* username, const char* oldPassword, const char* newPassword){
+
+    //Serial.printf("Request to save password for user %s.\n\t old: %s new: ...\n", username,oldPassword,newPassword);
+     if(strcmp(oldPassword,newPassword) == 0)
+        return ChangePasswordResult::SamePassword;
+    // Read the file
+    // Check if the file exists
+    if (!SPIFFS.exists(PATH_AUTH_FILE))
+    {     
+        return ChangePasswordResult::AuthSystemError;
+       
+    }
+    //get user object, update it, store back
+    File file = SPIFFS.open(PATH_AUTH_FILE);
+    StaticJsonDocument<512> doc;
+    DeserializationError error = deserializeJson(doc,file);
+    file.close();
+
+    if (error) {
+        Serial.print("deserializeJson() failed: ");
+        Serial.println(error.c_str());
+        return ChangePasswordResult::AuthSystemError;
     }
 
     JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
-    if(existingUser.isNull()){
-        return false; //user not found
-    }
-
-    //check old password
-    if(strcmp(existingUser["password"].as<const char*>(), oldPassword) != 0)
-        return false;
-
-    //change password
-    existingUser["password"] = newPassword;
+    if( strcmp(existingUser["password"].as<string>().c_str(), oldPassword) != 0)
+        return ChangePasswordResult::WrongPassword;
+             
+    existingUser["password"] = string(newPassword);
 
     //write back
-    authFile = SPIFFS.open(PATH_AUTH_FILE, "w");
-    serializeJson(doc, authFile);
-    authFile.flush();
-    authFile.close();
-    return true;
+    file = SPIFFS.open(PATH_AUTH_FILE,"w");
+    serializeJson(doc, file);
+//    file.flush();
+    file.close();
+        
+    
+    return ChangePasswordResult::Ok;    
 }
 
 

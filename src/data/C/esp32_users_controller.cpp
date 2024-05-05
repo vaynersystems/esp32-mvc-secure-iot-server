@@ -44,6 +44,46 @@ void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
     res->setHeader("Content-Type", "text/html");
 }
 
+inline void esp32_users_controller::Delete(HTTPRequest *req, HTTPResponse *res)
+{
+     if(strcmp(req->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        res->setStatusCode(401);
+        return;
+    }
+    
+    const int length = req->getContentLength();    
+    DynamicJsonDocument doc(length * 2);
+    string content;
+    
+    char * buf = new char[32];
+    while(true){
+        
+        int bytesRead = req->readBytes((byte*)buf,32); 
+        if(bytesRead <= 0) break;       
+        content.append(buf,bytesRead);
+    }
+    delete[] buf;
+    //Serial.printf("Creating user from data: %s...\n", content.c_str());
+    auto error = deserializeJson(doc, content);
+    if(error != DeserializationError::Ok){
+        res->setStatusCode(500);
+        res->setStatusText(error.c_str());
+        return;
+    }
+
+    
+    auto deleted = DeleteUser(
+        doc["username"].as<const char*>()
+    );
+
+    if(!deleted){
+        res->setStatusCode(500); 
+    } else
+        res->setStatusCode(200);
+    return;
+}
+
 // void esp32_users_controller::Post(HTTPRequest* req, HTTPResponse* res) {
     
 // }
@@ -163,7 +203,7 @@ void esp32_users_controller::ChangePassword(HTTPRequest* req, HTTPResponse* res)
     string username = doc["username"].as<const char*>();
     string oldPassword = doc["oldPassword"].as<const char*>();
     string newPassword = doc["newPassword"].as<const char*>();
-    auto saved = SaveUserPassword(
+    auto saved = esp32_authentication::changePassword(
         username.c_str(), 
         oldPassword.c_str(), 
         newPassword.c_str()
@@ -242,7 +282,7 @@ bool esp32_users_controller::SaveNewUserData(const char* username,const char * p
         //SPIFFS.remove(PATH_AUTH_FILE);
     }
 
-    JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
+    JsonVariant existingUser = esp32_authentication::findUser(doc.as<JsonArray>(),username);
 
     if(!existingUser.isNull()){
         return false;
@@ -307,50 +347,31 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
     return true;
 }
 
-ChangePasswordResult esp32_users_controller::SaveUserPassword(const char* username, const char* oldPassword, const char* newPassword){
-    
-    //Serial.printf("Request to save password for user %s.\n\t old: %s new: ...\n", username,oldPassword,newPassword);
-     if(strcmp(oldPassword,newPassword) == 0)
-        return ChangePasswordResult::SamePassword;
-    // Read the file
-    auto filename = std::string(PATH_AUTH_FILE);
-    // Check if the file exists
-    if (!SPIFFS.exists(filename.c_str()))
-    {     
-        return ChangePasswordResult::AuthSystemError;
-       
+bool esp32_users_controller::DeleteUser(const char *username)
+{
+    File file = SPIFFS.open(PATH_AUTH_FILE,"r");
+    DynamicJsonDocument doc(file.size() * 2);   
+
+    auto error = deserializeJson(doc,file);
+    file.close();
+    if(error != DeserializationError::Ok){
+        Serial.printf("Error occured deserializing user data: %s\n", error.c_str());
+        return false;
     }
-    //get user object, update it, store back
-    File file = SPIFFS.open(filename.c_str());
-    StaticJsonDocument<512> d;
-    DeserializationError error = deserializeJson(d,file);
+    auto users =  doc.as<JsonArray>();
+    for(int idx = 0; idx < users.size();idx++){
+        if(strcmp(users[idx]["username"].as<const char *>(),username) == 0){
+            users.remove(idx);
+        }
+    }
+    
+    file = SPIFFS.open(PATH_AUTH_FILE,"w");
+    serializeJson(doc, file);
     file.close();
 
-    if (error) {
-        Serial.print("deserializeJson() failed: ");
-        Serial.println(error.c_str());
-        return ChangePasswordResult::AuthSystemError;
-    }
-    //see if we have a matching entry
-    for(JsonObject entry : d.as<JsonArray>()) {        
-        // Serial.printf("Comparing %s with password %s to %s with password %s\n", 
-        //     entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str(),
-        //     username,oldPassword);
-        if(strcmp(entry["username"].as<string>().c_str(),username) == 0){
-            if( strcmp(entry["password"].as<string>().c_str(), oldPassword) != 0)
-                return ChangePasswordResult::WrongPassword;
-             
-            entry["password"] = string(newPassword);
-            break;
-        }
-    }  
-    file = SPIFFS.open(filename.c_str(),"w");
-    serializeJson(d, file);
-    file.close();
-        
-    
-    return ChangePasswordResult::Ok;
+    return true;
 }
+
     
     
 
@@ -394,17 +415,17 @@ JsonVariant esp32_users_controller::LoadUserData(const char* username) {
 
    
 
-    serializeJson(doc, Serial);
-    auto user = findUser(doc.as<JsonArray>(), username);
+    //serializeJson(doc, Serial);
+    auto user = esp32_authentication::findUser(doc.as<JsonArray>(), username);
     return user;
 }
 
 
-JsonObject esp32_users_controller::findUser(JsonArray users, const char* userName){
-    for(JsonObject seekingUser : users){
-        //Serial.printf("Comparing user %s in db to user %s being searched\n", seekingUser["username"].as<const char *>(), userName);
-        if(strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
-            return seekingUser;        
-    }
-    return JsonObject();
-}    
+// JsonObject esp32_users_controller::findUser(JsonArray users, const char* userName){
+//     for(JsonObject seekingUser : users){
+//         //Serial.printf("Comparing user %s in db to user %s being searched\n", seekingUser["username"].as<const char *>(), userName);
+//         if(strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
+//             return seekingUser;        
+//     }
+//     return JsonObject();
+// }    
