@@ -3,24 +3,12 @@
 <head>
     <title>$title</title>   
     $doc_head
-    <link rel="stylesheet" type="text/css" href="/CSS/style.css" />
-    <script type="text/javascript" src="/JS/global.js"></script>
+    <link rel="stylesheet" type="text/css" href="/CSS/theme.css" />   
+    <link rel="stylesheet" type="text/css" href="/CSS/style.css" />  
+    <script type="text/javascript" src="/JS/system.js"></script>  
+    <script type="text/javascript" src="/JS/modal.js"></script>
 </head>
 <body>    
-
-    <div id="page-wait"></div>
-    <div id="system-modal">        
-        <div id="system-modal-content">
-            <div class="row">
-                <div id="system-modal-header"></div>
-                <div id="system-modal-close" onclick="closeModal();">X</div>                
-            </div>
-            <div id="system-modal-text"></div>
-            <div id="system-modal-actions">
-                <button onclick="closeModal()">Ok</button>
-            </div>
-        </div>        
-    </div>
     <div class="header">$header</div>
     <div class="menu">$menu</div>
     <div class="content">$content</div>

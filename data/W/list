@@ -1,0 +1,572 @@
+[
+  {
+    "type": "dir",
+    "name": "/W",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/V",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/V",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/V",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/IMG",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS/E",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/CSS",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/V",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/M",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/INT",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/INT",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/T/V",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "dir",
+    "name": "/W/JS",
+    "size": 0,
+    "parent_dir": ""
+  },
+  {
+    "type": "file",
+    "name": "/index.html",
+    "size": 223,
+    "parent_dir": "/W"
+  },
+  {
+    "type": "file",
+    "name": "/theme-chrome.js.gz",
+    "size": 1111,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/c_t_m_list.html",
+    "size": 2733,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/ace.js.gz",
+    "size": 98221,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_dashboard.html",
+    "size": 8013,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/c_t_m.html",
+    "size": 0,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/theme-tomorrow_night.js",
+    "size": 3434,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-terminal.js.gz",
+    "size": 1047,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-html.js.gz",
+    "size": 20624,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/ext-options.js.gz",
+    "size": 7334,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-c_cpp.js.gz",
+    "size": 5086,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_config.html",
+    "size": 15479,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/login.html",
+    "size": 1241,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_home.html",
+    "size": 198,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/_footer.html",
+    "size": 1454,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_config_list.html",
+    "size": 301,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/title_pub.html",
+    "size": 13,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/theme-textmate.js.gz",
+    "size": 1112,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/title_int.html",
+    "size": 14,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/header_pub.html",
+    "size": 21,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/worker-html.js.gz",
+    "size": 47351,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-nord_dark.js.gz",
+    "size": 810,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-github.js.gz",
+    "size": 962,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-markdown.js.gz",
+    "size": 26690,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-css.js.gz",
+    "size": 8118,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-kuroir.js.gz",
+    "size": 900,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-vibrant_ink.js.gz",
+    "size": 934,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-sqlserver.js.gz",
+    "size": 1136,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/edit.js",
+    "size": 25074,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-javascript.js.gz",
+    "size": 7803,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/ajax_loader.gif",
+    "size": 19110,
+    "parent_dir": "/W/IMG"
+  },
+  {
+    "type": "file",
+    "name": "/vsizegrip.png",
+    "size": 91,
+    "parent_dir": "/W/IMG"
+  },
+  {
+    "type": "file",
+    "name": "/theme-ambiance.js.gz",
+    "size": 19381,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/ext-searchbox.js.gz",
+    "size": 4191,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/worker-javascript.js.gz",
+    "size": 177914,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/style.css",
+    "size": 30865,
+    "parent_dir": "/W/CSS"
+  },
+  {
+    "type": "file",
+    "name": "/jquery.modal.min.css.gz",
+    "size": 1793,
+    "parent_dir": "/W/CSS"
+  },
+  {
+    "type": "file",
+    "name": "/config.css",
+    "size": 3061,
+    "parent_dir": "/W/CSS"
+  },
+  {
+    "type": "file",
+    "name": "/logout.html",
+    "size": 552,
+    "parent_dir": "/W"
+  },
+  {
+    "type": "file",
+    "name": "/ext-lng_tools.js.gz",
+    "size": 16552,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-clouds.js.gz",
+    "size": 933,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-xcode.js.gz",
+    "size": 891,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/mode-sql.js.gz",
+    "size": 1207,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/worker-css.js.gz",
+    "size": 33801,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-chaos.js.gz",
+    "size": 1097,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-tomorrow.js.gz",
+    "size": 1002,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/theme-twilight.js.gz",
+    "size": 1035,
+    "parent_dir": "/W/JS/E"
+  },
+  {
+    "type": "file",
+    "name": "/system.js",
+    "size": 1022,
+    "parent_dir": "/W/JS"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_config.js",
+    "size": 27943,
+    "parent_dir": "/W/JS"
+  },
+  {
+    "type": "file",
+    "name": "/jquery-3.7.1.min.js.gz",
+    "size": 30294,
+    "parent_dir": "/W/JS"
+  },
+  {
+    "type": "file",
+    "name": "/modal.js",
+    "size": 4432,
+    "parent_dir": "/W/JS"
+  },
+  {
+    "type": "file",
+    "name": "/favicon.ico",
+    "size": 4286,
+    "parent_dir": "/W"
+  },
+  {
+    "type": "file",
+    "name": "/header_int.html",
+    "size": 171,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/head.html",
+    "size": 106,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/_template.html",
+    "size": 39791,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_users.html",
+    "size": 13150,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/edit.html",
+    "size": 40066,
+    "parent_dir": "/W"
+  },
+  {
+    "type": "file",
+    "name": "/_footer.json",
+    "size": 93,
+    "parent_dir": "/W/T/M"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_config_list.json",
+    "size": 59,
+    "parent_dir": "/W/T/M"
+  },
+  {
+    "type": "file",
+    "name": "/menu_pub.html",
+    "size": 81,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/menu_int.html",
+    "size": 247,
+    "parent_dir": "/W/T"
+  },
+  {
+    "type": "file",
+    "name": "/custom_task_manager.json",
+    "size": 296,
+    "parent_dir": "/INT"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_users_list.html",
+    "size": 13151,
+    "parent_dir": "/W/T/V"
+  },
+  {
+    "type": "file",
+    "name": "/system_config.json",
+    "size": 759,
+    "parent_dir": "/INT"
+  },
+  {
+    "type": "file",
+    "name": "/public_pages.txt",
+    "size": 141,
+    "parent_dir": "/INT"
+  },
+  {
+    "type": "file",
+    "name": "/authorized.dat",
+    "size": 109,
+    "parent_dir": "/INT"
+  },
+  {
+    "type": "file",
+    "name": "/auth.js",
+    "size": 3236,
+    "parent_dir": "/W/JS"
+  },
+  {
+    "type": "file",
+    "name": "/esp32_home.js",
+    "size": 774,
+    "parent_dir": "/W/JS"
+  }
+]

@@ -84,8 +84,7 @@ void esp32_router::RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t lev
 
 void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction* handler) {
     ResourceNode* node = new ResourceNode(nodeMapPath.c_str(), method.c_str(), handler);
-    server.secureServer->registerNode(node);
-    server.unsecureServer->registerNode(node);    
+    server.registerNode(node);
 }
 
 
@@ -321,7 +320,7 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
             pathString.erase(0);
     }
     //}
-    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+    Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
     
     routeObj.action = action;
     routeObj.controller = controller;
@@ -424,7 +423,7 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
         string filename;
         while (parser->nextField()) {
             string name = parser->getFieldName();
-            Serial.printf("Parsing field %s\n", name.c_str());
+            //Serial.printf("Parsing field %s\n", name.c_str());
             char buf[512];
             if (name == "filename") {
 
@@ -470,7 +469,8 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
                     filename.append((const char *)buf);
                 }
                 Serial.printf("File to create: %s\n", filename.c_str());
-                esp32_fileio::CreateFile(filename.c_str());
+                savedFile = esp32_fileio::CreateFile(filename.c_str());
+
                 
             }
             else {

@@ -19,6 +19,7 @@
 #include <HTTPMultipartBodyParser.hpp>
 #include <HTTPURLEncodedBodyParser.hpp>
 #include "esp32_socket.h"
+#include "esp32_config.h"
 
 using namespace httpsserver;
 
@@ -27,6 +28,7 @@ class esp32_server
 {
 public:
     
+    esp32_server();
     esp32_server(SSLCert * cert);
     bool start();
     bool stop();
@@ -36,15 +38,17 @@ public:
     HTTPSServer *secureServer;
     HTTPServer *unsecureServer;
     
-    bool RegisterNewCert(SSLCert* cert);
-    esp32_middleware* middleware;    
+    bool registerNewCert(SSLCert* cert);
+    esp32_middleware* middleware;  
+
+    void registerNode(HTTPNode *node);
 
 private:
     // Create an SSL certificate object from the files included above    
     esp32_router* _router;
     SSLCert* _cert;
     hw_timer_t* timer = NULL;
-
+    bool _enableSSL;
     
 };
 #endif

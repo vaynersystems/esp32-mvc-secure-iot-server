@@ -32,33 +32,33 @@
 #define ARDUINO_JWT_H
 
 #include <Arduino.h>
-
+using namespace std;
 
 
 class ArduinoJWT {
 private:
-  String _psk;
+  string _psk;
 
 public:
-  ArduinoJWT(String psk);
+  ArduinoJWT(string psk);
   ArduinoJWT(char* psk);
 
   // Set a new psk for encoding and decoding JWTs
-  void setPSK(String psk);
+  void setPSK(string psk);
   void setPSK(char* psk);
 
   // Get the calculated length of a JWT
-  int getJWTLength(String& payload);
+  int getJWTLength(string& payload);
   int getJWTLength(char* payload);
   // Get the length of the decoded payload from a JWT
-  int getJWTPayloadLength(String& jwt);
-  int getJWTPayloadLength(char* jwt);
+  int getJWTPayloadLength(string& jwt);
+  int getJWTPayloadLength(const char* jwt);
   // Create a JSON Web Token
-  String encodeJWT(String& payload);
+  string encodeJWT(string& payload);
   void encodeJWT(char* payload, char* jwt);
   // Decode a JWT and retreive the payload
-  bool decodeJWT(String& jwt, String& payload);
-  bool decodeJWT(char* jwt, char* payload, int payloadLength);
+  bool decodeJWT(string& jwt, string& payload);
+  bool decodeJWT(const char* jwt, char* payload, int payloadLength);
 };
 
 #endif

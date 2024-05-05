@@ -64,7 +64,7 @@ bool esp32_config_controller::HasAction(const char * action){
     }
     
     else
-        Base_Controller::HasAction(action);
+        return Base_Controller::HasAction(action);
 }
 
 

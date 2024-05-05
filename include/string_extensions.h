@@ -40,7 +40,7 @@ static inline bool ends_with(std::string const & value, std::string const & endi
     return std::equal(ending.rbegin(), ending.rend(), value.rbegin());
 }
 
-static vector<string> explode( const string &str, const string &delimiter)
+static vector<string> explode( const string &str, const string &delimiter, bool trim = false)
 {
     vector<string> arr;
 
@@ -56,8 +56,11 @@ static vector<string> explode( const string &str, const string &delimiter)
         int j=0;
         while (i+j<strleng && j<delleng && str[i+j]==delimiter[j])
             j++;
+        if(trim && i == k && str[k] == ' ') k++; //trim start
+
         if (j==delleng)//found delimiter
         {
+            if(trim && str[i-1] == ' ') i--; //trim end
             arr.push_back(  str.substr(k, i-k) );
             i+=delleng;
             k=i;

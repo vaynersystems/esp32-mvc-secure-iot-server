@@ -222,7 +222,7 @@ function changePassword(){
 
             hideWait('page');
             if (request.status == 401) {
-                document.getElementById('error').appendChild('<p class="error">' + request.responseText + '</p>');
+                showModal('<p class="error">' + request.statusText + '</p>','Error changing password')
                 return;
             }
             var response = request.responseText;
@@ -371,4 +371,5 @@ window.onload = function() {
         loadUsers('$_USER_LIST');
 }
 </script>
+
 

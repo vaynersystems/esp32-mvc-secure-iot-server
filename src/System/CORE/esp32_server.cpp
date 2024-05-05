@@ -2,17 +2,22 @@
 #include <HTTPMiddlewareFunction.hpp>
 #include <esp_task_wdt.h>
 
-esp32_server::esp32_server(SSLCert* cert) : secureServer(new HTTPSServer(cert)), unsecureServer(new HTTPServer())
+esp32_server::esp32_server() : unsecureServer(new HTTPServer())
 {
-    _cert = cert;
+}
+esp32_server::esp32_server(SSLCert* cert) : unsecureServer(new HTTPServer())
+{
+    StaticJsonDocument<1024> systemConfig;
+    esp32_config::getConfigSection("system", &systemConfig);
+     _enableSSL = systemConfig["enableSSL"].as<bool>();
+    _cert = cert; //used for jwt as well
+
+    if(_enableSSL){
+        secureServer = new HTTPSServer(cert);        
+        secureServer->addMiddleware(middleware->middlewareAuthentication);
+        secureServer->addMiddleware(middleware->middlewareAuthorization);
+    }
     
-    // Add the middleware. These functions will be called globally for every request
-    // Note: The functions are called in the order they are added to the server.
-    // This means, we need to add the authentication middleware first, because the
-    // authorization middleware needs the headers that will be set by the authentication
-    // middleware (First we check the identity, then we see what the user is allowed to do)
-    secureServer->addMiddleware(middleware->middlewareAuthentication);
-    secureServer->addMiddleware(middleware->middlewareAuthorization);
     unsecureServer->addMiddleware(middleware->middlewareAuthentication);
     unsecureServer->addMiddleware(middleware->middlewareAuthorization);
 }
@@ -22,7 +27,10 @@ bool esp32_server::start() {
     //sp_task_wdt_init(32,false);
     _router = new esp32_router();
     middleware = new esp32_middleware();
+    
     middleware->middlewareSetTokenizer((char*)_cert->getPKData());
+    //load exclusions list
+    middleware->initPublicPages();
     _router->RegisterHandlers(SPIFFS, SITE_ROOT, 3);
     _router->RegisterHandler( "/", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
@@ -46,16 +54,24 @@ bool esp32_server::start() {
     _router->RegisterHandler( nodeSpecial);
     //_router->RegisterHandler("/esp32_*", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
-    secureServer->setDefaultNode(nodeRoot);
+    if(_enableSSL){
+        secureServer->setDefaultNode(nodeRoot);
+    }
     unsecureServer->setDefaultNode(nodeRoot);
     
     Serial.println("Starting server...");
-    secureServer->start();
+   
+
+    if(_enableSSL)
+        secureServer->start();
+
     unsecureServer->start();
-    if (secureServer->isRunning() && unsecureServer->isRunning()) {
+
+    bool isReady =  (!_enableSSL || secureServer->isRunning()) && unsecureServer->isRunning();
+    if (isReady) {
         Serial.println("Server ready.");
     }
-    return secureServer->isRunning() && unsecureServer->isRunning();
+    return isReady;
 }
 
 bool esp32_server::stop()
@@ -69,17 +85,26 @@ bool esp32_server::stop()
 }
 
 bool esp32_server::isRunning() {
-    return secureServer->isRunning() && unsecureServer->isRunning();
+    return (!_enableSSL || secureServer->isRunning()) && unsecureServer->isRunning();
 }
 
 void esp32_server::step()
 {
-    secureServer->loop();
+    if(_enableSSL)
+        secureServer->loop();
     unsecureServer->loop();
+    
 }
 
-bool esp32_server::RegisterNewCert(SSLCert* cert)
+void esp32_server::registerNode(HTTPNode * node){
+    if(_enableSSL)
+        secureServer->registerNode(node);
+    unsecureServer->registerNode(node);    
+}
+
+bool esp32_server::registerNewCert(SSLCert* cert)
 {
+    if(!_enableSSL ) return false;
     if (secureServer->isRunning())
     {
         ESP_LOGD("Stopping server to register new cert", ESP_LOG_INFO);
@@ -89,3 +114,4 @@ bool esp32_server::RegisterNewCert(SSLCert* cert)
     secureServer =new HTTPSServer(cert);
     _cert = cert;
 }
+

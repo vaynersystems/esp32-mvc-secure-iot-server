@@ -333,9 +333,9 @@ ChangePasswordResult esp32_users_controller::SaveUserPassword(const char* userna
     }
     //see if we have a matching entry
     for(JsonObject entry : d.as<JsonArray>()) {        
-        Serial.printf("Comparing %s with password %s to %s with password %s\n", 
-            entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str(),
-            username,oldPassword);
+        // Serial.printf("Comparing %s with password %s to %s with password %s\n", 
+        //     entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str(),
+        //     username,oldPassword);
         if(strcmp(entry["username"].as<string>().c_str(),username) == 0){
             if( strcmp(entry["password"].as<string>().c_str(), oldPassword) != 0)
                 return ChangePasswordResult::WrongPassword;
@@ -370,7 +370,7 @@ JsonVariant esp32_users_controller::LoadUsers() {
         Serial.printf("Error occured deserializing user data: %s\n", error.c_str());
         return JsonArray();
     }
-    serializeJson(doc, Serial);
+    //serializeJson(doc, Serial);
     return doc.as<JsonArray>();
 }
 

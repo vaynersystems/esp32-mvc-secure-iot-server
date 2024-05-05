@@ -36,22 +36,22 @@
 // The standard JWT header already base64 encoded. Equates to {"alg": "HS256", "typ": "JWT"}
 const PROGMEM char* jwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
 
-ArduinoJWT::ArduinoJWT(String psk) {
+ArduinoJWT::ArduinoJWT(string psk) {
   _psk = psk;
 }
 
 ArduinoJWT::ArduinoJWT(char* psk) {
-  _psk = String(psk);
+  _psk = string(psk);
 }
 
-void ArduinoJWT::setPSK(String psk) {
+void ArduinoJWT::setPSK(string psk) {
   _psk = psk;
 }
 void ArduinoJWT::setPSK(char* psk) {
-  _psk = String(psk);
+  _psk = string(psk);
 }
 
-int ArduinoJWT::getJWTLength(String& payload) {
+int ArduinoJWT::getJWTLength(string& payload) {
   return getJWTLength((char*)payload.c_str());
 }
 
@@ -59,11 +59,11 @@ int ArduinoJWT::getJWTLength(char* payload) {
   return strlen(jwtHeader) + encode_base64_length(strlen(payload)) + encode_base64_length(32) + 2;
 }
 
-int ArduinoJWT::getJWTPayloadLength(String& jwt) {
+int ArduinoJWT::getJWTPayloadLength(string& jwt) {
   return getJWTPayloadLength((char*)jwt.c_str());
 }
 
-int ArduinoJWT::getJWTPayloadLength(char* jwt) {
+int ArduinoJWT::getJWTPayloadLength(const char* jwt) {
   char jwtCopy[strlen(jwt)];
   memcpy((char*)jwtCopy, jwt, strlen(jwt));
     // Get all three jwt parts
@@ -78,10 +78,10 @@ int ArduinoJWT::getJWTPayloadLength(char* jwt) {
   }
 }
 
-String ArduinoJWT::encodeJWT(String& payload) {
+string ArduinoJWT::encodeJWT(string& payload) {
   char jwt[getJWTLength(payload)];
   encodeJWT((char*)payload.c_str(), (char*)jwt);
-  return String(jwt);
+  return string(jwt);
 }
 
 void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
@@ -111,12 +111,12 @@ void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
   *(ptr) = 0;
 }
 
-bool ArduinoJWT::decodeJWT(String& jwt, String& payload) {
-  int payloadLength = getJWTPayloadLength(jwt);
+bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
+  int payloadLength = getJWTPayloadLength(jwt.c_str());
   if(payloadLength > 0) {
     char jsonPayload[payloadLength];
-    if(decodeJWT((char*)jwt.c_str(), (char*)jsonPayload, payloadLength)) {
-      payload = String(jsonPayload);
+    if(decodeJWT(jwt.c_str(), (char*)jsonPayload, payloadLength)) {
+      payload = string(jsonPayload);
 #ifdef DEBUG
       Serial.printf("Sucessfully decoded JWT token payload: [%s]\n",payload.c_str());
 #endif
@@ -134,10 +134,10 @@ bool ArduinoJWT::decodeJWT(String& jwt, String& payload) {
   return false;
 }
 
-bool ArduinoJWT::decodeJWT(char* jwt, char* payload, int payloadLength) {
+bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
   // Get all three jwt parts
   const char* sep = ".";
-  char* encodedHeader = strtok(jwt, sep);
+  char* encodedHeader = strtok((char*)jwt, sep);
   char* encodedPayload = strtok(NULL, sep);
   char* encodedSignature = strtok(NULL, sep);
 
