@@ -11,13 +11,7 @@
 using namespace std;
 using namespace httpsserver;
 
-enum ChangePasswordResult{
-    WrongPassword = 0,
-    BadPasswordFormat = 1,
-    SamePassword = 2,
-    Ok = 3,
-    AuthSystemError = 4,
-};
+
 
 //void (esp32_config_controller::*getAvailableWifi)(HTTPRequest* req, HTTPResponse* res) = NULL;
 class esp32_users_controller : public Base_Controller {
@@ -28,7 +22,8 @@ public:
     inline void List(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isListImplemented(){ return true;}
 
-
+    inline void Delete(HTTPRequest* req, HTTPResponse* res);
+    inline virtual bool isDeleteImplemented(){ return true;}
     // inline void Post(HTTPRequest* req, HTTPResponse* res);
     // inline virtual bool isPostImplemented(){ return true;}
 
@@ -44,12 +39,14 @@ protected:
 
 private:
 	static DerivedController<esp32_users_controller> reg; //register the controller
-    JsonObject findUser(JsonArray users, const char* userName);
+    //JsonObject findUser(JsonArray users, const char* userName);
     virtual JsonVariant LoadUsers();
     virtual JsonVariant LoadUserData(const char* username);
     virtual bool SaveNewUserData(const char* username,const char * password, const char* role, bool enabled);
     virtual bool SaveExistingUserData(const char* username,const char* role, bool enabled);
-    virtual ChangePasswordResult SaveUserPassword(const char* username, const char* oldPassword, const char* newPassword);
+    virtual bool DeleteUser(const char* username);
+
+    //virtual ChangePasswordResult SaveUserPassword(const char* username, const char* oldPassword, const char* newPassword);
 };
 
 #endif

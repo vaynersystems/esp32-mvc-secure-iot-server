@@ -3,9 +3,11 @@ logout
 index.html
 login.html
 logout.html
-CSS/style.css 
+CSS/style.css
+CSS/theme.css
 JS/auth.js
 JS/modal.js
+JS/system.js
 favicon.ico
 T/V/_footer.html
 esp32_home

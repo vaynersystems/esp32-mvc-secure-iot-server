@@ -44,7 +44,7 @@ Navigate to /edit to use the advanced system editor
  ┃ ┃ ┃ ┣ V                          ***  View files
  ┃ ┃ ┃ ┃ ┣ _footer.html
  ┃ ┃ ┃ ┃ ┣ esp32_config_list.html
- ┃ ┃ ┃ ┃ ┣ esp32_dashboard.html
+ ┃ ┃ ┃ ┃ ┣ esp32_system_info.html
  ┃ ┃ ┃ ┃ ┗ esp32_home.html
  ┃ ┃ ┃ ┣ _template.html             ***    +-------------------------------------------------+
  ┃ ┃ ┃ ┣ head.html                  ***    |   ** DO NOT REMOVE OR THINGS MIGHT BREAK **     |
@@ -91,8 +91,8 @@ Navigate to /edit to use the advanced system editor
  ┃ ┃ ┃ ┣ _footer_controller.hpp
  ┃ ┃ ┃ ┣ esp32_config_controller.cpp
  ┃ ┃ ┃ ┣ esp32_config_controller.hpp
- ┃ ┃ ┃ ┣ esp32_dashboard_controller.cpp
- ┃ ┃ ┃ ┣ esp32_dashboard_controller.hpp
+ ┃ ┃ ┃ ┣ esp32_system_info_controller.cpp
+ ┃ ┃ ┃ ┣ esp32_system_info_controller.hpp
  ┃ ┃ ┃ ┣ esp32_home_controller.cpp
  ┃ ┃ ┃ ┣ esp32_home_controller.hpp
  ┃ ┃ ┃ ┣ esp32_wifi_controller.cpp

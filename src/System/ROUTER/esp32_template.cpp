@@ -55,7 +55,7 @@ bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
     unsigned long timer = millis();
 	//update globals
 	SetGlobalVariables(req,res);
-    Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
+    //Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
 	//open file
 	if (!SPIFFS.exists(templateContentFilePath.c_str())) {
 		res->printf("Template %s not found! \n", templateContentFilePath.c_str());

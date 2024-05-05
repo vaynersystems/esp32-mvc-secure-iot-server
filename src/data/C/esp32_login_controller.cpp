@@ -6,14 +6,7 @@ void esp32_login_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     Base_Controller::Index(req,res);    
 }
 
-
-
-
-
-
-
-
-
-
-
-
+inline void esp32_login_controller::Post(HTTPRequest *req, HTTPResponse *res)
+{
+    Base_Controller::Post(req,res);
+}

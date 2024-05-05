@@ -187,7 +187,7 @@
   },
   {
     "type": "file",
-    "name": "/esp32_dashboard.html",
+    "name": "/esp32_system_info.html",
     "size": 8013,
     "parent_dir": "/W/T/V"
   },

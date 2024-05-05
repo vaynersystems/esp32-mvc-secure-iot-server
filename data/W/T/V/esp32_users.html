@@ -128,6 +128,8 @@
 
 <script type="text/javascript">
 
+var request = new XMLHttpRequest();
+
 function loadUsers(configDataSting){
 
     if(configDataSting == 'null' || configDataSting[0] == '$'){
@@ -141,6 +143,7 @@ function loadUsers(configDataSting){
     const userTemplateElement = document.getElementById('user-listing-template');
 
     if(userListElement === null || userTemplateElement === null) return;
+    userListElement.innerHTML = '';
     
     for(var user of users){
         const userEntry = document.createElement('div');
@@ -198,6 +201,33 @@ function showChangePassword(username){
     );
 }
 
+function deleteUser(username){
+    const url = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+    deleteUserRequest = {};
+    deleteUserRequest.username = username;
+
+    request.open("DELETE", url, true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.onreadystatechange = function () {
+        if (request.readyState == request.DONE) {
+
+            hideLoading();
+            if (request.status == 401) {
+                showModal('<p class="error">' + request.statusText + '</p>','Error changing password')
+                return;
+            }
+            var response = request.responseText;
+            if(request.status == 200){
+                _load();
+                return;
+            }
+                            
+        }
+    }
+    request.send(JSON.stringify(deleteUserRequest));
+    showLoading();
+}
+
 function changePassword(){
     modalElement = document.getElementById("system-modal-content");
 
@@ -220,7 +250,7 @@ function changePassword(){
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
 
-            hideWait('page');
+            hideLoading();
             if (request.status == 401) {
                 showModal('<p class="error">' + request.statusText + '</p>','Error changing password')
                 return;
@@ -233,7 +263,7 @@ function changePassword(){
         }
     }
     request.send(JSON.stringify(changePasswordRequest));
-    showWait('page');
+    showLoading();
 
     return true;
 
@@ -284,20 +314,21 @@ function UpdateUser(){
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
 
-            hideWait('page');
+            hideLoading();
             if (request.status == 401) {
                 
                 return false;
             }
             var response = request.responseText;
             if(request.status == 200){
+                _load();
                 return true;
             }
                             
         }
     }
     request.send(JSON.stringify(updateUserRequest));
-    showWait('page');
+    showLoading();
 
     return true;
 
@@ -345,20 +376,21 @@ function CreateUser(){
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
 
-            hideWait('page');
+            hideLoading();
             if (request.status == 401) {
                 
                 return false;
             }
             var response = request.responseText;
             if(request.status == 200){
+                _load();
                 return true;
             }
                             
         }
     }
     request.send(JSON.stringify(createUserRequest));
-    showWait('page');
+    showLoading();
 
     return true;
 }
@@ -366,9 +398,31 @@ function CreateUser(){
 
 window.onload = function() {
     if(location.hostname == 'localhost'){
-        loadUsers('[{"username":"admin","role":"ADMIN","enabled":true, "createdOn": "2024-04-24 16:12:23"},{"username":"user 2","role":"USER","enabled":true, "createdOn": "2024-03-24 16:12:23"}]');
+        loadUsers('[{"username":"big-cheese","role":"ADMIN","enabled":true, "createdOn": "2024-04-24 16:12:23"},{"username":"user 2","role":"USER","enabled":true, "createdOn": "2024-03-24 16:12:23"}]');
     } else
         loadUsers('$_USER_LIST');
+}
+
+function _load(){    
+    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+    const url = base + "/" + 'List'
+    request.open("GET", url, true);
+    request.setRequestHeader("Content-type", "application/json");
+    request.onreadystatechange = function () {
+        if (request.readyState == request.DONE) {
+            hideLoading();
+            if (request.status == 401) {
+                showModal('<p class="error">' + request.responseText + '</p>');
+                return;
+            }
+            var response = request.responseText;
+            if(response.length <= 0 || response[0] !== '[') return;
+            
+            loadUsers(response);            
+        }
+    }
+    request.send(); 
+    showLoading();
 }
 </script>
 

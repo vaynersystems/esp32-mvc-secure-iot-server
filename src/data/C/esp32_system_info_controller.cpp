@@ -1,12 +1,12 @@
-#include "esp32_dashboard_controller.hpp"
+#include "esp32_system_info_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
 #include "string_extensions.h"
 #include <nvs.h>
 
 extern const int STACK_SIZE;
-DerivedController<esp32_dashboard_controller> esp32_dashboard_controller::reg("esp32_dashboard");
+DerivedController<esp32_system_info_controller> esp32_system_info_controller::reg("esp32_system_info");
 
-void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
+void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     auto spiffs_mem = esp32_fileio::getMemoryInfo();
     nvs_stats_t stats;
@@ -105,7 +105,7 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     Base_Controller::Index(req,res);      
 }
 
-void esp32_dashboard_controller::prettyFlashModeString(String &flashMode){
+void esp32_system_info_controller::prettyFlashModeString(String &flashMode){
     switch (ESP.getFlashChipMode())
     {
     case 0:
