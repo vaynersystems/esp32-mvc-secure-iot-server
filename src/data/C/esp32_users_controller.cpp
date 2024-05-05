@@ -158,7 +158,7 @@ void esp32_users_controller::ChangePassword(HTTPRequest* req, HTTPResponse* res)
         res->setStatusText(error.c_str());
         return;
     }
-    serializeJson(doc,Serial);
+    //serializeJson(doc,Serial);
     if(!doc.containsKey("username") || !doc.containsKey("oldPassword") || !doc.containsKey("newPassword"));
     string username = doc["username"].as<const char*>();
     string oldPassword = doc["oldPassword"].as<const char*>();
@@ -309,7 +309,7 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
 
 ChangePasswordResult esp32_users_controller::SaveUserPassword(const char* username, const char* oldPassword, const char* newPassword){
     
-    Serial.printf("Request to save password for user %s.\n\t old: %s new: ...\n", username,oldPassword,newPassword);
+    //Serial.printf("Request to save password for user %s.\n\t old: %s new: ...\n", username,oldPassword,newPassword);
      if(strcmp(oldPassword,newPassword) == 0)
         return ChangePasswordResult::SamePassword;
     // Read the file
