@@ -1,14 +1,15 @@
 #pragma once
 #include <string>
-#define FIRMWARE_VERSION "0.03"
+#define FIRMWARE_VERSION "0.10"
 #define SITE_ROOT "/W"
 #define INTERNAL_ROOT "/INT"
 #define TEMPLE_VAR_COUNT 50
 
 #define SOCKET_MAX 10
-
+//#define DEBUG
 #define PATH_AUTH_FILE "/INT/authorized.dat"
 #define PATH_SYSTEM_CONFIG "/INT/system_config.json"
+#define PATH_PUBLIC_PAGES "/INT/public_pages.txt"
 
 #define HTML_REF_CONST_TITLE "$title"
 #define HTML_REF_CONST_HEAD "$doc_head"

@@ -2,19 +2,21 @@ html, body{
     display: flex;
     flex-direction: column;
     width: 100%;
-    height: 100%;
+    height: 100%;   
 }
 body {
     margin: 20px auto;
     border-color: aqua;
     border-radius: 4px;
-    border-width: 8px;
+    border-width: 8px;    
+    color: var(--primary-color);
+    background-color: var(--primary-background);
 }
 
 
 button{
-    background-color: #0b2d64;
-    color:#fff;
+    background-color: var(--primary-button-background);
+    color:var(--primary-button-color);
     min-width:90px;
 }
 button:hover{
@@ -42,13 +44,16 @@ input,select{
 }
 
 .menu {
-    background-color: #efefed;
+    color: var(--primary-control-color);    
+    background-color: var(--primary-control-background);
     margin: 6px 12px;
     padding: 2px 12px;
     border-width: 0px 1px 0px 6px;
-    border-color: #333;
+    border-color: var(--primary-border);
     border-style: solid;
     border-radius: 10px;
+    display: flex;
+    flex-wrap: wrap;    
 }
 
 .menu-div {
@@ -75,6 +80,7 @@ input,select{
     text-decoration: none;
     padding: 6px 10px;
     border-radius: 4px;
+    margin: 3px 6px;
 }
 
     .menu a:hover {
@@ -100,16 +106,18 @@ input,select{
 }
 
 .content {
-    border: solid 2px #efefed;
+    border: solid 2px var(--primary-border);;
     border-radius: 10px;
     margin: 6px 12px;
     padding: 20px 12px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: rgba(255,243,228,.2);
+    color: var(--primary-control-color);    
+    background-color: var(--primary-control-background);
     border-width: 0px 2px 0px 4px;
     display: flex;
     flex-direction: column;
     flex-grow: 1;
+    
 }
 
 .footer {
@@ -119,9 +127,11 @@ input,select{
     padding: 2px 12px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     /*background-image: linear-gradient(to bottom, rgba(0,0,0,.7) 25%, rgba(30,30,30,.5)5%, rgba(255,245,228,.2) 30%,rgba(255,245,228,.1)) border-width: 0px 1px 0px 6px;*/
-    border-color: #649;
+    border-color: var(--primary-border);
     border-style: solid;
     border-radius: 10px;
+    color: var(--primary-control-color);    
+    background-color: var(--primary-control-background);
 }
 
 .debug-info {
@@ -187,7 +197,7 @@ input,select{
 #system-modal{
     width: 100%;
     height: 100%;
-    background: rgba(3, 45, 9, 0.4);
+    background: var(--modal-background);
     position: absolute;
     top: 0;
     left: 0;            
@@ -196,14 +206,14 @@ input,select{
 #system-modal-close{
     padding:4px;  
     border-left: solid 1px white;
-    background: #1d8e56;
-    color:#fff;
+    background: var(--secondary-button-background);
+    color:var(--secondary-button-color);
     width: 22px;
     height: 22px;
     text-align: center;
 }
 #system-modal-close:hover{
-    background: #11633a;
+    background: var(--secondary-button-background-hover);
     cursor: pointer;
 }
 #system-modal-content{
@@ -222,14 +232,14 @@ input,select{
     margin: auto;
 }
 #system-modal-header{
-    background-color: #1d8e56;
+    background-color: var(--modal-header-background);
     height: 30px;
     line-height: 30px;
     padding: 0px 10px;
     
     text-align: center;
     align-content: center;
-    color: #fff;
+    color: var(--modal-header-color);
     /* margin: 10px;
     border-radius: 6px; */
     display: flex;
@@ -240,12 +250,12 @@ input,select{
     justify-content: end;
     margin:5px 10px;
     button{
-        background-color: #1d8e56;
-        color:#fff;
+        background-color: varl(--secondary-button-background);
+        color:var(--secondary-button-color);
         width:90px;
     }
     button:hover{
-        background-color: #11633a;
+        background-color:var(--secondary-button-background-hover);
         cursor: pointer;
     }
 }
@@ -265,11 +275,14 @@ input,select{
         padding:4px;     
     }    
 }
+.grid-row{
+    color: var(--primary-control-color);
+}
 .grid-row:nth-child(2n){
-    background-color: rgb(221, 225, 233);
+    background-color: rgba(221, 225, 233,.1);    
 }
 .grid-row:hover{
-    background-color: rgb(163, 173, 192);
+    background-color: rgba(163, 173, 192,.2);
     cursor: pointer;
 }
 
@@ -286,8 +299,8 @@ input,select{
 }
 
 .grid-header{
-    background-color: #11633a;
-    color: #fff;
+    background-color: varl(--secondary-background);
+    
     font-size: 16px;
     flex-grow:0;
     line-height: 18px;

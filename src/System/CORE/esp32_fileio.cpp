@@ -216,10 +216,14 @@ void esp32_fileio::printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>*
 
 bool esp32_fileio::CreateFile(const char * filename){
     string name = filename;
-    if(!starts_with(string(SITE_ROOT), name)){
+    if(!iequals(SITE_ROOT, name.c_str(),strlen(SITE_ROOT))){
+        Serial.printf("Prefixing %s to path %s\n", SITE_ROOT, filename);
         name = SITE_ROOT + name;
     }
-    if(SPIFFS.exists(name.c_str()))return false;
+    if(SPIFFS.exists(name.c_str())) {
+        Serial.printf("File %s already exists!", name.c_str());
+        return false;
+    }
     File f = SPIFFS.open(name.c_str(),"w");
     f.close();
     return true;

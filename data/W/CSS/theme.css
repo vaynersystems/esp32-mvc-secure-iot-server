@@ -1,0 +1,19 @@
+html, body{
+    --primary-color: #191955;
+    --primary-border: rgb(164, 190, 216);
+    --primary-background: #f4f5f1;
+    --secondary-color: #d0e9d1;
+    --secondary-background: #191955;
+    --primary-control-color: #053f16;
+    --primary-control-background: #ffffff;
+    --primary-button-color: #edeeef;
+    --primary-button-background: #0b2d64;
+    --secondary-button-color: #edeeef;
+    --secondary-button-background: #1d8e56;
+    --secondary-button-background-hover: #11633a;
+    --modal-color: #fff;
+    --modal-background: rgba(3, 45, 9, 0.4);
+    --modal-header-color: #fff;
+    --modal-header-background: #1d8e56;
+ 
+}

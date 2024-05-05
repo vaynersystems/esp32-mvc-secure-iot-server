@@ -24,5 +24,9 @@ public:
     bool end();
 
 
+private:
+
+    //hw_timer_t *timerWifiDisable = NULL;
+
 };
 #endif

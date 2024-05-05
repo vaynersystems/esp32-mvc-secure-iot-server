@@ -26,6 +26,7 @@ public:
 	static void middlewareAuthentication(HTTPRequest* req, HTTPResponse* res, std::function<void()> next);
     static void middlewareAuthorization(HTTPRequest* req, HTTPResponse* res, std::function<void()> next);
     void middlewareSetTokenizer(char* pkData);
+    int initPublicPages();
    
 private:
 
@@ -38,6 +39,10 @@ private:
     static bool denyIfNotPublic(HTTPRequest* req, HTTPResponse* res);
     static bool denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res);
     static void setAuthHeaders(HTTPRequest* req, const char * user, const char * password, const char * token);
+
+    bool isPublicPage(string path);
+
+    vector<string> _publicPages;
 };
 
 #endif

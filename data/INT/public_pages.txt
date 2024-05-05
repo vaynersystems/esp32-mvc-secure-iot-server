@@ -1,0 +1,12 @@
+login
+logout
+index.html
+login.html
+logout.html
+CSS/style.css 
+JS/auth.js
+JS/modal.js
+favicon.ico
+T/V/_footer.html
+esp32_home
+JS/esp32_home.js

@@ -14,14 +14,11 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     setAuthHeaders(req,"","","");
 
     bool jwtTokenValid = false;
-    String jwtTokenFromCookie = req->getHeader("Cookie").c_str();
-    if(jwtTokenFromCookie.length() > 7 && jwtTokenFromCookie.startsWith("Bearer "))
-        jwtTokenFromCookie = jwtTokenFromCookie.substring(7);
-
-    String jwtToken, jwtTokenFromRequest = req->getBearerAuthToken().c_str();
-    String jwtDecodedString, jwtTokenPayload, jwtTokenPayloadVerify;
-    std::string reqUsername;
-    std::string reqPassword;
+    string jwtTokenFromCookie = req->getHeader("Cookie").c_str();
+    string jwtToken, jwtTokenFromRequest = req->getBearerAuthToken().c_str();
+    string jwtDecodedString, jwtTokenPayload, jwtTokenPayloadVerify;
+    string reqUsername;
+    string reqPassword;
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
 
@@ -63,17 +60,11 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 
     }
     else //check auth
-    {
-        
-        if(jwtTokenFromCookie.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromCookie,jwtDecodedString)){
-            jwtTokenValid = true;
-            //Serial.printf("Decoded auth token %s received from Cookie", jwtTokenFromCookie.c_str());
-        } else {
-            //Serial.printf("Failed to decode auth token %s received from Cookie", jwtTokenFromCookie.c_str());
-            reqUsername = req->getBasicAuthUser();
-            reqPassword = req->getBasicAuthPassword();
-            //Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
-        }
+    {   
+        //Serial.printf("Failed to decode auth token %s received from Cookie", jwtTokenFromCookie.c_str());
+        reqUsername = req->getBasicAuthUser();
+        reqPassword = req->getBasicAuthPassword();
+        //Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
     }
 
     if(!jwtTokenValid){ //fall back to processing from request if available
@@ -100,13 +91,12 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     serializeJson(doc, jwtTokenPayload);
 
                     jwtToken = "Bearer ";
-                    jwtToken += String(server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload));
+                    jwtToken = jwtToken + server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload);
                     
                     setAuthHeaders(req, reqUsername.c_str(), info.role.c_str(),jwtToken.c_str());
-
-                    std::string token = std::string(jwtToken.c_str());
+                   
                     //verify
-                    String strippedToken = String(token.substr(7).c_str());
+                    string strippedToken = jwtToken.substr(7).c_str();
                     if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
                         std::string message = "[ERROR]  *** Failed to encode JWT token. Security validation Failed.";
                         res->print(message.c_str());
@@ -114,26 +104,26 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     else {
 
                         //set response AUTH header
-                        req->setHeader(HEADER_AUTH, token);
+                        req->setHeader(HEADER_AUTH, jwtToken);
                         // The user tried to authenticate and was successful
                         // -> We proceed with this request.
-                        jwtToken = String();
                         DynamicJsonDocument tokenDoc(384);
-                        tokenDoc["access_token"] = token;
+                        tokenDoc["access_token"] = jwtToken;
                         serializeJson(tokenDoc, jwtToken);
                         res->print(jwtToken.c_str());
                     }
                 }
                 else {
+                    res->setStatusText("Authentication failed! Invalid username or password.");
                     res->setStatusCode(401);
-                    res->error();
+                    
                 }
             }
             else {
                 res->setStatusText("Unauthorized");
                 res->setStatusCode(401);
-                res->setHeader("Content-Type", "text/plain");
-                res->error();
+                //res->setHeader("Content-Type", "text/plain");
+                
                 //next();
             }
         }
@@ -157,7 +147,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 
                 // res->setHeader("Location",returnUrl);
                 // return;
-                res->print(jwtToken);     
+                res->print(jwtToken.c_str());     
                 //return;
             }   
 
@@ -201,8 +191,8 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     string username = req->getHeader(HEADER_USERNAME);
     string authHeader = req->getHeader(HEADER_AUTH);
     string cookieHeader = req->getHeader(HEADER_COOKIE).c_str();
-    string jwtTokenFromCookie = "";
-    String reqPath = String(req->getRequestString().c_str());
+    string jwtTokenFromCookie = "", jwtTokenExpires = "";
+    string request = req->getRequestString().c_str();
     
     bool decodeResult = false;
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
@@ -210,36 +200,52 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     esp32_user_auth_info authResult;
 
     //check if cookie has auth
-    vector<string> chunks = explode(cookieHeader,";");
+    vector<string> chunks = explode(cookieHeader,";",true);
     for(size_t idx = 0; idx < chunks.size(); idx++){
         vector<string> parts = explode(chunks[idx],"=");
         if(parts.size() == 1) //no name
             Serial.printf("Invalid cookie parsed without name %s\n", parts[0].c_str());
         else if(strcmp(parts[0].c_str(),"auth") == 0){
             jwtTokenFromCookie = parts[1];
-            //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());
+            //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
         }
+        else if(strcmp(parts[0].c_str(),"expires") == 0){
+            jwtTokenExpires = parts[1];
+        }
+    }
+    if(jwtTokenFromCookie.length() > 0){
+        //TODO: check if its expired
+        //Serial.printf("Checking expiry date of cookie %s from cookie header %s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
+         if(strcmp(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") == 0){
+            if(!isLoginPage){
+                res->setStatusCode(303);
+                res->setHeader("Location", "/login?to=" + request);
+                res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
+            }
+            if(!server.middleware->isPublicPage(req->getRequestString()))
+                return;
+         }
     }
        
 
-    String jwtTokenFromRequest = String(authHeader.c_str());
+    string jwtTokenFromRequest = authHeader.c_str();
     if (jwtTokenFromRequest.length() > 7) {
-        jwtTokenFromRequest.remove(0, 7);
+        jwtTokenFromRequest.erase(0,7);
         //Serial.print("Parsing JWT Token from header: "); Serial.println(jwtTokenFromRequest);
     }
 
     //if an auth header is passed, it gets priority over cookie
-    String jwtToken = jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie.c_str() ;
-    if(reqPath.equalsIgnoreCase("/logout")){
+    string jwtToken = jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie ;
+    if(iequals(request.c_str(), "/logout",strlen("/logout"))){
         //redirect to login
         //esp_task_wdt_reset();
         res->setStatusCode(303);
         res->setHeader("Location","/logout.html");
         next(); 
         return;
-    }
+    }    
     
-    String jwtDecodedString; //get from cookie
+    string jwtDecodedString; //get from cookie
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
 
@@ -253,13 +259,14 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //verify token is valid    
             authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
             //authResult.authenticated = true;
-            // Serial.printf(
-            //     "**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
-            //     authResult.authenticated ? "Authenticated" : "Unauthorized", 
-            //     authResult.username.c_str(), 
-            //     authResult.password.c_str(), 
-            //     authResult.role.c_str()
-            // ); 
+            Serial.printf(
+                //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
+                "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
+                authResult.authenticated ? "Authenticated" : "Unauthorized", 
+                authResult.username.c_str(), 
+               // authResult.password.c_str(), 
+                authResult.role.c_str()
+            ); 
             if(authResult.authenticated){                
             
                 setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
@@ -267,7 +274,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
                     return;        
             }
         }
-        else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
+        //else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
         
     }
     // Everything else will be allowed, so we call next()
@@ -278,31 +285,35 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
 }
 
 bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
-    bool exclusion = false;
+    //bool exclusion = false;
     string request = req->getRequestString();
-    //if(strstr(request.c_str(),"/") != nullptr) exclusion = true; //EXCLUDE EVERYTHING, making all public
-    if(request.substr(0, 6) == "/login") exclusion = true;
-    else if(request.substr(0, strlen("/logout")) == "/logout") exclusion = true;
-    else if(request.substr(0, strlen("/index.html")) == "/index.html") exclusion = true;
-    else if(request.substr(0, strlen("/login.html")) == "/login.html") exclusion = true;
-    else if(request.substr(0, strlen("/logout.html")) == "/logout.html") exclusion = true;
-    else if(request.substr(0, strlen("/CSS/style.css")) == "/CSS/style.css") exclusion = true;
-    else if(request.substr(0, strlen("/JS/auth.js")) == "/JS/auth.js") exclusion = true;
-    else if(request.substr(0, strlen("/favicon.ico")) == "/favicon.ico") exclusion = true;
-    else if(request.substr(0, strlen("/T/V/_footer.html")) == "/T/V/_footer.html") exclusion = true;
-    else if(request.substr(0, strlen("/esp32_home")) == "/esp32_home") exclusion = true;
-    else if(request.substr(0, strlen("/JS/esp32_home.js")) == "/JS/esp32_home.js") exclusion = true;
+    if(!server.middleware->isPublicPage(request)){
+    // //if(strstr(request.c_str(),"/") != nullptr) exclusion = true; //EXCLUDE EVERYTHING, making all public
+    // if(request.substr(0, 6) == "/login") exclusion = true;
+    // else if(request.substr(0, strlen("/logout")) == "/logout") exclusion = true;
+    // else if(request.substr(0, strlen("/index.html")) == "/index.html") exclusion = true;
+    // else if(request.substr(0, strlen("/login.html")) == "/login.html") exclusion = true;
+    // else if(request.substr(0, strlen("/logout.html")) == "/logout.html") exclusion = true;
+    // else if(request.substr(0, strlen("/CSS/style.css")) == "/CSS/style.css") exclusion = true;
+    // else if(request.substr(0, strlen("/JS/auth.js")) == "/JS/auth.js") exclusion = true;
+    // else if(request.substr(0, strlen("/JS/modal.js")) == "/JS/modal.js") exclusion = true;
+    // else if(request.substr(0, strlen("/favicon.ico")) == "/favicon.ico") exclusion = true;
+    // else if(request.substr(0, strlen("/T/V/_footer.html")) == "/T/V/_footer.html") exclusion = true;
+    // else if(request.substr(0, strlen("/esp32_home")) == "/esp32_home") exclusion = true;
+    // else if(request.substr(0, strlen("/JS/esp32_home.js")) == "/JS/esp32_home.js") exclusion = true;
      
    
-    if(!exclusion){            
+    // if(!exclusion){            
         Serial.printf("Request for resource %s rejected. Resource is not public.", request.c_str());
         if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css"))
             return true;
-        //if not resource file, redirect user
-        res->setStatusCode(303);
-        res->setHeader("Location", "/login?to=" + request);
-        res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
-        return true;
+        //if not resource file, redirect user, unless already at login page
+        if(!iequals(request.c_str(),"/login",strlen("/login"))){
+            res->setStatusCode(303);
+            res->setHeader("Location", "/login?to=" + request);
+            res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
+            return true;
+        }
     }
     return false;
 }
@@ -328,3 +339,35 @@ void esp32_middleware::setAuthHeaders(HTTPRequest* req, const char * user, const
     req->setHeader(HEADER_GROUP, group);
     req->setHeader(HEADER_AUTH, token);
 }
+
+bool esp32_middleware::isPublicPage(string path)
+{
+    for(int i = 0; i < _publicPages.size();i++){
+        //Serial.printf("Checking if request for %s is public page %s\n",path.c_str(), _publicPages[i].c_str());
+        if(iequals(_publicPages[i].c_str(), path.c_str(),_publicPages[i].length()))
+            return true; //page is marked as public
+    }
+    return false;
+}
+
+int esp32_middleware::initPublicPages()
+{
+    int fileCount = 0;
+    if(!SPIFFS.exists(PATH_PUBLIC_PAGES)) return 0;
+    File publicPagesFile = SPIFFS.open(PATH_PUBLIC_PAGES);
+    //Serial.println("Adding public pages");
+    String line = String("");
+    while(publicPagesFile.available()){
+       line = publicPagesFile.readStringUntil('\n');
+        line.trim();
+        if(line.length() == 0) continue;
+        if(line[0] != '/') line = "/" + line;
+        _publicPages.push_back(line.c_str());
+        fileCount++;
+        //Serial.printf("Adding public page: %s\n",line.c_str());
+    }
+    publicPagesFile.close();
+    return fileCount;
+    //Serial.printf("Added %d public pages\n",fileCount);
+}
+

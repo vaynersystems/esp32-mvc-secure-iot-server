@@ -41,12 +41,12 @@ body{
     font-size: 14px;
 }
 .menu-item .selected{
-    background-color: #191955;
-    color:rgb(234, 236, 247);
+    background-color: var(--secondary-background);
+    color: var(--secondary-color);
 }
 .menu-item li:hover{
-    background-color: #191955;
-    color:rgb(234, 236, 247);
+    background-color: var(--secondary-background);
+    color: var(--secondary-color);
     cursor: pointer;
 }
 #config-content{
@@ -71,7 +71,8 @@ body{
 .section-header{
     font-size: 20px;
     border-radius: 0 10px 0 0;
-    color: #0b0b37;
+    color: var(--primary-color);
+    background-color: var(--primary-background);
     padding: 10px;
 }
 
@@ -91,7 +92,7 @@ body{
     display: flex;
     border-style: solid;
     border-width: 1px 0px 0 0;    
-    border-color: #0b0b37;
+    border-color:  var(--secondary-background);
     padding: 6px 0px;
     height: 31px;
     margin: 5px 5px 0 0;
