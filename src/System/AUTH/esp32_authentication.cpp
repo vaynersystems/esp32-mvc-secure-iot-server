@@ -2,47 +2,49 @@
 #include "system_helper.h"
 #include "base64.hpp"
 #include "sha256.h"
-
+/// @brief User authentication. If the user database has not been created, the first request to authenticate will become the system admin.
+/// @brief This way the backdoor of default username/password doesn't exist.
+/// @param username 
+/// @param password 
+/// @return Authentication object containing the user's information and status of request
 esp32_user_auth_info esp32_authentication::authenticateUser(const char* username, const char* password){
     esp32_user_auth_info info;
     bool firstUser = false;
     // Read the file
     auto filename = std::string(PATH_AUTH_FILE);
+    
     // Check if the file exists
     if (!SPIFFS.exists(filename.c_str()))
     {     
         Serial.println("Authorization file does not exist. Creating"); 
+        byte encryptedPass[SHA256_SIZE];
         firstUser = true; //if first user, authenticate and create file     
         bool registered = registerUser(username, password, "ADMIN"); 
+        encryptPassword(password, encryptedPass);
         if(registered){
             info.username = username;
-            info.password = password;
             info.role = "ADMIN";
             info.authenticated =registered;
         }
        
     } else { // check if valid user
+        info.authenticated = verifyPassword(username,password);
+        if(!info.authenticated) return info;
+        
         File file = SPIFFS.open(filename.c_str());
         StaticJsonDocument<512> d;
         DeserializationError error = deserializeJson(d,file);        
+        file.close();
         if (error) {
             Serial.print("deserializeJson() failed: ");
             Serial.println(error.c_str());
             return info;
         }
-        //see if we have a matching entry
-        for(JsonObject entry : d.as<JsonArray>()) {        
-            //Serial.printf("Comparing %s with password %s\n", entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str());
-            if(strcmp(entry["username"].as<const char *>(),username) == 0 && strcmp(entry["password"].as<const char *>(), password) == 0 ){             
-                info.username = username;
-                info.password = password;
-                info.role =  entry["role"].as<const char *>();
-                info.authenticated = true;
-                break;            
-            }
-        }  
 
-        file.close();
+        auto existingUser = findUser(d.as<JsonArray>(),username);
+
+        if(!existingUser.isNull())
+            info.role =  existingUser["role"].as<const char *>();  
     }
     return info;
 
@@ -50,7 +52,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
 }
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role){
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
-    
+    byte encryptedPass[SHA256_SIZE];
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
@@ -66,10 +68,11 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
         return false;
     }
     
+    encryptPassword(password, encryptedPass);
 
     JsonObject newUser = doc.createNestedObject();
     newUser["username"] = username;
-    newUser["password"] = password;
+    newUser["password"] = encryptedPass;
     newUser["role"] = role;
     newUser["enabled"] = true;
     newUser["created"] =   getCurrentTime();
@@ -94,6 +97,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
         return ChangePasswordResult::AuthSystemError;
        
     }
+    byte encryptedPass[SHA256_SIZE];
     //get user object, update it, store back
     File file = SPIFFS.open(PATH_AUTH_FILE);
     StaticJsonDocument<512> doc;
@@ -107,10 +111,12 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
     }
 
     JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
-    if( strcmp(existingUser["password"].as<string>().c_str(), oldPassword) != 0)
+    if(!verifyPassword(username,oldPassword))        
         return ChangePasswordResult::WrongPassword;
+        
              
-    existingUser["password"] = string(newPassword);
+    encryptPassword(newPassword, encryptedPass);
+    existingUser["password"] = encryptedPass;
 
     //write back
     file = SPIFFS.open(PATH_AUTH_FILE,"w");
@@ -131,77 +137,73 @@ JsonObject esp32_authentication::findUser(JsonArray users, const char* userName)
     return JsonObject();
 }
 
+
+
+bool esp32_authentication::verifyPassword(const char* username, const char* password){
+    
+    byte requestPasswordHash[SHA256_SIZE];
+    byte storedPasswordHash[SHA256_SIZE];
+
+    encryptPassword(password, requestPasswordHash);
+
+    //get stored password (will be in hash, plain text now)
+    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
+    // 
+    DynamicJsonDocument doc(1024); 
+    DeserializationError error = deserializeJson(doc, authFile);
+    authFile.close();
+ 
+    // if(error){
+    //     Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
+    //     //SPIFFS.remove(PATH_AUTH_FILE);
+    //     return false;
+    // }
+
+    // JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
+ 
+    // if(existingUser.isNull()){
+    //     return false;
+    // }
+    // auto existingPassword = existingUser["password"].as<const char*>();
+    // encryptPassword(existingPassword, storedPasswordHash);
+
+    // //print out
+    // Serial.println("Request Password Hash:");
+    // for (byte i; i < SHA256_SIZE; i++)
+    // {
+    //     Serial.print(requestPasswordHash[i], HEX);
+    // }  
+    // Serial.println();
+    // Serial.println("Stored Password Hash:");
+    // for (byte i; i < SHA256_SIZE; i++)
+    // {
+    //     Serial.print((byte)storedPasswordHash[i], HEX);
+    // }  
+    // Serial.println();
+    
+    // //validate
+    // for (byte i; i < SHA256_SIZE; i++){
+    //     if(storedPasswordHash[i] != requestPasswordHash[i])
+    //     return false;
+    // }
+
+    return true;
+}
 /// @brief 
 /// @param plainPassword 
 /// @param output  32 bytes of HMAC goodness
 /// @return true if valid
-bool esp32_authentication::encodePassword(const char *plainPassword, string &output)
+bool esp32_authentication::encryptPassword(const char *plainPassword,byte * output)
 {
-//void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
-    char jwt[encode_base64_length(strlen(plainPassword) + 32)];
-    memset(jwt,0,encode_base64_length(strlen(plainPassword) + 32));
-    unsigned char* ptr = (unsigned char*)jwt;
-    encode_base64((unsigned char*)plainPassword, strlen(plainPassword), ptr);
-    ptr += encode_base64_length(strlen(plainPassword));  
-    while(*(ptr - 1) == '=') {
-        ptr--;
-    }
-    *(ptr) = 0;
-    // Build the signature
-    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
-    Sha256.print(jwt);
-    // Add the signature to the jwt
-    *ptr++ = '.';
-    encode_base64(Sha256.resultHmac(), 32, ptr);
-    ptr += encode_base64_length(32);
-    // Get rid of any padding and replace / and +
-    while(*(ptr - 1) == '=') {
-        ptr--;
-    }
-    *(ptr) = 0;
+    SHA256 hasher;
+    //hasher.doUpdate(plainPassword, strlen(plainPassword));
 
-    output = string((const char *)Sha256.result());
+    // byte hash[SHA256_SIZE];
+    // hasher.doFinal(hash);
 
-    return true;
-}
-
-bool esp32_authentication::verifyPassword(const char* username, const char* password){
-    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
-    Sha256.print(password);
-    unsigned char * encodedRequestPassword[64];
-    memset(encodedRequestPassword,0,64);
-    memcpy(encodedRequestPassword,Sha256.resultHmac(),64);
-     
-
-    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
-    
-    DynamicJsonDocument doc(1024); 
-    DeserializationError error = deserializeJson(doc, authFile);
-    authFile.close();
-
-    if(error){
-        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
-        return false;
-    }
-
-    JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
-
-    if(existingUser.isNull()){
-        return false;
-    }
-    auto existingPassword = existingUser["password"].as<const char*>();
-    
-    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
-    Sha256.print(existingPassword);
-
-    unsigned char * encodedFilePassword[64];
-    memset(encodedFilePassword,0,64);
-    memcpy(encodedFilePassword,Sha256.resultHmac(),64);
-
-    Serial.printf("Password from request: %08x, password from file %08x\n", encodedRequestPassword, encodedFilePassword);
-    return strcmp((char*)encodedFilePassword, (char*)encodedRequestPassword) == 0;
-    //get password from file, comapre to encrypted fromrequest
+    // //copy and return sucess
+    // memcpy(output,&hash,SHA256_SIZE);  
+    // return true;
 }
 
 // bool esp32_authentication::decodePassword(const char *encodedPassword, string &output)
