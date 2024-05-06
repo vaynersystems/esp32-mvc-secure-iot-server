@@ -1,5 +1,7 @@
 #include "esp32_authentication.h"
 #include "system_helper.h"
+#include "base64.hpp"
+#include "sha256.h"
 
 esp32_user_auth_info esp32_authentication::authenticateUser(const char* username, const char* password){
     esp32_user_auth_info info;
@@ -121,21 +123,6 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
 }
 
 
-
-// JsonVariant esp32_authentication::findNestedKey(JsonObject obj, const char* key) {
-//     JsonVariant foundObject = obj[key];
-//     if (!foundObject.isNull())
-//         return foundObject;
-
-//     for (JsonPair pair : obj) {
-//         JsonVariant nestedObject = findNestedKey(pair.value(), key);
-//         if (!nestedObject.isNull())
-//             return nestedObject;
-//     }
-
-//     return JsonVariant();
-// }
-
 JsonObject esp32_authentication::findUser(JsonArray users, const char* userName){
     for(JsonObject seekingUser : users){
         if(strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
@@ -143,3 +130,120 @@ JsonObject esp32_authentication::findUser(JsonArray users, const char* userName)
     }
     return JsonObject();
 }
+
+/// @brief 
+/// @param plainPassword 
+/// @param output  32 bytes of HMAC goodness
+/// @return true if valid
+bool esp32_authentication::encodePassword(const char *plainPassword, string &output)
+{
+//void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
+    char jwt[encode_base64_length(strlen(plainPassword) + 32)];
+    memset(jwt,0,encode_base64_length(strlen(plainPassword) + 32));
+    unsigned char* ptr = (unsigned char*)jwt;
+    encode_base64((unsigned char*)plainPassword, strlen(plainPassword), ptr);
+    ptr += encode_base64_length(strlen(plainPassword));  
+    while(*(ptr - 1) == '=') {
+        ptr--;
+    }
+    *(ptr) = 0;
+    // Build the signature
+    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
+    Sha256.print(jwt);
+    // Add the signature to the jwt
+    *ptr++ = '.';
+    encode_base64(Sha256.resultHmac(), 32, ptr);
+    ptr += encode_base64_length(32);
+    // Get rid of any padding and replace / and +
+    while(*(ptr - 1) == '=') {
+        ptr--;
+    }
+    *(ptr) = 0;
+
+    output = string((const char *)Sha256.result());
+
+    return true;
+}
+
+bool esp32_authentication::verifyPassword(const char* username, const char* password){
+    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
+    Sha256.print(password);
+    unsigned char * encodedRequestPassword[64];
+    memset(encodedRequestPassword,0,64);
+    memcpy(encodedRequestPassword,Sha256.resultHmac(),64);
+     
+
+    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
+    
+    DynamicJsonDocument doc(1024); 
+    DeserializationError error = deserializeJson(doc, authFile);
+    authFile.close();
+
+    if(error){
+        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
+        //SPIFFS.remove(PATH_AUTH_FILE);
+        return false;
+    }
+
+    JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
+
+    if(existingUser.isNull()){
+        return false;
+    }
+    auto existingPassword = existingUser["password"].as<const char*>();
+    
+    Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
+    Sha256.print(existingPassword);
+
+    unsigned char * encodedFilePassword[64];
+    memset(encodedFilePassword,0,64);
+    memcpy(encodedFilePassword,Sha256.resultHmac(),64);
+
+    Serial.printf("Password from request: %08x, password from file %08x\n", encodedRequestPassword, encodedFilePassword);
+    return strcmp((char*)encodedFilePassword, (char*)encodedRequestPassword) == 0;
+    //get password from file, comapre to encrypted fromrequest
+}
+
+// bool esp32_authentication::decodePassword(const char *encodedPassword, string &output)
+// {
+//     int payloadLength = decode_base64_length((unsigned char*)encodedPassword) + 34;
+//     if(payloadLength <= 0) { return false; }
+
+//     char jsonPayload[payloadLength];
+//     if( encodedPassword == NULL)
+//     {
+//     #ifdef DEBUG
+//         Serial.printf("Missing password, {%s,\t%s,\t%s}\n",encodedPassword);
+//     #endif
+//         output = "";
+//         return false;
+//     }
+
+//     // Build the signature
+//     Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
+//     Sha256.print(encodedPassword);
+
+//     Serial.printf("Resulting HMAC: %02x", Sha256.resultHmac());
+
+//     // Encode the signature as base64
+//     unsigned char base64Signature[encode_base64_length(32)];
+//     encode_base64(Sha256.resultHmac(), 32, base64Signature);
+//     unsigned char* ptr = &base64Signature[0] + encode_base64_length(32);
+//     // Get rid of any padding and replace / and +
+//     while(*(ptr - 1) == '=') {
+//         ptr--;
+//     }
+//     *(ptr) = 0;
+
+//     // Do the signatures match?
+//     if(strcmp((char*)encodedPassword, (char*)base64Signature) == 0) {
+//         // Decode the payload
+//         decode_base64((unsigned char*)encodedPassword, (unsigned char*)jsonPayload);
+//         output = string(jsonPayload);
+//         return true;
+//     } else {  
+//         Serial.printf("String encoded %s and signature %s do not match!\n", encodedPassword, base64Signature); 
+//         output = "";
+//         return false;
+//     }
+// }
