@@ -151,7 +151,7 @@ function loadUsers(configDataSting){
 
         userEntry.querySelector('#user-name').innerHTML = user.username;
         userEntry.querySelector('#user-role').innerHTML = user.role;
-        userEntry.querySelector('#user-created-on').innerHTML = user.createdOn;
+        userEntry.querySelector('#user-created-on').innerHTML = user.created;
         userEntry.querySelector('#user-enabled').innerHTML = user.enabled;
         userEntry.setAttribute('username', user.username);
         userEntry.setAttribute('data', JSON.stringify(user));
@@ -285,7 +285,7 @@ function showEditUser(user){
         if(enabledElement !== null) enabledElement.setAttribute('checked', user.enabled);
 
         const createdOnElement = userEditorElement.querySelector('#editor-created-on');
-        if(createdOnElement !== null ) createdOnElement.innerHTML = user.createdOn;
+        if(createdOnElement !== null ) createdOnElement.innerHTML = user.created;
 
         showModalComponent(userEditorElement,'Edit User', 
         [
@@ -398,7 +398,7 @@ function CreateUser(){
 
 window.onload = function() {
     if(location.hostname == 'localhost'){
-        loadUsers('[{"username":"big-cheese","role":"ADMIN","enabled":true, "createdOn": "2024-04-24 16:12:23"},{"username":"user 2","role":"USER","enabled":true, "createdOn": "2024-03-24 16:12:23"}]');
+        loadUsers('[{"username":"big-cheese","role":"ADMIN","enabled":true, "created": "2024-04-24 16:12:23"},{"username":"user 2","role":"USER","enabled":true, "created": "2024-03-24 16:12:23"}]');
     } else
         loadUsers('$_USER_LIST');
 }

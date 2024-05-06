@@ -1,22 +1,46 @@
 function addCss(fileName) {
 
+    var request = new XMLHttpRequest();
     var head = document.head;
     var found = false;
     head.childNodes.forEach(le => {
-        if(le.nodeName == 'SCRIPT' && le.src == fileName)
+        if(le.nodeName == 'LINK' && le.href == fileName)
         {
             found = true;
         }
     });
 
     if(found) return;
-    var link = document.createElement("link");
+    var script = document.createElement("style");
   
-    link.type = "text/css";
-    link.rel = "stylesheet";
-    link.href = fileName;
+    script.type = "text/css";
+    script.rel = "stylesheet";
+    
+    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+    const url = fileName;
+    request.open("GET", url, true);
+    request.setRequestHeader("Content-type", "text/css");
+    request.onreadystatechange = function () {
+        if (request.readyState == request.DONE) {
+
+            hideWait('page');
+            if (request.status == 401) {
+                //showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                return;
+            }
+            var response = request.responseText;
+            if(request.status == 200){
+                script.innerHTML = response;
+                head.appendChild(script);
+            }
+                            
+        }
+    }
+    request.send();
+    showWait('page');
+
   
-    head.appendChild(link);
+    
 }  
   
 

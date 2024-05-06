@@ -1,13 +1,10 @@
 
 #include "string"
 #include "System/Config.h"
+#include "System/AUTH/esp32_sha256.h"
 #include <SPIFFS.h>
 #include "ArduinoJson.h"
-#include "crypto.h"
 using namespace std;
-// TODO; instead use NVS. at boot read if value "pwd_encrypt_key" exists. If not, create it. 
-// That will persist for the lifetime of the controller or until some braniac messes with the nvs partition.
-#define PASSWORD_ENCRYPTION_SECRET "CHANGE_ME_RIGHT_AWAY!!!11"
 
 struct esp32_user_auth_info{
     string username = "";
@@ -30,7 +27,7 @@ class esp32_authentication{
     public:
 
     static esp32_user_auth_info authenticateUser(const char* username, const char* password);
-    static bool registerUser(const char* username, const char* password, const char* role);
+    static bool registerUser(const char* username, const char* password, const char* role, bool enabled = true);
     static ChangePasswordResult changePassword(const char* username, const char* oldPassword, const char* newPassword);
     //helper methods
     static JsonObject findUser(JsonArray users, const char* userName);
@@ -38,6 +35,13 @@ class esp32_authentication{
     
     //static bool decodePassword(const char * encodedPassword, string & output);
     static bool verifyPassword(const char* username,const char* password);
+    
+    
     private:
-    static bool encryptPassword(const char *plainPassword, byte * output);
+    static void encryptPassword(const char *plainPassword, byte * output);
+
+    static void binaryPasswordToString(byte* encryptedPass,char* storedPass);
+    static void stringPasswordToBinary(const char * storedPass, byte* encryptedPass);
+    
+    //static uint8_t *_hash;
 };

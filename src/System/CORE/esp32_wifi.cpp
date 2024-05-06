@@ -21,7 +21,7 @@ bool esp32_wifi::start(){
     esp32_config::getConfigSection("server", &serverConfig);
 
 
-    bool isAP =  strcmp(wifiConfig["mode"].as<const char *>(), "access-point") == 0;
+    bool isAP = wifiConfig["mode"].isNull() ? true : strcmp(wifiConfig["mode"].as<const char *>(), "access-point") == 0;
 
     string ntpServer = systemConfig["ntp"]["server"].as<string>();
     string timeZone = systemConfig["ntp"]["timezone"].as<string>();    
@@ -102,15 +102,16 @@ bool esp32_wifi::start(){
         Serial.println("Started Wifi in AP mode");
     }
 
-    Serial.printf("Setting hostname to %s\n", hostname.c_str());
-    WiFi.setHostname(hostname.c_str());
-    if(enableMDNS)
-        MDNS.begin(hostname.c_str());
+    if(hostname.length() > 0){
+        Serial.printf("Setting hostname to %s\n", hostname.c_str());
+        WiFi.setHostname(hostname.c_str());
+        if(enableMDNS)
+            MDNS.begin(hostname.c_str());
 
-  
+    }
     
     Serial.print("Connected. IP=");
-    Serial.println(WiFi.localIP());
+    Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.broadcastIP() :  WiFi.localIP());
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());

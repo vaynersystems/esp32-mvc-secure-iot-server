@@ -454,10 +454,11 @@ void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
                 }
                 else
                 {
-                    Serial.printf("Writing %u bytes to file [%s].. \n", req->getContentLength(), filename.c_str());
+                    Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
                     size_t bytes = esp32_fileio::UpdateFile(filename.c_str(),parser);                    
                     savedFile = bytes > 0;
                     res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
+                    Serial.println(" done");
                 }
             }
             else if (name == "path"){

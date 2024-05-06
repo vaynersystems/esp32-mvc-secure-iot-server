@@ -4,7 +4,7 @@
  */
 
 #include <string.h>
-#include "sha256.h"
+#include "esp32_sha256.h"
 
 uint32_t sha256K[] PROGMEM = {
   0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
@@ -30,17 +30,17 @@ unsigned char sha256InitState[] PROGMEM = {
   0x19,0xcd,0xe0,0x5b  // H7
 };
 
-void Sha256Class::init(void) {
+void esp32_sha256::init(void) {
   memcpy_P(state.b,sha256InitState,32);
   byteCount = 0;
   bufferOffset = 0;
 }
 
-uint32_t Sha256Class::ror32(uint32_t number, unsigned char bits) {
+uint32_t esp32_sha256::ror32(uint32_t number, unsigned char bits) {
   return ((number << (32-bits)) | (number >> bits));
 }
 
-void Sha256Class::hashBlock() {
+void esp32_sha256::hashBlock() {
   // Sha256 only for now
   unsigned char i;
   uint32_t a,b,c,d,e,f,g,h,t1,t2;
@@ -82,7 +82,7 @@ void Sha256Class::hashBlock() {
   state.w[7] += h;
 }
 
-void Sha256Class::addUncounted(unsigned char data) {
+void esp32_sha256::addUncounted(unsigned char data) {
   buffer.b[bufferOffset ^ 3] = data;
   bufferOffset++;
   if (bufferOffset == BUFFER_SIZE) {
@@ -91,13 +91,13 @@ void Sha256Class::addUncounted(unsigned char data) {
   }
 }
 
-size_t Sha256Class::write(unsigned char data) {
+size_t esp32_sha256::write(unsigned char data) {
   ++byteCount;
   addUncounted(data);
   return( 1 );
 }
 
-void Sha256Class::pad() {
+void esp32_sha256::pad() {
   // Implement SHA-256 padding (fips180-2 §5.1.1)
 
   // Pad with 0x80 followed by 0x00 until the end of the block
@@ -116,7 +116,7 @@ void Sha256Class::pad() {
 }
 
 
-unsigned char* Sha256Class::result(void) {
+unsigned char* esp32_sha256::result(void) {
   // Pad to complete the last block
   pad();
 
@@ -140,16 +140,16 @@ unsigned char* Sha256Class::result(void) {
 #define HMAC_OPAD 0x5c
 
 unsigned char keyBuffer[BLOCK_LENGTH]; // K0 in FIPS-198a
-unsigned char innerHash[HASH_LENGTH];
+unsigned char innerHash[SHA256_SIZE];
 
-void Sha256Class::initHmac(const unsigned char* key, int keyLength) {
+void esp32_sha256::initHmac(const unsigned char* key, int keyLength) {
   unsigned char i;
   memset(keyBuffer,0,BLOCK_LENGTH);
   if (keyLength > BLOCK_LENGTH) {
     // Hash long keys
     init();
     for (;keyLength--;) write(*key++);
-    memcpy(keyBuffer,result(),HASH_LENGTH);
+    memcpy(keyBuffer,result(),SHA256_SIZE);
   } else {
     // Block length keys are used as is
     memcpy(keyBuffer,key,keyLength);
@@ -162,16 +162,16 @@ void Sha256Class::initHmac(const unsigned char* key, int keyLength) {
   }
 }
 
-unsigned char* Sha256Class::resultHmac(void) {
+unsigned char* esp32_sha256::resultHmac(void) {
   unsigned char i;
     // Complete inner hash
-  memcpy(innerHash,result(),HASH_LENGTH);
+  memcpy(innerHash,result(),SHA256_SIZE);
   // now innerHash[] contains H((K0 xor ipad)||text)
 
   // Calculate outer hash
   init();
   for (i=0; i<BLOCK_LENGTH; i++) write(keyBuffer[i] ^ HMAC_OPAD);
-  for (i=0; i<HASH_LENGTH; i++) write(innerHash[i]);
+  for (i=0; i<SHA256_SIZE; i++) write(innerHash[i]);
   return result();
 }
-Sha256Class Sha256;
+esp32_sha256 Sha256;

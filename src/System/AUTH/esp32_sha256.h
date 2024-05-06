@@ -3,13 +3,13 @@
  * Original library located at https://github.com/Cathedrow/Cryptosuite
  */
 
-#ifndef Sha256_h
-#define Sha256_h
+#ifndef _ESP32_SHA_H_
+#define _ESP32_SHA_H_
 
 #include <inttypes.h>
 #include "Print.h"
 
-#define HASH_LENGTH 32
+#define SHA256_SIZE 32
 #define BLOCK_LENGTH 64
 
 union _buffer {
@@ -17,11 +17,11 @@ union _buffer {
   uint32_t w[BLOCK_LENGTH/4];
 };
 union _state {
-  unsigned char b[HASH_LENGTH];
-  uint32_t w[HASH_LENGTH/4];
+  unsigned char b[SHA256_SIZE];
+  uint32_t w[SHA256_SIZE/4];
 };
 
-class Sha256Class : public Print
+class esp32_sha256 : public Print
 {
   public:
     void init(void);
@@ -40,8 +40,8 @@ class Sha256Class : public Print
     _state state;
     uint32_t byteCount;
     unsigned char keyBuffer[BLOCK_LENGTH];
-    unsigned char innerHash[HASH_LENGTH];
+    unsigned char innerHash[SHA256_SIZE];
 };
-extern Sha256Class Sha256;
+extern esp32_sha256 Sha256;
 
 #endif
