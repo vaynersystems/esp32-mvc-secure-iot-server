@@ -1,7 +1,10 @@
 #include "esp32_authentication.h"
 #include "system_helper.h"
 #include "base64.hpp"
-#include "sha256.h"
+#include "esp32_sha256.h"
+//case sensitive char literal to binary
+#define SHORT_FROM_CHAR(c) (c == '1' ? 1 : c == '2' ? 2 : c=='3' ? 3 : c=='4' ? 4 : c=='5' ? 5 : c=='6' ? 6 : c=='7' ? 7 : c=='8' ? 8 : c=='9' ? 9 : c=='A' ? 0xA : c=='B' ? 0xB : c=='C' ? 0xC : c=='D' ? 0xD : c=='E' ? 0xE : c=='F' ? 0xF : 0x0 )
+
 /// @brief User authentication. If the user database has not been created, the first request to authenticate will become the system admin.
 /// @brief This way the backdoor of default username/password doesn't exist.
 /// @param username 
@@ -31,8 +34,10 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         info.authenticated = verifyPassword(username,password);
         if(!info.authenticated) return info;
         
+        info.username = username;
+
         File file = SPIFFS.open(filename.c_str());
-        StaticJsonDocument<512> d;
+        DynamicJsonDocument d(2048);
         DeserializationError error = deserializeJson(d,file);        
         file.close();
         if (error) {
@@ -43,16 +48,19 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
 
         auto existingUser = findUser(d.as<JsonArray>(),username);
 
-        if(!existingUser.isNull())
+        if(!existingUser.isNull()){
+            info.username =  existingUser["username"].as<const char *>();  
             info.role =  existingUser["role"].as<const char *>();  
+        }
     }
     return info;
 
     
 }
-bool esp32_authentication::registerUser(const char* username, const char* password, const char* role){
+bool esp32_authentication::registerUser(const char* username, const char* password, const char* role, bool enabled){
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     byte encryptedPass[SHA256_SIZE];
+    char storedPass[64];
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
@@ -60,21 +68,21 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     if(error){
         Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
         //SPIFFS.remove(PATH_AUTH_FILE);
-    }
+    }else {
+        JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
 
-    JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
-
-    if(!existingUser.isNull()){
-        return false;
+        if(!existingUser.isNull()){
+            return false;
+        }
     }
-    
     encryptPassword(password, encryptedPass);
-
+    binaryPasswordToString(encryptedPass, storedPass);
+    
     JsonObject newUser = doc.createNestedObject();
     newUser["username"] = username;
-    newUser["password"] = encryptedPass;
+    newUser["password"] = storedPass;
     newUser["role"] = role;
-    newUser["enabled"] = true;
+    newUser["enabled"] = enabled;
     newUser["created"] =   getCurrentTime();
     
     
@@ -98,9 +106,10 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
        
     }
     byte encryptedPass[SHA256_SIZE];
+    char storedPass[64];
     //get user object, update it, store back
     File file = SPIFFS.open(PATH_AUTH_FILE);
-    StaticJsonDocument<512> doc;
+    DynamicJsonDocument doc(2048);
     DeserializationError error = deserializeJson(doc,file);
     file.close();
 
@@ -116,7 +125,9 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
         
              
     encryptPassword(newPassword, encryptedPass);
-    existingUser["password"] = encryptedPass;
+    binaryPasswordToString(encryptedPass, storedPass);
+
+    existingUser["password"] = storedPass;    
 
     //write back
     file = SPIFFS.open(PATH_AUTH_FILE,"w");
@@ -146,106 +157,70 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
 
     encryptPassword(password, requestPasswordHash);
 
-    //get stored password (will be in hash, plain text now)
+    //passwords are stored in hashed format
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     // 
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
  
-    // if(error){
-    //     Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-    //     //SPIFFS.remove(PATH_AUTH_FILE);
-    //     return false;
-    // }
+    if(error){
+        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
+        //SPIFFS.remove(PATH_AUTH_FILE);
+        return false;
+    }
 
-    // JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
+    JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
  
-    // if(existingUser.isNull()){
-    //     return false;
-    // }
-    // auto existingPassword = existingUser["password"].as<const char*>();
-    // encryptPassword(existingPassword, storedPasswordHash);
-
-    // //print out
-    // Serial.println("Request Password Hash:");
-    // for (byte i; i < SHA256_SIZE; i++)
-    // {
-    //     Serial.print(requestPasswordHash[i], HEX);
-    // }  
-    // Serial.println();
-    // Serial.println("Stored Password Hash:");
-    // for (byte i; i < SHA256_SIZE; i++)
-    // {
-    //     Serial.print((byte)storedPasswordHash[i], HEX);
-    // }  
-    // Serial.println();
+    if(existingUser.isNull()){
+        return false;
+    }
+    auto existingPassword = existingUser["password"].as<const char*>();
+    stringPasswordToBinary(existingPassword, storedPasswordHash);
+    //encryptPassword(existingPassword, storedPasswordHash);    
     
-    // //validate
-    // for (byte i; i < SHA256_SIZE; i++){
-    //     if(storedPasswordHash[i] != requestPasswordHash[i])
-    //     return false;
-    // }
+    //validate
+    for (byte i; i < SHA256_SIZE; i++){
+        if(storedPasswordHash[i] != requestPasswordHash[i]){
+            Serial.printf("Byte %d does not match. %02x in stored, %02X in request\n", i, storedPasswordHash[i], requestPasswordHash[i]);
+            return false;
+        }
+        
+    }
 
     return true;
 }
 /// @brief 
 /// @param plainPassword 
-/// @param output  32 bytes of HMAC goodness
+/// @param output  32 byte SHA256 hash
 /// @return true if valid
-bool esp32_authentication::encryptPassword(const char *plainPassword,byte * output)
+void esp32_authentication::encryptPassword(const char *plainPassword,byte * output)
 {
-    SHA256 hasher;
-    //hasher.doUpdate(plainPassword, strlen(plainPassword));
-
-    // byte hash[SHA256_SIZE];
-    // hasher.doFinal(hash);
-
-    // //copy and return sucess
-    // memcpy(output,&hash,SHA256_SIZE);  
-    // return true;
+    esp32_sha256 hasher;
+    uint8_t *hash;
+    hasher.init();
+    hasher.write(plainPassword);
+    hash = hasher.result();
+   
+    memcpy(output,hash,SHA256_SIZE); 
 }
 
-// bool esp32_authentication::decodePassword(const char *encodedPassword, string &output)
-// {
-//     int payloadLength = decode_base64_length((unsigned char*)encodedPassword) + 34;
-//     if(payloadLength <= 0) { return false; }
+#pragma region Helper Functions
 
-//     char jsonPayload[payloadLength];
-//     if( encodedPassword == NULL)
-//     {
-//     #ifdef DEBUG
-//         Serial.printf("Missing password, {%s,\t%s,\t%s}\n",encodedPassword);
-//     #endif
-//         output = "";
-//         return false;
-//     }
+void esp32_authentication::binaryPasswordToString(byte *encryptedPass, char *storedPass)
+{
+    for (byte i; i < SHA256_SIZE; i++)
+    {
+        sprintf(storedPass + i*2,"%02X",encryptedPass[i]);        
+    }  
+    //Serial.printf("Stored password: %s\n",storedPass);
+}
 
-//     // Build the signature
-//     Sha256.initHmac((const unsigned char*)PASSWORD_ENCRYPTION_SECRET, strlen(PASSWORD_ENCRYPTION_SECRET));
-//     Sha256.print(encodedPassword);
-
-//     Serial.printf("Resulting HMAC: %02x", Sha256.resultHmac());
-
-//     // Encode the signature as base64
-//     unsigned char base64Signature[encode_base64_length(32)];
-//     encode_base64(Sha256.resultHmac(), 32, base64Signature);
-//     unsigned char* ptr = &base64Signature[0] + encode_base64_length(32);
-//     // Get rid of any padding and replace / and +
-//     while(*(ptr - 1) == '=') {
-//         ptr--;
-//     }
-//     *(ptr) = 0;
-
-//     // Do the signatures match?
-//     if(strcmp((char*)encodedPassword, (char*)base64Signature) == 0) {
-//         // Decode the payload
-//         decode_base64((unsigned char*)encodedPassword, (unsigned char*)jsonPayload);
-//         output = string(jsonPayload);
-//         return true;
-//     } else {  
-//         Serial.printf("String encoded %s and signature %s do not match!\n", encodedPassword, base64Signature); 
-//         output = "";
-//         return false;
-//     }
-// }
+void esp32_authentication::stringPasswordToBinary(const char *storedPass, byte *encryptedPass)
+{
+    for(int idx = 0; idx < strlen(storedPass) - 1; idx+=2){
+        //read two characters, store to byte
+        encryptedPass[idx/2] = (SHORT_FROM_CHAR(storedPass[idx]) << 4) | SHORT_FROM_CHAR(storedPass[idx+1]);        
+    }
+}
+#pragma endregion

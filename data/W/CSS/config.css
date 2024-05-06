@@ -9,11 +9,11 @@ body{
     border-style: none;        
     flex-grow: 1;
     flex-shrink: 1;
+    overflow: scroll;
 }
 .config-menu{
     display: flex;
-    flex-direction: column;
-    flex-grow: 1;
+    flex-direction: column;    
     max-width: 250px;
     min-width: 150px;
     border-color: #0b0b37;

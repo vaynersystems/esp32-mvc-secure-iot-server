@@ -17,8 +17,6 @@ void esp32_users_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 
     string configData;
     serializeJson(doc, configData); 
-    //serializeJson(doc, Serial); 
-    //Serial.print("."); //seems some statement has to go here, otherwise the string is not loaded   
     
     controllerTemplate.SetTemplateVariable("$_USER_LIST", configData.c_str());   
     Base_Controller::Index(req,res);    
@@ -30,10 +28,11 @@ void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
         res->setStatusCode(401);
         return;
     }
-    StaticJsonDocument<2048> doc;
+    
     title = "User Listing";
 
     JsonArray users = LoadUsers();
+    DynamicJsonDocument doc(512);
     doc.set(users);
 
     string configData;
@@ -41,7 +40,7 @@ void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
     res->print(configData.c_str());
     res->setStatusCode(200);
     res->setStatusText("OK");
-    res->setHeader("Content-Type", "text/html");
+    res->setHeader("Content-Type", "application/json");
 }
 
 inline void esp32_users_controller::Delete(HTTPRequest *req, HTTPResponse *res)
@@ -114,7 +113,7 @@ bool esp32_users_controller::CreateUser(HTTPRequest* req, HTTPResponse* res){
         return false;
     }
 
-    auto saved = SaveNewUserData(
+    auto saved = esp32_authentication::registerUser(
         doc["username"].as<const char*>(), 
         doc["password"].as<const char*>(), 
         doc["role"].as<const char*>(), 
@@ -265,45 +264,6 @@ bool esp32_users_controller::HasAction(const char * action){
         return Base_Controller::HasAction(action);
 }
 
-
-
-/// @brief Save user data to disk
-/// @param username 
-/// @return 
-bool esp32_users_controller::SaveNewUserData(const char* username,const char * password, const char* role, bool enabled){
-    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
-    
-    DynamicJsonDocument doc(1024); 
-    DeserializationError error = deserializeJson(doc, authFile);
-    authFile.close();
-
-    if(error){
-        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
-    }
-
-    JsonVariant existingUser = esp32_authentication::findUser(doc.as<JsonArray>(),username);
-
-    if(!existingUser.isNull()){
-        return false;
-    }
-    
-
-    JsonObject newUser = doc.createNestedObject();
-    newUser["username"] = username;
-    newUser["password"] = password;
-    newUser["role"] = role;
-    newUser["enabled"] = true;
-    newUser["created"] = getCurrentTime();
-    
-    
-    authFile = SPIFFS.open(PATH_AUTH_FILE, "w");
-    serializeJson(doc, authFile);
-    authFile.flush();
-    authFile.close();
-    return true;
-}
-
 // @brief Save user data to disk
 /// @param username 
 /// @return 
@@ -330,15 +290,11 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
         Serial.println(error.c_str());
         return false;
     }
-    //see if we have a matching entry
-    for(JsonObject entry : d.as<JsonArray>()) {        
-        //Serial.printf("Comparing %s with password %s\n", entry["username"].as<std::string>().c_str(), entry["password"].as<std::string>().c_str());
-        if(strcmp(entry["username"].as<const char *>(),username) == 0){             
-            info.role = role;
-            info.enabled = enabled;
-            break;
-        }
-    }  
+    auto existingUser = esp32_authentication::findUser(d.as<JsonArray>(), username);
+    if(existingUser.isNull()) return false;
+    
+    existingUser["role"] = role;
+    existingUser["enabled"] = enabled;
     file = SPIFFS.open(filename.c_str(),"w");
     serializeJson(d, file);
     file.close();
@@ -379,10 +335,11 @@ bool esp32_users_controller::DeleteUser(const char *username)
 JsonVariant esp32_users_controller::LoadUsers() {
     File f = SPIFFS.open(PATH_AUTH_FILE,"r");
     DynamicJsonDocument doc(f.size() * 2);
-    StaticJsonDocument<64> filter; //filter out password field
+    StaticJsonDocument<128> filter; //filter out password field
     filter[0]["username"] = true;
     filter[0]["role"] = true;
     filter[0]["enabled"] = true;
+    filter[0]["created"] = true;
 
 
     auto error = deserializeJson(doc,f,  DeserializationOption::Filter(filter));
@@ -400,10 +357,11 @@ JsonVariant esp32_users_controller::LoadUsers() {
 JsonVariant esp32_users_controller::LoadUserData(const char* username) {
     File f = SPIFFS.open(PATH_AUTH_FILE,"r");
     DynamicJsonDocument doc(f.size() * 2);
-    StaticJsonDocument<64> filter;
+    StaticJsonDocument<128> filter;
     filter[0]["username"] = true;
     filter[0]["role"] = true;
     filter[0]["enabled"] = true;
+    filter[0]["created"] = true;
 
 
     auto error = deserializeJson(doc,f,  DeserializationOption::Filter(filter));
@@ -419,13 +377,3 @@ JsonVariant esp32_users_controller::LoadUserData(const char* username) {
     auto user = esp32_authentication::findUser(doc.as<JsonArray>(), username);
     return user;
 }
-
-
-// JsonObject esp32_users_controller::findUser(JsonArray users, const char* userName){
-//     for(JsonObject seekingUser : users){
-//         //Serial.printf("Comparing user %s in db to user %s being searched\n", seekingUser["username"].as<const char *>(), userName);
-//         if(strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
-//             return seekingUser;        
-//     }
-//     return JsonObject();
-// }    

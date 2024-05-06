@@ -5,7 +5,7 @@
 #include "System/CORE/esp32_server.h"
 #include "System/CORE/esp32_wifi.h"
 #include "System/AUTH/esp32_authentication.h"
-#include "System/AUTH/esp32_sha.h"
+#include "System/AUTH/esp32_sha256.h"
 
 //TODO: store cert in SPIFFS
 //#define CERT_FILE_CER   "/PRI/CERT.DER"
@@ -28,7 +28,7 @@ void serverTask(void* params);
 #else
     #define ARDUINO_RUNNING_CORE 1
 #endif
-extern const int STACK_SIZE = 1024*10;
+extern const int STACK_SIZE = 1024*24;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -61,25 +61,6 @@ void setup() {
     wifi.start();     
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", STACK_SIZE, NULL, 1, task, ARDUINO_RUNNING_CORE); 
-    esp32_sha256 espSHA;
-    espSHA.ProcessInputMessage("secret");   
-    espSHA.ProcessInputMessage("password!"); 
-    espSHA.ProcessInputMessage("pther22#@#"); 
-    espSHA.ProcessInputMessage("password!"); 
-    espSHA.ProcessInputMessage("secret"); 
-
-    //TESTING AUTH ENCODING
-
-    // auto storePassword = "password1";
-    // string encodedPassword = "", decodedPassword = "";
-    // unsigned char* encodedHash[32];
-    // //bool encoded = esp32_authentication::encryptPassword(storePassword,*encodedHash);
-    // bool decoded = esp32_authentication::verifyPassword("admin",storePassword);
-
-    // Serial.printf("Password %s encoding [%s] result %s. decoded result %s.",
-    //     storePassword, encoded ? "Encoded" : "Failed to encode", encodedPassword.c_str(), decoded ? "Decoded" : "Failed to decode"
-    // );
-    
 }
 
 

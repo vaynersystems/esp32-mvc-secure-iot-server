@@ -42,7 +42,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             char buffer[256];
             reqLength = reqLength < sizeof(buffer) ? reqLength : sizeof(buffer);
             req->readChars(buffer, reqLength);
-            buffer[reqLength] = NULL;
+            buffer[reqLength] = 0;
 
             // Serial.printf("Read: %s from request\r\n", buffer);
             DynamicJsonDocument doc(sizeof(buffer) * 8);
@@ -246,7 +246,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         return;
     }    
     
-    string jwtDecodedString; //get from cookie
+    string jwtDecodedString = "";
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
 
@@ -259,15 +259,15 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //TODO: create config setting to force verify token
             //verify token is valid    
             authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
-            //authResult.authenticated = true;
-            // Serial.printf(
-            //     //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
-            //     "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
-            //     authResult.authenticated ? "Authenticated" : "Unauthorized", 
-            //     authResult.username.c_str(), 
-            //    // authResult.password.c_str(), 
-            //     authResult.role.c_str()
-            // ); 
+            authResult.authenticated = true;
+            Serial.printf(
+                //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
+                "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
+                authResult.authenticated ? "Authenticated" : "Unauthorized", 
+                authResult.username.c_str(), 
+               // authResult.password.c_str(), 
+                authResult.role.c_str()
+            ); 
             if(authResult.authenticated){                
             
                 setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            

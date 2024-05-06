@@ -106,6 +106,7 @@ function _generateModalComponent(){
     </div>`;
     const modalComponent = document.createElement('div');
     modalComponent.innerHTML = html;
+    modalComponent.className = "system-modal-container"
     document.body.appendChild(modalComponent);
     return modalComponent
 }

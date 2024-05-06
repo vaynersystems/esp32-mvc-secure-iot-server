@@ -31,7 +31,7 @@
 #include <Arduino.h>
 #include "ArduinoJWT.h"
 #include "base64.hpp"
-#include "sha256.h"
+#include "esp32_sha256.h"
 
 // The standard JWT header already base64 encoded. Equates to {"alg": "HS256", "typ": "JWT"}
 const PROGMEM char* jwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";

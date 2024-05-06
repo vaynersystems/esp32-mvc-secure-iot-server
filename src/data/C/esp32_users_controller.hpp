@@ -42,7 +42,6 @@ private:
     //JsonObject findUser(JsonArray users, const char* userName);
     virtual JsonVariant LoadUsers();
     virtual JsonVariant LoadUserData(const char* username);
-    virtual bool SaveNewUserData(const char* username,const char * password, const char* role, bool enabled);
     virtual bool SaveExistingUserData(const char* username,const char* role, bool enabled);
     virtual bool DeleteUser(const char* username);
 
