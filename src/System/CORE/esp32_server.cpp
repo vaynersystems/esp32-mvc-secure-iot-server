@@ -93,6 +93,8 @@ void esp32_server::step()
     if(_enableSSL)
         secureServer->loop();
     unsecureServer->loop();
+
+    //TODO: process any encryption/decryption requests
     
 }
 
