@@ -28,7 +28,7 @@ void serverTask(void* params);
 #else
     #define ARDUINO_RUNNING_CORE 1
 #endif
-extern const int STACK_SIZE = 1024*24;
+extern const int SERVER_STACK_SIZE = 1024*24;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -60,7 +60,7 @@ void setup() {
     //Connect to wifi
     wifi.start();     
     //Create Server
-    xTaskCreatePinnedToCore(serverTask, "secureserver", STACK_SIZE, NULL, 1, task, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 1, task, ARDUINO_RUNNING_CORE); 
 }
 
 

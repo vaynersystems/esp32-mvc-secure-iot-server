@@ -9,17 +9,17 @@ void esp32_users_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         res->setStatusCode(401);
         return;
     }
-    StaticJsonDocument<2048> doc;
+    StaticJsonDocument<1024> doc;
     title = "User Listing";
 
     JsonArray users = LoadUsers();
-    doc.set(users);
+    //doc.set(users);
 
     string configData;
-    serializeJson(doc, configData); 
+    serializeJson(users, configData); 
     
     controllerTemplate.SetTemplateVariable("$_USER_LIST", configData.c_str());   
-    Base_Controller::Index(req,res);    
+    esp32_base_controller::Index(req,res);    
 }
 
 void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
@@ -32,7 +32,7 @@ void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
     title = "User Listing";
 
     JsonArray users = LoadUsers();
-    DynamicJsonDocument doc(512);
+    DynamicJsonDocument doc(1024);
     doc.set(users);
 
     string configData;
@@ -245,7 +245,7 @@ void esp32_users_controller::Action(HTTPRequest* req, HTTPResponse* res) {
         UpdateUser(req,res);
     }   
     else
-        Base_Controller::Action(req,res);
+        esp32_base_controller::Action(req,res);
 }
 
 bool esp32_users_controller::HasAction(const char * action){
@@ -261,7 +261,7 @@ bool esp32_users_controller::HasAction(const char * action){
     }
     
     else
-        return Base_Controller::HasAction(action);
+        return esp32_base_controller::HasAction(action);
 }
 
 // @brief Save user data to disk

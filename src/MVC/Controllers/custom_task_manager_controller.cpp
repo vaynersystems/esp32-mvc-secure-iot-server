@@ -37,7 +37,7 @@ void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
         serializeJson(doc, outputString);
     //set to template variable
     controllerTemplate.SetTemplateVariable("$_TASKS", outputString.c_str());
-    Base_Controller::Index(req,res);    
+    esp32_base_controller::Index(req,res);    
     
 }
 void custom_task_manager_controller::Put(HTTPRequest* req, HTTPResponse* res) {

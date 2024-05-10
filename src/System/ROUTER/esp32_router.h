@@ -18,13 +18,14 @@ enum HTTPMETHOD {
 #include "SPIFFS.h"
 #include "../CORE/esp32_fileio.h"
 #include "../Config.h"
-#include "../CORE/base_controller.hpp"
+#include "../CORE/esp32_base_controller.hpp"
 #include "../AUTH/esp32_middleware.h"
 #include "esp32_template.h"
 
 #include <HTTPSServer.hpp>
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
+#include <System/CORE/esp32_base_service.hpp>
 using namespace httpsserver;
 //#include <SSLCert.hpp>
 //#include <ArduinoJson.h>
@@ -37,18 +38,15 @@ class esp32_router
 {
 
 public:
-	static void InitConfigurableRouting();
+	//static void InitConfigurableRouting();
 	static void RegisterHandler(ResourceNode* resourceNode);
-	static void RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSCallbackFunction* handler);
+    static void RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSCallbackFunction* handler);
 	static void RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction* handler);
 	static void RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t levels);
+    static void RegisterWebsocket(WebsocketNode* resourceNode);
 
-	static void handleRoot(HTTPRequest* req, HTTPResponse* res, std::string* content);
-	static void handleRoot(HTTPRequest* req, HTTPResponse* res) { esp32_router::handleRoot(req, res, nullptr); }
-	static void handleFileUpload(HTTPRequest* req, HTTPResponse* res);
-	static void handleInternalPage(HTTPRequest* req, HTTPResponse* res);
-	static void handleAdminPage(HTTPRequest* req, HTTPResponse* res);
-	static void handlePublicPage(HTTPRequest* req, HTTPResponse* res);
+	static void handleRoot(HTTPRequest* req, HTTPResponse* res);
+	static void handleFileUpload(HTTPRequest* req, HTTPResponse* res);	
 	static void handle404(HTTPRequest* req, HTTPResponse* res);
 
 	static void handleFile(HTTPRequest* req, HTTPResponse* res);
@@ -57,7 +55,7 @@ public:
 	static void handleCORS(HTTPRequest* req, HTTPResponse* res);
 	static void handleFileList(HTTPRequest* req, HTTPResponse* res);
 
-
+    /* Consider moving to template*/
 	static int handlePagePart_Title(HTTPRequest* req, HTTPResponse* res, String line, std::string content);
 	static int handlePagePart_Head(HTTPRequest* req, HTTPResponse* res, String line, std::string content );
 	static int handlePagePart_Menu(HTTPRequest* req, HTTPResponse* res, String line, std::string content);
@@ -69,10 +67,13 @@ public:
 	static int handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, String line, const char* searchString, String fileName);
 	static int handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res, String line, const char* searchString, std::string content);
 
-	static int handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, String line, Base_Controller* controller);
+	static int handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, String line, esp32_base_controller* controller);
+
+    static string handleServiceRequest(esp32_service_route route);
 
 protected:
-	static DerivedController<Base_Controller>* controllerFactory;
+	static DerivedController<esp32_base_controller>* controllerFactory;
+    static DerivedService<esp32_base_service>* serviceFactory;
     static bool parseFileRequest(HTTPRequest* req, esp32_route_file_info& fileRequestInfo){
         String fileName = String(fileRequestInfo.requestPath.c_str());
 

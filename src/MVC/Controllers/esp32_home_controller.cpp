@@ -8,10 +8,10 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     title = "ESP32 Web Server Home Page";
 
     string ctrString = "[";
-    int numOfControllers = BaseFactory::getInstanceCount();
+    int numOfControllers = BaseControllerFactory::getInstanceCount();
     //Serial.printf("Found %i controllers\n", numOfControllers);
     for(int i=0;i< numOfControllers;i++){
-        auto controller = BaseFactory::getInstanceAt(i);
+        auto controller = BaseControllerFactory::getInstanceAt(i);
         if(controller.first[0] == '_') continue;
 
         vector<string> actions = {};
@@ -32,6 +32,6 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     controllerTemplate.SetTemplateVariable("$_Controllers", ctrString.c_str());
     
-    Base_Controller::Index(req,res);    
+    esp32_base_controller::Index(req,res);    
 }
 

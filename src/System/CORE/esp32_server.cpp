@@ -2,21 +2,24 @@
 #include <HTTPMiddlewareFunction.hpp>
 #include <esp_task_wdt.h>
 
-esp32_server::esp32_server() : unsecureServer(new HTTPServer())
-{
-}
+// esp32_server::esp32_server() : unsecureServer(new HTTPServer())
+// {
+// }
 esp32_server::esp32_server(SSLCert* cert) : unsecureServer(new HTTPServer())
 {
     StaticJsonDocument<1024> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);
-     _enableSSL = systemConfig["enableSSL"].as<bool>();
+    if(systemConfig["enableSSL"].isNull())
+        _enableSSL = true; //default to on
+    else 
+        _enableSSL = systemConfig["enableSSL"].as<bool>();
     _cert = cert; //used for jwt as well
 
-    if(_enableSSL){
+    if(_enableSSL){       
         secureServer = new HTTPSServer(cert);        
         secureServer->addMiddleware(middleware->middlewareAuthentication);
         secureServer->addMiddleware(middleware->middlewareAuthorization);
-    }
+    } 
     
     unsecureServer->addMiddleware(middleware->middlewareAuthentication);
     unsecureServer->addMiddleware(middleware->middlewareAuthorization);
@@ -48,7 +51,9 @@ bool esp32_server::start() {
     ResourceNode* nodeSpecial = new ResourceNode("/special/*", "GET", &esp32_router::handleFileList);
     ResourceNode* corsNode = new ResourceNode("/*", "OPTIONS", &esp32_router::handleCORS);
 
-    WebsocketNode * persistanceNode = new WebsocketNode("/persistance", &esp32_socket::createSocket);
+    WebsocketNode * persistanceNode = new WebsocketNode("/socket", &esp32_socket::createSocket);
+    _router->RegisterWebsocket(persistanceNode);
+    
     _router->RegisterHandler( corsNode);
     _router->RegisterHandler( node404);
     _router->RegisterHandler( nodeSpecial);
@@ -115,5 +120,6 @@ bool esp32_server::registerNewCert(SSLCert* cert)
 
     secureServer =new HTTPSServer(cert);
     _cert = cert;
+    return true;
 }
 

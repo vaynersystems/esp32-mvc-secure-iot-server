@@ -3,10 +3,10 @@
 DerivedController<esp32_login_controller> esp32_login_controller::reg("login");
 
 void esp32_login_controller::Index(HTTPRequest* req, HTTPResponse* res) {
-    Base_Controller::Index(req,res);    
+    esp32_base_controller::Index(req,res);    
 }
 
 inline void esp32_login_controller::Post(HTTPRequest *req, HTTPResponse *res)
 {
-    Base_Controller::Post(req,res);
+    esp32_base_controller::Post(req,res);
 }

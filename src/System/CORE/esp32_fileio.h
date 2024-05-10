@@ -53,7 +53,7 @@ public:
     static void printFileSearchOrdered(Print* writeTo, list<SPIFFS_FileInfo>* files, string filter);
     
     static bool CreateFile(const char * filename);
-    static size_t UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser);    
+    static size_t UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser, bool createIfNotFound = false);    
     static bool DeleteFile(const char * filename);
 //helper methods
 	static void PrettyFormat(size_t size, String* output) {

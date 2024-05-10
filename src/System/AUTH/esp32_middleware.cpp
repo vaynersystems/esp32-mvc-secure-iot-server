@@ -75,17 +75,17 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         if(isLoginPage && isPostRequest) {
 
             // Get login information from request       
-            if (reqUsername.length() > 0 && reqPassword.length() > 0) {
+            if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
                 //Serial.printf("Authentication for: %s : %s\n", info.username.c_str(), info.authenticated ? "VALID" : "INVALID");
                 
                 // if authentication was successful issue JWT token
                 if (info.authenticated) {
-                    DynamicJsonDocument doc(128);
+                    DynamicJsonDocument doc(512);
                     doc["user"] = reqUsername;
-                    doc["password"] = reqPassword;
                     doc["role"] = info.role.c_str();
+                    doc["password"] = info.password;
                     doc["exp"] = getTime() +( 3600 * 24 * 7);
                     jwtTokenPayload.clear();
                     serializeJson(doc, jwtTokenPayload);
@@ -137,36 +137,13 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         //valid JWT Token.. read it
         DynamicJsonDocument doc(jwtDecodedString.length() * 4);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
-        if (err.code() == DeserializationError::Ok) {
-
-            // if(req->getRequestString().substr(0, 6) == "/login" && req->getMethod() == "POST") {
-            //     //redirect
-            //     // auto returnUrl = req->getHeader("X_RETURN_URL");
-            //     // if(returnUrl.length() == 0)
-            //     // returnUrl = "index.html";
-            //     // res->setStatusCode(303);
-                
-            //     // res->setHeader("Location",returnUrl);
-            //     // return;
-            //     res->print(jwtToken.c_str());     
-            //     //return;
-            // }   
+        if (err.code() == DeserializationError::Ok) {          
 
             if(doc["exp"].as<unsigned long>() < getTime()){
                 res->setStatusCode(401);
 
             } 
-
-            #ifdef DEBUG
-            if (doc["user"] == "admin") {
-                Serial.printf("Login from admin\n");
-            }
-            const char* usr = doc["user"].as<const char*>();
-            const char* pass = doc["password"].as<const char*>();
-            const char* role = doc["role"].as<const char*>();
             
-            //Serial.printf("Login from user %s with role %s\n", usr, role);
-            #endif 
             setAuthHeaders(req, "","",jwtToken.c_str());
         }
         else {
@@ -227,15 +204,18 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
                 return;
          }
     }
+
+    // string jwtTokokenFromQueryString = "";
+    // req->getParams()->getQueryParameter("token",jwtTokokenFromQueryString);
        
 
     string jwtTokenFromRequest = authHeader.c_str();
-    if (jwtTokenFromRequest.length() > 7) {
+    if (jwtTokenFromRequest.length() > 7) { //strip leading "Bearer: "
         jwtTokenFromRequest.erase(0,7);
-        //Serial.print("Parsing JWT Token from header: "); Serial.println(jwtTokenFromRequest);
     }
 
     //if an auth header is passed, it gets priority over cookie
+    //string jwtToken = jwtTokokenFromQueryString.length() > 0 ? jwtTokokenFromQueryString : jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie ;
     string jwtToken = jwtTokenFromRequest.length() > 0 ? jwtTokenFromRequest : jwtTokenFromCookie ;
     if(iequals(request.c_str(), "/logout",strlen("/logout"))){
         //redirect to login
@@ -246,7 +226,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         return;
     }    
     
-    string jwtDecodedString = "";
+    string jwtDecodedString = "";    
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
 
@@ -256,23 +236,26 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
+            if(isLoginPage && isPostRequest){ //special case for posting login info
+                setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());
+                return; 
+            }
             //TODO: create config setting to force verify token
             //verify token is valid    
-            authResult = esp32_authentication::authenticateUser(doc["user"].as<const char*>(),doc["password"].as<const char*>());
-            authResult.authenticated = true;
+            authResult = esp32_authentication::authenticateUser(doc["user"].as<string>().c_str(),doc["password"].as<string>().c_str());
+            //authResult.authenticated = true; //IF YOU WANT TO BYPAS VERIFIACTION OF USER
+            #ifdef DEBUG
             Serial.printf(
-                //"**Authorization** Result %s\nUsername: %s\t Password: %s\tRole: %s\n", 
                 "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
                 authResult.authenticated ? "Authenticated" : "Unauthorized", 
                 authResult.username.c_str(), 
-               // authResult.password.c_str(), 
                 authResult.role.c_str()
             ); 
+            #endif
             if(authResult.authenticated){                
             
                 setAuthHeaders(req, doc["user"].as<const char*>(), doc["role"].as<const char*>(),jwtToken.c_str());            
-                if(isLoginPage && isPostRequest) //special case for posting login info
-                    return;        
+                      
             }
         }
         //else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());

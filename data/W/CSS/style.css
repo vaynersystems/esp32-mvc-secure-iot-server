@@ -303,7 +303,7 @@ input,select{
 
 .grid-header{
     background-color: var(--secondary-background);
-    
+    padding: 4px;    
     font-size: 16px;
     flex-grow:0;
     line-height: 18px;

@@ -14,20 +14,28 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     esp32_user_auth_info info;
     bool firstUser = false;
     // Read the file
-    auto filename = std::string(PATH_AUTH_FILE);
+    auto filename = std::string(PATH_AUTH_FILE);   
     
     // Check if the file exists
     if (!SPIFFS.exists(filename.c_str()))
     {     
-        Serial.println("Authorization file does not exist. Creating"); 
+        Serial.println("Authorization file does not exist..");
+        if(strlen(password) == 64) //ecoded password, must reject
+            return info;
+        Serial.println("Creating"); 
         byte encryptedPass[SHA256_SIZE];
+        char* requestPassEncrypted = new char[SHA256_SIZE*2 + 1];
+        requestPassEncrypted[SHA256_SIZE*2] = '\0'; //null terminate
         firstUser = true; //if first user, authenticate and create file     
         bool registered = registerUser(username, password, "ADMIN"); 
         encryptPassword(password, encryptedPass);
+        binaryPasswordToString(encryptedPass, requestPassEncrypted);
+        delete[] requestPassEncrypted;
         if(registered){
             info.username = username;
             info.role = "ADMIN";
             info.authenticated =registered;
+            info.password = string(requestPassEncrypted);
         }
        
     } else { // check if valid user
@@ -35,6 +43,23 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         if(!info.authenticated) return info;
         
         info.username = username;
+        byte* requestPasswordHash = new byte[SHA256_SIZE];
+        char* requestPassEncrypted = new char[SHA256_SIZE*2 + 1];
+        requestPassEncrypted[SHA256_SIZE*2] = '\0'; //null terminate
+        if(strlen(password) == 64){ //if verifying hash, then no need to encrypt
+            //Serial.println("Passing hash from request to auth info");
+            //memcpy(info.password, password,64);
+            info.password = password;
+        }
+        else {
+            encryptPassword(password, requestPasswordHash);
+            binaryPasswordToString(requestPasswordHash, requestPassEncrypted);
+            //memcpy(info.password, requestPassEncrypted,64);
+            info.password = string(requestPassEncrypted);
+        }
+
+        delete[] requestPasswordHash;
+        delete[] requestPassEncrypted;
 
         File file = SPIFFS.open(filename.c_str());
         DynamicJsonDocument d(2048);
@@ -45,9 +70,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
             Serial.println(error.c_str());
             return info;
         }
-
         auto existingUser = findUser(d.as<JsonArray>(),username);
-
         if(!existingUser.isNull()){
             info.username =  existingUser["username"].as<const char *>();  
             info.role =  existingUser["role"].as<const char *>();  
@@ -142,7 +165,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
 
 JsonObject esp32_authentication::findUser(JsonArray users, const char* userName){
     for(JsonObject seekingUser : users){
-        if(strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
+        if(!seekingUser["username"].isNull() && strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
             return seekingUser;        
     }
     return JsonObject();
@@ -154,8 +177,12 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
     
     byte requestPasswordHash[SHA256_SIZE];
     byte storedPasswordHash[SHA256_SIZE];
-
-    encryptPassword(password, requestPasswordHash);
+    //Serial.printf("Calling verifyPassword with length of %d\n", strlen(password));
+    if(strlen(password) == 64){ //if verifying hash, then no need to encrypt
+        stringPasswordToBinary(password, requestPasswordHash);
+    }
+    else 
+        encryptPassword(password, requestPasswordHash);
 
     //passwords are stored in hashed format
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
@@ -175,20 +202,33 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
     if(existingUser.isNull()){
         return false;
     }
+    // if(existingUser["password"].isNull())
+    //     Serial.println("Password field in existing user is null");
+    // else
+    //     Serial.printf("Password field in existing user is %s\n", existingUser["password"].as<const char*>());
     auto existingPassword = existingUser["password"].as<const char*>();
+    
     stringPasswordToBinary(existingPassword, storedPasswordHash);
     //encryptPassword(existingPassword, storedPasswordHash);    
     
     //validate
+    bool valid = true;
     for (byte i; i < SHA256_SIZE; i++){
         if(storedPasswordHash[i] != requestPasswordHash[i]){
-            Serial.printf("Byte %d does not match. %02x in stored, %02X in request\n", i, storedPasswordHash[i], requestPasswordHash[i]);
-            return false;
-        }
-        
+            Serial.printf("Byte %d does not match. %02x in stored, %02X in request\n", i, storedPasswordHash[i], requestPasswordHash[i]);            
+            valid = false;
+            break;
+        }         
     }
 
-    return true;
+    // if(!valid){
+    //     Serial.printf("Request password was %s. Encoded: \n", password);
+    //     for(int idx=0;idx < SHA256_SIZE;idx++){
+    //         Serial.printf("%02X",requestPasswordHash);
+    //     }
+    // }
+   
+    return valid;
 }
 /// @brief 
 /// @param plainPassword 
@@ -201,7 +241,11 @@ void esp32_authentication::encryptPassword(const char *plainPassword,byte * outp
     hasher.init();
     hasher.write(plainPassword);
     hash = hasher.result();
-   
+    //Serial.println();
+    // Serial.printf("encrypted hash of %s \n", plainPassword);
+    // for(int idx = 0; idx < 32; idx++)
+    //     Serial.printf("%02X",hash[idx]);
+    // Serial.println();
     memcpy(output,hash,SHA256_SIZE); 
 }
 
@@ -218,9 +262,10 @@ void esp32_authentication::binaryPasswordToString(byte *encryptedPass, char *sto
 
 void esp32_authentication::stringPasswordToBinary(const char *storedPass, byte *encryptedPass)
 {
-    for(int idx = 0; idx < strlen(storedPass) - 1; idx+=2){
+    //Serial.printf("Converting string of length %d to binary\n", strlen(storedPass));
+    for(int idx = 0; idx < SHA256_SIZE*2 - 1; idx+=2){
         //read two characters, store to byte
-        encryptedPass[idx/2] = (SHORT_FROM_CHAR(storedPass[idx]) << 4) | SHORT_FROM_CHAR(storedPass[idx+1]);        
+        encryptedPass[idx/2] = (SHORT_FROM_CHAR(storedPass[idx]) << 4) | SHORT_FROM_CHAR(storedPass[idx+1]);          
     }
 }
 #pragma endregion

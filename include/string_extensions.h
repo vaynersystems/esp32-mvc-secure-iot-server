@@ -1,6 +1,13 @@
+
+#include <memory>
+#include <string>
+#include <stdexcept>
 #include <sstream>
+#include <vector>
 #ifndef _ESP32_STRING_EXTENSIONS_H
 #define _ESP32_STRING_EXTENSIONS_H
+
+using namespace std;
 
 template <typename T>
 std::string to_string_with_precision(const T a_value, const int n = 6)
@@ -9,6 +16,18 @@ std::string to_string_with_precision(const T a_value, const int n = 6)
     out.precision(n);
     out << std::fixed << a_value;
     return std::move(out).str();
+}
+
+
+template<typename ... Args>
+std::string string_format( const std::string& format, Args ... args )
+{
+    int size_s = std::snprintf( nullptr, 0, format.c_str(), args ... ) + 1; // Extra space for '\0'
+    if( size_s <= 0 ){ throw std::runtime_error( "Error during formatting." ); }
+    auto size = static_cast<size_t>( size_s );
+    std::unique_ptr<char[]> buf( new char[ size ] );
+    std::snprintf( buf.get(), size, format.c_str(), args ... );
+    return std::string( buf.get(), buf.get() + size - 1 ); // We don't want the '\0' inside
 }
 
 

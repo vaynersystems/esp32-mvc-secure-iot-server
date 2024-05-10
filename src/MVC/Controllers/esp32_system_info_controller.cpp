@@ -2,8 +2,9 @@
 #include "System/ROUTER/esp32_template.h"
 #include "string_extensions.h"
 #include <nvs.h>
+#include <esp_ota_ops.h>
 
-extern const int STACK_SIZE;
+extern const int SERVER_STACK_SIZE;
 DerivedController<esp32_system_info_controller> esp32_system_info_controller::reg("esp32_system_info");
 
 void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
@@ -12,10 +13,23 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     nvs_stats_t stats;
     nvs_get_stats(NULL, &stats);    
 
+    String bootSizePretty("0"), part1SizePretty("0"); 
+    
+    int partitions = esp_ota_get_app_partition_count();
+    const esp_partition_t *boot_partition = esp_ota_get_boot_partition();
+    esp32_fileio::PrettyFormat(boot_partition->size, &bootSizePretty);    
+    if(partitions > 1){
+        const esp_partition_t *app_partition = esp_ota_get_next_update_partition(boot_partition);
+        esp32_fileio::PrettyFormat(app_partition->size, &part1SizePretty);
+    }   
+    
+   
+    controllerTemplate.SetTemplateVariable("$_PARTITION_BOOT_SPACE",  bootSizePretty.c_str());    
+    controllerTemplate.SetTemplateVariable("$_PARTITION_1_SPACE", part1SizePretty.c_str());
+
     String flashSizePretty(""), sketchSizePretty(""), flashMode; 
     esp32_fileio::PrettyFormat((size_t)ESP.getFlashChipSize(), &flashSizePretty);
     esp32_fileio::PrettyFormat((size_t)ESP.getSketchSize(), &sketchSizePretty);
-    
     prettyFlashModeString(flashMode);
 
     controllerTemplate.SetTemplateVariable("$_CHIP_CORES",      to_string(ESP.getChipCores()));
@@ -89,12 +103,12 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL);     
     String freeBytesSTACKPretty(""), usedBytesSTACKPretty("") , totalBytesSTACKPretty("");
 	esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
-	esp32_fileio::PrettyFormat(STACK_SIZE - stackFreeBytes, &usedBytesSTACKPretty);
-    esp32_fileio::PrettyFormat(STACK_SIZE, &totalBytesSTACKPretty);
+	esp32_fileio::PrettyFormat(SERVER_STACK_SIZE - stackFreeBytes, &usedBytesSTACKPretty);
+    esp32_fileio::PrettyFormat(SERVER_STACK_SIZE, &totalBytesSTACKPretty);
     controllerTemplate.SetTemplateVariable("$STACK_FREE", freeBytesSTACKPretty.c_str());
     controllerTemplate.SetTemplateVariable("$STACK_USED", usedBytesSTACKPretty.c_str());
     controllerTemplate.SetTemplateVariable("$STACK_TOTAL", totalBytesSTACKPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$STACK_PERCENT_USED", (to_string_with_precision(round(((float)(STACK_SIZE - stackFreeBytes)/(float)STACK_SIZE)*100),1).c_str()));    
+    controllerTemplate.SetTemplateVariable("$STACK_PERCENT_USED", (to_string_with_precision(round(((float)(SERVER_STACK_SIZE - stackFreeBytes)/(float)SERVER_STACK_SIZE)*100),1).c_str()));    
 
     // char * varName = new char[20];
     // for(int i = 1; i < 100; i++){
@@ -102,7 +116,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     //     sprintf(varName,"$_TEST_%d",i);
     //     controllerTemplate.SetTemplateVariable(varName,"SOME LONG TESTING STRING TO SEE IF THE SIZE OF THE HEAP ISSUE e.g. MEMORY LEAK IS COMNIG FROM THIS DUMP");
     // }
-    Base_Controller::Index(req,res);      
+    esp32_base_controller::Index(req,res);      
 }
 
 void esp32_system_info_controller::prettyFlashModeString(String &flashMode){

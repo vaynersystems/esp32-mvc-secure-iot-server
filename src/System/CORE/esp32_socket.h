@@ -24,11 +24,11 @@ class esp32_socket : public WebsocketHandler
 {
 public:
     
-    //esp32_socket(SSLCert * cert);
-    
     // This method is called by the webserver to instantiate a new handler for each
     // client that connects to the websocket endpoint
     static WebsocketHandler* createSocket();
+
+    //void setServiceName(string name);
 
     // This method is called when a message arrives
     void onMessage(WebsocketInputStreambuf * input);
@@ -40,8 +40,9 @@ public:
     esp32_middleware* middleware;
 
 protected:
-    //SSLCert* _cert;
     //hw_timer_t* timer = NULL;
+    //string service;
+    void sendToAllClients(string message);
     
 };
 

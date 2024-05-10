@@ -1,4 +1,5 @@
 #include "esp32_wifi.h"
+#include "string_extensions.h"
 
 // extern esp32_wifi wifi;
 // void IRAM_ATTR diableWifi(){
@@ -78,7 +79,7 @@ bool esp32_wifi::start(){
             if (millis() - startConnectTime > 15000)
             {
                 Serial.println("Failed to connect to wifi.");
-                
+                WiFi.disconnect(true,true);
                 break;
             }
         }        
@@ -86,18 +87,30 @@ bool esp32_wifi::start(){
 
     if(WiFi.status() != WL_CONNECTED){
         //failed to start in STA mode. Start in AP mode
+        bool customIP = true;
         string ip = wifiConfig["ap"]["ip"].as<string>();
         string subnet = wifiConfig["ap"]["subnet"].as<string>();
-        string apName = wifiConfig["ap"]["name"].as<string>();
+        string apName = wifiConfig["ap"]["name"].isNull() ? string_format("ESP32Host_%d", (byte)esp_random()) : wifiConfig["ap"]["name"].as<string>();
         string apPassword = wifiConfig["ap"]["password"].as<string>();
 
         IPAddress ipAddress, subnetAddress;
-        if(!ipAddress.fromString(ip.c_str()) )
+        if(!ipAddress.fromString(ip.c_str()) ){
             Serial.println("Failed to parse ip address from config file");
-        if(!subnetAddress.fromString(subnet.c_str()) )
+            customIP = false;
+        }
+        if(!subnetAddress.fromString(subnet.c_str()) ){
             Serial.println("Failed to parse subnet address from config file");
+            customIP = false;
+        }       
 
-        WiFi.config(ipAddress, ipAddress,subnetAddress, addr, addr);
+        if(customIP)
+            WiFi.config(ipAddress, ipAddress,subnetAddress, addr, addr);
+        if( apPassword.length() <=8 )  {
+            apPassword = apName.c_str(); //if no password, password matches wifi name
+            Serial.printf("Setting password to %s\n", apPassword.c_str());
+        }
+            WiFi.setMinSecurity(wifi_auth_mode_t::WIFI_AUTH_WEP);
+
         WiFi.softAP(apName.c_str(), apPassword.c_str(), 7, 0, 3);
         Serial.println("Started Wifi in AP mode");
     }

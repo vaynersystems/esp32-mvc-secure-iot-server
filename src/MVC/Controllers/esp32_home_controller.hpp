@@ -3,10 +3,10 @@
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include <vector>
-#include "System/CORE/base_controller.hpp"
+#include "System/CORE/esp32_base_controller.hpp"
 
 using namespace httpsserver;
-class esp32_home_controller : public Base_Controller {
+class esp32_home_controller : public esp32_base_controller {
 public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}

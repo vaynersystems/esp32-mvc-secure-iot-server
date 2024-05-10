@@ -70,8 +70,8 @@ Navigate to /edit to use the advanced system editor
  ┃ ┃ ┃ ┣ sha256.cpp
  ┃ ┃ ┃ ┗ sha256.h
  ┃ ┃ ┣ CORE
- ┃ ┃ ┃ ┣ base_controller.cpp        ***  Parent class from which all controllers inherit
- ┃ ┃ ┃ ┣ base_controller.hpp        ***  Parent class from which all controllers inherit
+ ┃ ┃ ┃ ┣ esp32_base_controller.cpp        ***  Parent class from which all controllers inherit
+ ┃ ┃ ┃ ┣ esp32_base_controller.hpp        ***  Parent class from which all controllers inherit
  ┃ ┃ ┃ ┣ esp32_fileio.cpp           ***  File operations
  ┃ ┃ ┃ ┣ esp32_fileio.h             ***  File operations
  ┃ ┃ ┃ ┣ esp32_server.cpp           ***  HTTP and HTTPS server host
@@ -200,10 +200,10 @@ Let's consider the naming conventions for our files
 #define _ESP32__CONTROLLER_CONFIG_H
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
-#include "System/CORE/base_controller.hpp"
+#include "System/CORE/esp32_base_controller.hpp"
 
 using namespace httpsserver;
-class custom_task_manager_controller : public Base_Controller {
+class custom_task_manager_controller : public esp32_base_controller {
 public:
     //For each method we will implement, we specifiy the method and overwrite its isImplemented property
     inline virtual void Index(HTTPRequest* req, HTTPResponse* res);

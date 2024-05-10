@@ -9,16 +9,17 @@
 #include <HTTPResponse.hpp>
 #include "../ROUTER/esp32_template.h"
 #include <ArduinoJson.h>
+#include "../ROUTER/esp32_routing.h"
 
 #include "string_extensions.h"
 
 #include <algorithm>
 using namespace httpsserver;
 
-class Base_Controller {
+class esp32_base_controller {
     public:
-        Base_Controller() {};
-        ~Base_Controller() {            
+        esp32_base_controller() {};
+        ~esp32_base_controller() {            
         };
 
         esp32_template controllerTemplate = esp32_template();
@@ -149,16 +150,16 @@ protected:
 
 };
 
-template<typename T> Base_Controller* createT() { return new T; }
+template<typename T> esp32_base_controller* createT() { return new T; }
 
-struct BaseFactory {
+struct BaseControllerFactory {
 public:
-    typedef std::map<std::string, Base_Controller * (*)()> map_type;
+    typedef std::map<std::string, esp32_base_controller * (*)()> map_type;
 
 
 public:
 
-    static Base_Controller* createInstance(esp32_controller_route reqRoute) {
+    static esp32_base_controller* createInstance(esp32_controller_route reqRoute) {
         map_type::iterator it = getMap()->begin();
         while (it != getMap()->end()) {
             if (it->first == reqRoute.controller.c_str()) { //set view
@@ -171,7 +172,7 @@ public:
         }
         return 0;       
     }
-    static Base_Controller* createInstance(std::string controller, std::string action, std::string query = "")
+    static esp32_base_controller* createInstance(std::string controller, std::string action, std::string query = "")
     {
         esp32_controller_route route;
         route.controller = controller;
@@ -186,7 +187,7 @@ public:
             it++;
         return count;
     }
-    static std::pair<std::string, Base_Controller*(*)()> getInstanceAt(int idx) {
+    static std::pair<std::string, esp32_base_controller*(*)()> getInstanceAt(int idx) {
         map_type::iterator it = getMap()->begin();
        
         for (int i = 0; i < idx && i < getMap()->size(); i++) it++;
@@ -195,8 +196,7 @@ public:
     static bool hasInstance(std::string const& s) {
         map_type::iterator it = getMap()->begin();
         while (it != getMap()->end()) {
-            if (it->first == s) return true;
-            //Serial.printf("Controller %s does not match %s", it->first.c_str(), s.c_str());
+            if (it->first == s) return true;            
             it++;
         }        
         //HTTPS_LOGW("Controller instance of %s not found among the %i controllers\n",s.c_str(), getInstanceCount());
@@ -205,20 +205,20 @@ public:
     }
 
 protected:
-    static map_type* map;
+    static map_type* controllerMap;
     
     static map_type* getMap() {
         // never delete'ed. (exist until program termination)
         // because we can't guarantee correct destruction order 
-        if (!map) { map = new map_type; }
-        return map;
+        if (!controllerMap) { controllerMap = new map_type; }
+        return controllerMap;
     }
 
    
 };
 
 template<typename T>
-struct DerivedController : BaseFactory {
+struct DerivedController : BaseControllerFactory {
 public:
     DerivedController(std::string const& s) {
         auto t = &createT<T>;
