@@ -8,19 +8,24 @@
 
 extern esp32_server server;
 
-void esp32_router::InitConfigurableRouting()
+// void esp32_router::InitConfigurableRouting()
+// {
+// }
+
+void esp32_router::RegisterHandler(ResourceNode *resourceNode)
 {
-    
-    
+    RegisterHandler(resourceNode->_path.c_str(), resourceNode->getMethod().c_str(), resourceNode->_callback);
+}
+void esp32_router::RegisterWebsocket(WebsocketNode *resourceNode)
+{
+    server.registerNode(resourceNode);
 }
 
-void esp32_router::RegisterHandler(ResourceNode* resourceNode) {
-    RegisterHandler( resourceNode->_path.c_str(), resourceNode->getMethod().c_str(), resourceNode->_callback);
-}
-
-void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSCallbackFunction* handler) {
+void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSCallbackFunction *handler)
+{
     String methodName;
-    switch (method) {
+    switch (method)
+    {
     case HTTPMETHOD_GET:
         methodName = "GET";
         break;
@@ -34,118 +39,127 @@ void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSC
         methodName = "PUT";
         break;
     }
-    RegisterHandler( nodeMapPath, methodName, handler);
+    RegisterHandler(nodeMapPath, methodName, handler);
 }
 
-void esp32_router::RegisterHandlers(fs::FS& fs, const char* dirname, uint8_t levels) {
+void esp32_router::RegisterHandlers(fs::FS &fs, const char *dirname, uint8_t levels)
+{
     File root = fs.open(dirname);
-    if (!root || !root.isDirectory()) {
+    if (!root || !root.isDirectory())
+    {
         return;
     }
 
     File file = root.openNextFile();
-    while (file) {
-        if (file.isDirectory()) {
-            if (levels) { //print out directory contents to serial
+    while (file)
+    {
+        if (file.isDirectory())
+        {
+            if (levels)
+            { // print out directory contents to serial
                 esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
             }
         }
-        else {  //Register file handler as filename         
+        else
+        { // Register file handler as filename
 
             String mappingPath = String(file.name());
             mappingPath.remove(0, sizeof(SITE_ROOT) - 1);
 
-            RegisterHandler( mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
-
+            RegisterHandler(mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
 
             int startIdx = mappingPath.lastIndexOf('/');
-            if (startIdx > 0) {
+            if (startIdx > 0)
+            {
                 String filePath = mappingPath.substring(startIdx);
                 if (filePath.length() > 0)
-                    RegisterHandler( filePath.c_str(), HTTPMETHOD_GET, &handleFile);
+                    RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleFile);
             }
 
-            //if gz file, register handler without gz
-            if (String(file.name()).endsWith(".gz")) {
+            // if gz file, register handler without gz
+            if (String(file.name()).endsWith(".gz"))
+            {
                 String nonGZName = String(file.name());
                 nonGZName.remove(nonGZName.length() - 3);
 
-                RegisterHandler( nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
+                RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
 
                 nonGZName.remove(0, sizeof(SITE_ROOT) - 1);
-               //Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
-                RegisterHandler( nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);                
+                // Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
+                RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
             }
         }
         file = root.openNextFile();
     }
 }
 
-
-void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction* handler) {
-    ResourceNode* node = new ResourceNode(nodeMapPath.c_str(), method.c_str(), handler);
+void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction *handler)
+{
+    ResourceNode *node = new ResourceNode(nodeMapPath.c_str(), method.c_str(), handler);
     server.registerNode(node);
 }
 
-
-void esp32_router::handleCORS(HTTPRequest* req, HTTPResponse* res) {
-    //Serial.println(">> CORS here...");
+void esp32_router::handleCORS(HTTPRequest *req, HTTPResponse *res)
+{
+    // Serial.println(">> CORS here...");
     res->setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
     res->setHeader("Access-Control-Allow-Origin", "*");
     res->setHeader("Access-Control-Allow-Headers", "*");
 }
 
-void esp32_router::handleFileList(HTTPRequest* req, HTTPResponse* res) {
-    string dir,path, filter;
+void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
+{
+    string dir, path, filter;
     req->getParams()->getQueryParameter("dir", dir);
     req->getParams()->getQueryParameter("path", path);
     req->getParams()->getQueryParameter("filter", filter);
-    
+
     res->setHeader("Content-Type", "application/json");
-    if (path.length() > 0) {
-        //search path
-        if(path.length() > 1 && path[path.length() - 1] == '/')
-            path = path.substr(0,path.length() - 1);
+    if (path.length() > 0)
+    {
+        // search path
+        if (path.length() > 1 && path[path.length() - 1] == '/')
+            path = path.substr(0, path.length() - 1);
 
         list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
-        
-        //Serial.printf("Searching for files only in path %s\n", path.c_str());
+
+        // Serial.printf("Searching for files only in path %s\n", path.c_str());
         esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, files);
-        esp32_fileio::printFileSearchOrdered(res, &files,filter);
+        esp32_fileio::printFileSearchOrdered(res, &files, filter);
     }
-    else {
-        //print dir recursivly
-        if (dir.length() <= 0) 
+    else
+    {
+        // print dir recursivly
+        if (dir.length() <= 0)
         {
             dir = "/";
             Serial.printf("Empty path, starting from %s\n", dir.c_str());
         }
-        
+
         list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
         esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, files);
-        esp32_fileio::printFileSearchOrdered(res, &files,filter);
-        //esp32_fileio::printDirOrdered(res, &files);
+        esp32_fileio::printFileSearchOrdered(res, &files, filter);
+        // esp32_fileio::printDirOrdered(res, &files);
     }
 }
 
-int esp32_router::handlePagePart_Title(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
-{
-    if(content.length() <= 0)
-        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_TITLE, (req->getHeader(HEADER_AUTH).length() > 0) ? "/T/title_int.html" : "/T/title_pub.html");
-    
-    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_TITLE, content);
-   
-}
-
-int esp32_router::handlePagePart_Head(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
+int esp32_router::handlePagePart_Title(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
-        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_HEAD, "/T/head.html");  
+        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_TITLE, (req->getHeader(HEADER_AUTH).length() > 0) ? "/T/title_int.html" : "/T/title_pub.html");
+
+    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_TITLE, content);
+}
+
+int esp32_router::handlePagePart_Head(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
+{
+    if (content.length() <= 0)
+        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_HEAD, "/T/head.html");
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_HEAD, content);
 }
 
-int esp32_router::handlePagePart_Header(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
+int esp32_router::handlePagePart_Header(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
         return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_HEADER, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/header_int.html" : "/T/header_pub.html");
@@ -153,7 +167,7 @@ int esp32_router::handlePagePart_Header(HTTPRequest* req, HTTPResponse* res, Str
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_HEADER, content);
 }
 
-int esp32_router::handlePagePart_Menu(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
+int esp32_router::handlePagePart_Menu(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
         return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/menu_int.html" : "/T/menu_pub.html");
@@ -161,11 +175,13 @@ int esp32_router::handlePagePart_Menu(HTTPRequest* req, HTTPResponse* res, Strin
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_MENU, content);
 }
 
-int esp32_router::handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
+int esp32_router::handlePagePart_Content(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
-    if (content.length() <= 0) {
+    if (content.length() <= 0)
+    {
         int idx = line.indexOf(HTML_REF_CONST_CONTENT);
-        if (idx < 0) return idx;
+        if (idx < 0)
+            return idx;
         res->print(line.substring(0, idx));
         handleFile(req, res);
 
@@ -174,100 +190,107 @@ int esp32_router::handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, St
         return idx;
     }
 
-    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_CONTENT, content);    
+    return handlePagePart_FromString(req, res, line, HTML_REF_CONST_CONTENT, content);
 }
 
-
-int esp32_router::handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, String line, Base_Controller * controller)
+int esp32_router::handlePagePart_Content(HTTPRequest *req, HTTPResponse *res, String line, esp32_base_controller *controller)
 {
     int idx = line.indexOf(HTML_REF_CONST_CONTENT);
-    if (idx < 0) return idx;
+    if (idx < 0)
+        return idx;
     res->print(line.substring(0, idx));
     if (!controller->controllerTemplate.RenderTemplate(req, res))
-        handle404(req, res);//if not able to render template, handle with 404
+        handle404(req, res); // if not able to render template, handle with 404
     controller->controllerTemplate.ClearVariables();
-    res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));    
+    res->println(line.substring(idx + sizeof(HTML_REF_CONST_CONTENT) - 1));
     return idx;
 }
 
-int esp32_router::handlePagePart_Footer(HTTPRequest* req, HTTPResponse* res, String line, string content = "")
-{   
-    if (content.length() <= 0) {
+int esp32_router::handlePagePart_Footer(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
+{
+    if (content.length() <= 0)
+    {
         int idx = line.indexOf(HTML_REF_CONST_FOOTER);
-        if (idx < 0) return idx;
+        if (idx < 0)
+            return idx;
         res->print(line.substring(0, idx));
 
-        auto footerModule = /*controllerFactory->hasInstance(route.controller) ? */
-            controllerFactory->createInstance("_footer", "index");// : NULL;
+        auto footerModule =                                        /*controllerFactory->hasInstance(route.controller) ? */
+            controllerFactory->createInstance("_footer", "index"); // : NULL;
 
-        if (footerModule != NULL) {
-            //module found
-            footerModule->Action(req, res); //execute module action
+        if (footerModule != NULL)
+        {
+            // module found
+            footerModule->Action(req, res); // execute module action
             handlePagePart_Content(req, res, HTML_REF_CONST_CONTENT, footerModule);
             // //render module output
             // if (!footerModule->controllerTemplate.RenderTemplate(req, res)){
-            //     HTTPS_LOGE("Failure to render footer template");     
+            //     HTTPS_LOGE("Failure to render footer template");
             // }
 
             delete footerModule;
             res->println(line.substring(idx + sizeof(HTML_REF_CONST_FOOTER) - 1));
             return idx;
-                
         }
         return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_FOOTER, "/T/V/_footer.html");
-    }    
+    }
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_FOOTER, content);
 }
 
-int esp32_router::handlePagePart_FromFile(HTTPRequest* req, HTTPResponse* res, String line, const char * searchString, String fileName){
+int esp32_router::handlePagePart_FromFile(HTTPRequest *req, HTTPResponse *res, String line, const char *searchString, String fileName)
+{
     int idx = line.indexOf(searchString);
-    if (idx >= 0) {
-        if(!fileName.startsWith(SITE_ROOT))
+    if (idx >= 0)
+    {
+        if (!fileName.startsWith(SITE_ROOT))
             fileName = SITE_ROOT + fileName;
 
-        //Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
+        // Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
-        
-        if (SPIFFS.exists(fileName.c_str())) {
+
+        if (SPIFFS.exists(fileName.c_str()))
+        {
             File fPagePart = SPIFFS.open(fileName.c_str());
 
-            while (fPagePart.available()) {
+            while (fPagePart.available())
+            {
                 String docLine = fPagePart.readStringUntil('\n');
                 res->print(docLine.c_str());
-                if (fPagePart.available()) res->print('\n'); //write new line if not last line                
+                if (fPagePart.available())
+                    res->print('\n'); // write new line if not last line
             }
             fPagePart.close();
-
         }
         else
         {
             Serial.printf("File %s not found.\n", fileName.c_str());
-            res->printf("Page Part %s file %s NOT FOUND!",searchString,fileName.c_str());
+            res->printf("Page Part %s file %s NOT FOUND!", searchString, fileName.c_str());
         }
         res->println(line.substring(idx + strlen(searchString)).c_str());
     }
-    
 
-    return idx;// > 0 ? idx : 0;
+    return idx; // > 0 ? idx : 0;
 }
-int esp32_router::handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res, String line, const char* searchString, string content) {
+int esp32_router::handlePagePart_FromString(HTTPRequest *req, HTTPResponse *res, String line, const char *searchString, string content)
+{
 
     int idx = line.indexOf(searchString);
-    if (idx >= 0) {
+    if (idx >= 0)
+    {
         res->print(line.substring(0, idx).c_str());
         res->print(content.c_str());
-        res->println(line.substring(idx + strlen(searchString)).c_str());        
+        res->println(line.substring(idx + strlen(searchString)).c_str());
     }
 
-    return idx;// > 0 ? idx : 0;
+    return idx; // > 0 ? idx : 0;
 }
-//Get the route information for a controler/action syntax. returns true if controller found, false otherwise
-bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj)
+// Get the route information for a controler/action syntax. returns true if controller found, false otherwise
+bool esp32_router::GetControllerRoute(HTTPRequest *request, esp32_controller_route &routeObj)
 {
     string controller(""), action("");
     string pathString(""), queryString("");
-    
+
     pathString = request->getRequestString();
     // Decode path:
     // 1. Check for query string, if present, parse it out
@@ -278,28 +301,30 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
     if (queryStart > 0)
     {
         queryString = pathString.substr(queryStart + 1);
-        pathString = pathString.substr(0,queryStart);
-        //Serial.printf("Query string detected with %s path and %s query\n", pathString.c_str(), queryString.c_str());
-        //reqString.erase(queryStart);
+        pathString = pathString.substr(0, queryStart);
+        // Serial.printf("Query string detected with %s path and %s query\n", pathString.c_str(), queryString.c_str());
+        // reqString.erase(queryStart);
     }
-    if (pathString.find_first_of('/') == 0) //remove leading slash
+    if (pathString.find_first_of('/') == 0) // remove leading slash
         pathString.erase(0, 1);
 
-    //default controller if none is specified
+    // default controller if none is specified
     controller = "error";
-    if(strstr(pathString.c_str(),"index.html") != nullptr || pathString.length() == 0)
+    if (strstr(pathString.c_str(), "index.html") != nullptr || pathString.length() == 0)
         controller = "esp32_home";
-    else controller = pathString;
-    
+    else
+        controller = pathString;
+
     int reqIdxSlash = pathString.find_first_of('/');
     bool actionFound = false;
-    if (reqIdxSlash > 0) //explicit action defined
+    if (reqIdxSlash > 0) // explicit action defined
     {
         controller = pathString.substr(0, reqIdxSlash);
         pathString.erase(0, reqIdxSlash + 1);
         action = pathString;
         actionFound = true;
-    } else //default action
+    }
+    else // default action
         action = "index";
 
     // if(iequals(request->getMethod().c_str(),"GET",3)){
@@ -311,214 +336,243 @@ bool esp32_router::GetControllerRoute(HTTPRequest* request, esp32_controller_rou
         action = pathString.substr(0, reqIdxSlash);
         pathString.erase(0, reqIdxSlash + 1);
     }
-    else {
-        if(actionFound)
+    else
+    {
+        if (actionFound)
             action = pathString;
-        else if (!iequals(request->getMethod().c_str(),"GET",3))
-         action = request->getMethod();
-        if(pathString[0] == '/')
+        else if (!iequals(request->getMethod().c_str(), "GET", 3))
+            action = request->getMethod();
+        if (pathString[0] == '/')
             pathString.erase(0);
     }
     //}
-    //Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
-    
+    // Serial.printf("Parsed url. Controller=%s Action=%s Remainder=%s Query=%s\n", controller.c_str(), action.c_str(), pathString.c_str(), queryString.c_str());
+
     routeObj.action = action;
     routeObj.controller = controller;
     routeObj.params = urlDecode(queryString);
-    //return IsValidRoute(routeObj);
-    return controllerFactory->hasInstance(controller.c_str());    
+    // return IsValidRoute(routeObj);
+    return controllerFactory->hasInstance(controller.c_str());
 }
 
-bool esp32_router::IsValidRoute(esp32_controller_route & route){
-    int numOfControllers = BaseFactory::getInstanceCount();
-    //Serial.printf("Found %i controllers\n", numOfControllers);
-    for(int i=0;i< numOfControllers;i++){
-        auto controller = BaseFactory::getInstanceAt(i);        
-        //if(controller.first[0] == '_') continue;
+bool esp32_router::IsValidRoute(esp32_controller_route &route)
+{
+    int numOfControllers = BaseControllerFactory::getInstanceCount();
+    // Serial.printf("Found %i controllers\n", numOfControllers);
+    for (int i = 0; i < numOfControllers; i++)
+    {
+        auto controller = BaseControllerFactory::getInstanceAt(i);
+        // if(controller.first[0] == '_') continue;
 
         vector<string> actions = {};
         controller.second()->GetActions(&actions);
-        //Serial.printf("Controller %d of %d: %s with %i actions\n",i, numOfControllers,controller.first.c_str(), actions.size());
-        for(const string& action : actions) {            
-            if(route.controller.length() == controller.first.length() && route.action.length() == action.length()){                
-                if(iequals(route.controller.c_str(),controller.first.c_str(),route.controller.length())
-                    && iequals(route.action.c_str(), action.c_str(),action.length())
-                ){
-                    //Serial.printf("Matched route controller %s action %s against cataloged controller %s action %s\n", route.controller.c_str(), route.action.c_str(),controller.first.c_str(), action.c_str());
-                    //case correct action
+        // Serial.printf("Controller %d of %d: %s with %i actions\n",i, numOfControllers,controller.first.c_str(), actions.size());
+        for (const string &action : actions)
+        {
+            if (route.controller.length() == controller.first.length() && route.action.length() == action.length())
+            {
+                if (iequals(route.controller.c_str(), controller.first.c_str(), route.controller.length()) && iequals(route.action.c_str(), action.c_str(), action.length()))
+                {
+                    // Serial.printf("Matched route controller %s action %s against cataloged controller %s action %s\n", route.controller.c_str(), route.action.c_str(),controller.first.c_str(), action.c_str());
+                    // case correct action
                     route.action = action;
                     return true;
                 }
             }
         }
     }
-   return false;
+    return false;
 }
-void esp32_router::handleFileUpload(HTTPRequest* req, HTTPResponse* res) {
-    if (req->getMethod() == "DELETE") {
-        
+void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res)
+{
+    if (req->getMethod() == "DELETE")
+    {
 
         HTTPURLEncodedBodyParser parser(req);
         string filename, filePath;
         bool savedFile = false;
-        while (parser.nextField()) {
+        while (parser.nextField())
+        {
             string name = parser.getFieldName();
-            //Serial.printf("Parsing field %s\n", name.c_str());
-            //if (name.substr(0, strlen("------WebKitFormBoundary")).compare("------WebKitFormBoundary") == 0) {
-            if (name.substr(0, strlen("------------------------")).compare("------------------------") == 0) {
-                byte buf[32];
-                //adding
-                while (!parser.endOfField()) {                
-                    memset(buf,0,sizeof(buf));
+            // Serial.printf("Parsing field %s\n", name.c_str());
+            if(
+                (name.substr(0, strlen("------WebKitFormBoundary")).compare("------WebKitFormBoundary") == 0) || //seems like different browsers like to do it differnetly
+                (name.substr(0, strlen("------------------------")).compare("------------------------") == 0)
+            )
+            {
+                byte buf[64];
+                // adding
+                while (!parser.endOfField())
+                {
+                    memset(buf, 0, sizeof(buf));
                     size_t readLength = parser.read(buf, sizeof(buf));
                     filename.append((const char *)buf);
                 }
-
                 filePath = filename;
                 filePath = filePath.erase(0, filePath.find_first_of("/"));
                 filePath = filePath.erase(filePath.find_first_of(13));
-                Serial.printf("Received request to delete %s.\n", filePath.c_str());
-                //filename = filePath.substr(filePath.find_first_of('?') + 1);
+                Serial.printf("Received request to delete %s\n", filePath.c_str());
+                // filename = filePath.substr(filePath.find_first_of('?') + 1);
 
                 bool deleted = esp32_fileio::DeleteFile(filePath.c_str());
-                if(!deleted){
-                    res->printf("File [%s] not found.", filePath);
-                }else {               
+                if (!deleted)
+                {
+                    res->printf("File [%s] not found.", filePath.c_str());
+                }
+                else
+                {
                     res->printf("<p>Deleted %s</p>", filePath.c_str());
                     savedFile = true;
                 }
             }
-            else {
+            else
+            {
                 Serial.printf("Expected string %s. Instead found %s\n", "------------------------", name.substr(0, strlen("------------------------")).c_str());
             }
             /* else {
                  res->printf("<p>Unexpected field %s</p>", name.c_str());
              }*/
         }
-        if (!savedFile) {
+        if (!savedFile)
+        {
             res->println("<p>No file to delete...</p>");
         }
         res->println("</body></html>");
         return;
     }
-    else if (req->getMethod() == "GET") {
-
-    } else if (req->getMethod() == "POST" || req->getMethod() == "PUT") {
+    else if (req->getMethod() == "GET")
+    {
+    }
+    else if (req->getMethod() == "POST" || req->getMethod() == "PUT")
+    {
 
         res->println("<html><head><title>File Edited</title><head><body><h1>File Edited</h1>");
-        HTTPMultipartBodyParser* parser;
+        HTTPMultipartBodyParser *parser;
         string contentType = req->getHeader("Content-Type");
         size_t semicolonPos = contentType.find(";");
         bool savedFile = false;
-        if (semicolonPos != string::npos) {
+        if (semicolonPos != string::npos)
+        {
             contentType = contentType.substr(0, semicolonPos);
         }
-        if (contentType == "multipart/form-data") {
+        if (contentType == "multipart/form-data")
+        {
             parser = new HTTPMultipartBodyParser(req);
         }
-        else {
+        else
+        {
             Serial.printf("Unknown POST Content-Type: %s\n", contentType.c_str());
             return;
         }
         string filename;
-        while (parser->nextField()) {
+        while (parser->nextField())
+        {
             string name = parser->getFieldName();
-            //Serial.printf("Parsing field %s\n", name.c_str());
+            // Serial.printf("Parsing field %s\n", name.c_str());
             char buf[512];
-            if (name == "filename") {
+            if (name == "filename")
+            {
 
-                size_t readLength = parser->read((byte*)buf, 512);
+                size_t readLength = parser->read((byte *)buf, 512);
                 filename = string("/") + string(buf, readLength);
             }
-            else if (name == "data") {
+            else if (name == "data")
+            {
                 filename = parser->getFieldFilename();
-                //size_t readLength = parser->read((byte*)buf, 512);
-                //string filePath = string(buf, readLength);
-                //check if it comes from 
+                // size_t readLength = parser->read((byte*)buf, 512);
+                // string filePath = string(buf, readLength);
+                // check if it comes from
                 int startIdx = filename.find_first_of("?");
-                if (startIdx < 0) //no filename yet
+                if (startIdx < 0) // no filename yet
                 {
                     res->printf("POST.. no prefix\n");
                 }
-                else {
+                else
+                {
                     startIdx++;
                     filename = filename.substr(startIdx);
                 }
 
                 // Serial.printf("Uploading %s\n", filename.c_str());
-                //Serial.printf("Parsing substring from idx %d\n", ++startIdx);
+                // Serial.printf("Parsing substring from idx %d\n", ++startIdx);
 
-                if (filename == "") {
+                if (filename == "")
+                {
                     res->println("<p>Error: form contained content before filename.</p>");
                     break;
                 }
                 else
                 {
                     Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
-                    size_t bytes = esp32_fileio::UpdateFile(filename.c_str(),parser);                    
+                    size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
                     savedFile = bytes > 0;
                     res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
                     Serial.println(" done");
                 }
             }
-            else if (name == "path"){
+            else if (name == "path")
+            {
                 byte buf[512];
-                //adding
-                while (!parser->endOfField()) {                
-                    memset(buf,0,sizeof(buf));
+                // adding
+                while (!parser->endOfField())
+                {
+                    memset(buf, 0, sizeof(buf));
                     size_t readLength = parser->read(buf, 512);
                     filename.append((const char *)buf);
                 }
                 Serial.printf("File to create: %s\n", filename.c_str());
                 savedFile = esp32_fileio::CreateFile(filename.c_str());
-
-                
             }
-            else {
+            else
+            {
                 res->printf("<p>Unexpected field %s</p>", name.c_str());
             }
         }
-        if (!savedFile) {
+        if (!savedFile)
+        {
             res->println("<p>No file to save...</p>");
         }
         res->println("</body></html>");
-    // Serial.printf("Uploading file %s completed successfully!\n", name.c_str());
+        // Serial.printf("Uploading file %s completed successfully!\n", name.c_str());
     }
-
 }
 
-void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* content) {
-   
-    
+void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
+{
+
     res->setHeader("Content-Type", "text/html");
 
-    esp32_controller_route route;    
-    if (GetControllerRoute(req,route)) {
-        //route is under controller
+    esp32_controller_route route;
+    if (GetControllerRoute(req, route))
+    {
+        // route is under controller
 
-        
-        auto controllerObj = /*controllerFactory->hasInstance(route.controller) ? */
-            controllerFactory->createInstance(route);// : NULL;
-        
-        //esp32_template controllerTemplate = esp32_template();
-        if (controllerObj == NULL) {
+        auto controllerObj =                          /*controllerFactory->hasInstance(route.controller) ? */
+            controllerFactory->createInstance(route); // : NULL;
+
+        // esp32_template controllerTemplate = esp32_template();
+        if (controllerObj == NULL)
+        {
             res->println("Controller not found");
             handle404(req, res);
             return;
         }
 
-        if(!controllerObj->HasAction(route.action.c_str())) {
-            esp32_router::handle404(req,res);  
-            vector<string>actions;
-            controllerObj->GetActions(&actions);          
-            // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());        
+        if (!controllerObj->HasAction(route.action.c_str()))
+        {
+            esp32_router::handle404(req, res);
+            vector<string> actions;
+            controllerObj->GetActions(&actions);
+            // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());
             // for(int i = 0; i < actions.size(); i++)
-            //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());        
-        } else {
-       
+            //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());
+        }
+        else
+        {
+
             controllerObj->Action(req, res);
-            controllerObj->controllerTemplate.ClearVariables();        
-            
+            controllerObj->controllerTemplate.ClearVariables();
+
             Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
         }
         delete controllerObj;
@@ -527,21 +581,23 @@ void esp32_router::handleRoot(HTTPRequest* req, HTTPResponse* res,string* conten
     {
         Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
         writeFileToResponse(req, res);
-    }    
+    }
 }
 
-void esp32_router::handleFile(HTTPRequest* req, HTTPResponse* res) {
-    writeFileToResponse(req, res);        
+void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
+{
+    writeFileToResponse(req, res);
 }
 
-void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
-    
+void esp32_router::writeFileToResponse(HTTPRequest *req, HTTPResponse *res)
+{
+
     esp32_route_file_info fileInfo = esp32_route_file_info();
     fileInfo.requestPath = req->getRequestString().c_str();
-    
-    if(!parseFileRequest(req, fileInfo))
+
+    if (!parseFileRequest(req, fileInfo))
     {
-        handle404(req,res);        
+        handle404(req, res);
         return;
     }
     // if(!fileInfo.exists)
@@ -550,40 +606,45 @@ void esp32_router::writeFileToResponse(HTTPRequest* req, HTTPResponse* res){
     //     res->setStatusText("File not found");
     //     return;
     // }
-    File f = SPIFFS.open(fileInfo.filePath.c_str(),"r");
-    
-    if (fileInfo.isGZ) 
+    File f = SPIFFS.open(fileInfo.filePath.c_str(), "r");
+
+    if (fileInfo.isGZ)
         res->setHeader("Content-Encoding", "gzip");
-    
-    res->setHeader("Cache-Control", strstr(f.name(),"list?") != nullptr || String(req->getHeader("Refer").c_str()).endsWith("edit.html") ? "no-store" : "private, max-age=604800");
-    
-    if (fileInfo.isDownload) {
+
+    res->setHeader("Cache-Control", strstr(f.name(), "list?") != nullptr || String(req->getHeader("Refer").c_str()).endsWith("edit.html") ? "no-store" : "private, max-age=604800");
+
+    if (fileInfo.isDownload)
+    {
         char dispStr[128];
         sprintf(dispStr, " attachment; filename = \"%s\"", fileInfo.fileName);
         res->setHeader("Content - Disposition", dispStr);
         fileInfo.fileExtension = "application/octet-stream";
     }
-    else {
-        if (fileInfo.fileExtension == "htm") fileInfo.fileExtension = "html"; //workaround for encoding
-        else if (fileInfo.fileExtension == "js") fileInfo.fileExtension = "javascript"; //workaround for encoding
+    else
+    {
+        if (fileInfo.fileExtension == "htm")
+            fileInfo.fileExtension = "html"; // workaround for encoding
+        else if (fileInfo.fileExtension == "js")
+            fileInfo.fileExtension = "javascript"; // workaround for encoding
         fileInfo.fileExtension = "text/" + fileInfo.fileExtension;
     }
     res->setHeader("Content-Type", fileInfo.fileExtension.c_str());
     res->setStatusCode(200);
     char buff[32];
-    while (true) {
+    while (true)
+    {
 
         uint16_t bytestoRead = f.available() < sizeof(buff) ? f.available() : sizeof(buff);
-        if (bytestoRead == 0) break;
+        if (bytestoRead == 0)
+            break;
         f.readBytes(buff, bytestoRead);
-        res->write((uint8_t*)buff, bytestoRead);
-        //Serial.printf("Wrote %u bytes to %s\n", bytestoRead, f.name());
+        res->write((uint8_t *)buff, bytestoRead);
+        // Serial.printf("Wrote %u bytes to %s\n", bytestoRead, f.name());
     }
 }
 
-
-
-void esp32_router::handle404(HTTPRequest* req, HTTPResponse* res) {
+void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
+{
     req->discardRequestBody();
     res->setStatusCode(404);
     res->setStatusText("Not Found");
@@ -595,6 +656,17 @@ void esp32_router::handle404(HTTPRequest* req, HTTPResponse* res) {
     res->println("</html>");
 }
 
+string esp32_router::handleServiceRequest(esp32_service_route route){
+        auto serviceObject = serviceFactory->createInstance(route);
+        
+
+        if (serviceObject == NULL)
+        {
+            Serial.println("Service not found");
+            return "error";
+        }
+
+        return serviceObject->Execute();
+    }
 
 #endif
-

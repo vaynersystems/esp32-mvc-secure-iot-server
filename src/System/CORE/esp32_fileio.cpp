@@ -232,8 +232,9 @@ bool esp32_fileio::CreateFile(const char * filename){
 /// @brief Will make sure file in is the SITE_ROOT path
 /// @param filename path of file to save
 /// @param HTTPMultipartBodyParser object from the request
+/// @param createIfNotFound create file if no found
 /// @return number of bytes saved. -1 if failed
-size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser){
+size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser, bool createIfNotFound){
     string name = filename;
     if(name[0] != '/') name = "/" + name;
     if(!iequals(SITE_ROOT, name.c_str(),strlen(SITE_ROOT))){
@@ -243,7 +244,8 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
     size_t fieldLength = 0;
     if(!SPIFFS.exists(name.c_str())){
         Serial.printf("File %s not found \n", name.c_str());
-        return -1;
+        if(!createIfNotFound)
+            return -1;
     }
     File file = SPIFFS.open(name.c_str(), "w");
     byte* buf = new byte[80]; //must be at least 72 chars to detect boundary
@@ -265,7 +267,7 @@ bool esp32_fileio::DeleteFile(const char * filename){
        return false;
     }
     string name = filename;
-    if(!starts_with(string(SITE_ROOT), name)){
+    if(!iequals(SITE_ROOT, filename, strlen(SITE_ROOT))){
         name = SITE_ROOT + name;
     }
     if (!SPIFFS.exists(name.c_str())) {

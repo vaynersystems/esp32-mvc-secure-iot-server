@@ -116,7 +116,7 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
   if(payloadLength > 0) {
     char jsonPayload[payloadLength];
     if(decodeJWT(jwt.c_str(), (char*)jsonPayload, payloadLength)) {
-      payload = string(jsonPayload);
+      payload = jsonPayload;
 #ifdef DEBUG
       Serial.printf("Sucessfully decoded JWT token payload: [%s]\n",payload.c_str());
 #endif

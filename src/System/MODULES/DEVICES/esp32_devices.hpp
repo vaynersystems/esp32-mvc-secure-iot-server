@@ -1,5 +1,7 @@
 #include <vector>
 #include <utility>
+#include <System/CORE/esp32_config.h>
+#include "ArduinoJson.h"
 using namespace std;
 
 enum esp32_device_type{
@@ -25,7 +27,7 @@ enum esp32_device_trigger_type{
 struct esp32_device_info{
     int id;
     esp32_device_type type;
-    char name[32];
+    string name;
     int pin;
     esp32_device_direction direction;
     bool useTrigger = false;
@@ -55,7 +57,8 @@ public:
     vector<pair<int,bool>> GetDeviceStates();
     template <typename T>
     T GetDeviceState(int id);
-    bool SetDeviceState(int id, bool state);
+    template <typename T>
+    bool SetDeviceState(int id, T state);
 
 private:
     bool loadDeviceConfiguration();

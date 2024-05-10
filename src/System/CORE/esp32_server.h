@@ -28,7 +28,7 @@ class esp32_server
 {
 public:
     
-    esp32_server();
+    //esp32_server();
     esp32_server(SSLCert * cert);
     bool start();
     bool stop();
@@ -49,7 +49,6 @@ private:
     SSLCert* _cert;
     hw_timer_t* timer = NULL;
     bool _enableSSL;
-    
 };
 #endif
 

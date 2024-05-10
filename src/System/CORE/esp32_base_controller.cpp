@@ -1,8 +1,8 @@
-#include "base_controller.hpp"
+#include "esp32_base_controller.hpp"
 #include "../ROUTER/esp32_router.h"
-BaseFactory::map_type* BaseFactory::map = NULL;
+BaseControllerFactory::map_type* BaseControllerFactory::controllerMap = NULL;
 
-inline void Base_Controller::GenericIndex(HTTPRequest* req, HTTPResponse* res) {  
+inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* res) {  
     //serve get request using template engine
     string path = SITE_ROOT;
     path += "/T/_template.html";

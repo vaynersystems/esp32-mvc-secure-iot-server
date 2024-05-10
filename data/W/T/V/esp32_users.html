@@ -282,7 +282,7 @@ function showEditUser(user){
         if(roleElement !== null) roleElement.value = user.role;
 
         const enabledElement = userEditorElement.querySelector('#editor-user-enabled');
-        if(enabledElement !== null) enabledElement.setAttribute('checked', user.enabled);
+        if(enabledElement !== null) enabledElement.checked = user.enabled;
 
         const createdOnElement = userEditorElement.querySelector('#editor-created-on');
         if(createdOnElement !== null ) createdOnElement.innerHTML = user.created;

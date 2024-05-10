@@ -1,3 +1,9 @@
+
+
+<script type="text/javascript" src="/JS/C/moment.js"></script>
+<script type="text/javascript" src="/JS/C/chart.js"></script>
+<script type="text/javascript" src="/JS/C/chart.zoom.js"></script>
+<script type="text/javascript" src="/JS/C/chart.stream.js"></script>
 <style type="text/css">
     .content{
         display: flex;
@@ -94,7 +100,7 @@
         </div>
         <div class="detail">
             <div>Uptime</div>
-            <div>$_UPTIME seconds</div>
+            <div id="uptime">$_UPTIME seconds</div>
         </div>
         <div class="detail">
             <div>Client IP</div>
@@ -151,7 +157,26 @@
                 <div>Sketch Size</div>
                 <div>$_SKETCH_SIZE</div>
             </div> 
+         
         </div>   
+    </div>
+</div>
+
+<div class="section">
+    <div class="header">Partitions</div>
+
+    <div class="section">
+        <div class="details">
+            
+            <div class="detail">
+                <div>Boot Partition</div>
+                <div>$_PARTITION_BOOT_SPACE</div>
+            </div> 
+            <div class="detail">
+                <div>OTA Partition</div>
+                <div>$_PARTITION_1_SPACE</div>
+            </div> 
+        </div>
     </div>
 </div>
 <div class="section">
@@ -241,4 +266,230 @@
     </div>
 </div>
 
+<div class="section">
+    <div class="header">Live Monitor</div>
+    <div class="section">
+        <div class="header-sub">Web Socket</div>    
+        <div class="details">
+            <div class="detail wide conditional">
+                <div class="row">
+                    <div class="header">Status</div>
+                    <div id="connection-status"></div>
+                </div>  
+                
+            </div>           
+        </div>
+    </div>
+    <div class="section">
+        <div class="header-sub">STACK</div>    
+        <div class="details">
+            <div class="detail wide conditional">
+                <div class="row">
+                    <canvas id="stack-chart"></canvas>
+                </div>  
+                
+            </div>           
+        </div>
+
+        <div class="header-sub">HEAP</div>    
+        <div class="details">
+            <div class="detail wide conditional">
+                <div class="row">
+                    <canvas id="heap-chart"></canvas>
+                </div>  
+                
+            </div>           
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="/JS/esp32_socket.js"></script>
+<script type="text/javascript">
+    let persistanceSocket = new esp32_socket('status');
+
+    document.addEventListener('DOMContentLoaded', () => {
+        
+        lastLiveDataFrame = {};
+        persistanceSocket.connect(serverMessage);
+        setTimeout(updateStatus, 1000);
+        console.log(persistanceSocket);
+
+        //initialize charts
+        createChart('stack-chart',[
+            {
+                label: 'Free Stack',
+                borderColor: '#F70809',
+                backgroundColor: 'rgba(127,124,210, .4)',
+                field: 'STACK_FREE',
+                fill: false,
+            },
+            {
+                label: 'Used Stack',
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(240,160,70, .3)',
+                field: 'STACK_USED',
+                fill: false,
+            },
+            {
+                label: 'Total Stack',
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(167, 162, 235, 0.1)',
+                field: 'STACK_TOTAL'
+            }
+        ]);
+
+        createChart('heap-chart',[
+            {
+                label: 'Free Heap',
+                borderColor: '#F70809',
+                backgroundColor: 'rgba(127,124,210, .4)',
+                field: 'HEAP_FREE',
+                cubicInterpolationMode: 'easeInCubic'
+            },
+            {
+                label: 'Used Heap',
+                borderColor: 'rgb(255, 99, 132)',
+                backgroundColor: 'rgba(255, 99, 132, 0.25)',
+                field: 'HEAP_USED',
+                cubicInterpolationMode: 'easeInCubic'
+            },
+            {
+                label: 'Total Heap',
+                borderColor: 'rgb(54, 162, 235)',
+                backgroundColor: 'rgba(167, 162, 235, 0.1)',
+                field: 'HEAP_TOTAL'
+            }
+        ]);
+
+        
+    }, false);
+    
+    function serverMessage(event){
+        if(event.data === null || event.data === undefined) return;
+        if(event.data == 'pong') return; 
+        
+        //update chart stream data
+        lastLiveDataFrame = JSON.parse(event.data);
+        //update uptime clock
+        setUptime(lastLiveDataFrame.UPTIME);
+    }
+    
+    function setUptime(seconds){
+        const uptimeElement = document.getElementById('uptime');
+        var timeLeft = seconds;
+        if(uptimeElement === null) return;
+        
+        var partHours=0, partMinutes=0, partSecods = 0;
+        if(timeLeft / 3600 > 1){
+            partHours = Math.floor(timeLeft / 3600);
+            timeLeft -= partHours * 3600;
+        }
+        if(timeLeft / 60 > 1){
+            partMinutes = Math.floor(timeLeft / 60);
+            timeLeft -= partMinutes * 60;
+        }
+        partSeconds = timeLeft;
+
+        uptimeElement.textContent = (partHours > 0 ? partHours + (partHours > 1 ? ' hours ' : ' hour ') : '') +
+            (partMinutes > 0 ? partMinutes + (partMinutes > 1 ? ' minutes ' : ' minute ') : '') +
+            (partSeconds > 0 ? partSeconds + (partSeconds > 1 ? ' seconds ' : ' second ') : '');
+    }
+
+    function updateStatus(){
+        const connectionStatusElement = document.getElementById('connection-status');
+        if(connectionStatusElement === null) return;
+        
+        persistanceSocket.send(''); //anything other than ping to this service will return memory usage
+        connectionStatusElement.innerHTML = printStateName( persistanceSocket.socket.readyState);
+
+        if(persistanceSocket.socket.readyState == 3)
+            persistanceSocket.connect( serverMessage);
+        setTimeout(updateStatus, 2500);
+    }
+
+    function printStateName(state){
+        switch(state){
+            case 0:
+                return 'Connecting';
+                
+            case 1:
+                return 'Open';
+            case 2:
+                return 'Closing';
+            default:
+                return 'Closed';
+        }        
+    }
+
+    function createChart(chartEmementId, chartDatasets){
+        var ctx = document.getElementById(chartEmementId).getContext('2d');
+        var chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                datasets: chartDatasets
+                
+            },
+            options: {
+              
+                scales: {
+                    xAxes: [{
+                        type: 'realtime',
+                        realtime: {
+                            delay: 2500,
+                            onRefresh: function(chart) {
+                                chart.data.datasets.forEach(ds => {
+                                    ds.data.push({
+                                        x: Date.now(),
+                                        y: lastLiveDataFrame[ds.field]    
+                                    })
+                                })       
+                            }
+
+                        }
+                    }],
+                    yAxes: [{
+                        ticks:{
+                            /* beginAtZero: true, */
+                            callback: function(value,index,ticks){
+                                if(value/1024/1024 > 1.05)
+                                    return Math.round((value/1024/1024) * 100) / 100 + ' MB';
+                                if(value/1024 > 1.05)
+                                    return Math.round((value/1024) * 100) / 100 + ' KB';
+                                return value + ' B';
+                            }
+                        }
+                    }]
+                },
+                plugins: {
+                    zoom:{
+                        pan: {
+                            enabled: true,
+                            mode: 'x',
+                            rangeMax: {
+                                x: 400
+                            },
+                            rangeMin: {
+                                x: 0
+                            }
+                        },
+                        zoom: {
+                            enabled: true,
+                            mode: 'x',
+                            wheel: {
+                                enabled: true
+                            },
+                            rangeMax: {
+                                x: 20000
+                            },
+                            rangeMin: {
+                                x: 1
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+  </script>
+  
 

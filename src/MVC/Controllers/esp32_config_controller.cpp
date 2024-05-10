@@ -18,7 +18,7 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$_CONFIGURATION_DATA", configData.c_str());
     controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", PATH_SYSTEM_CONFIG);
     
-    Base_Controller::Index(req,res);    
+    esp32_base_controller::Index(req,res);    
 }
 
 void esp32_config_controller::Post(HTTPRequest* req, HTTPResponse* res) {
@@ -43,7 +43,7 @@ void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
         ResetDevice(req,res);
     }
     else
-        Base_Controller::Action(req,res);
+        esp32_base_controller::Action(req,res);
 }
 
 bool esp32_config_controller::HasAction(const char * action){
@@ -64,7 +64,7 @@ bool esp32_config_controller::HasAction(const char * action){
     }
     
     else
-        return Base_Controller::HasAction(action);
+        return esp32_base_controller::HasAction(action);
 }
 
 

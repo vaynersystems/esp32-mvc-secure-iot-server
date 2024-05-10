@@ -2,13 +2,13 @@
 #define _ESP32__CONTROLLER_CONFIG_H
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
-#include "System/CORE/base_controller.hpp"
+#include "System/CORE/esp32_base_controller.hpp"
 #include "string_extensions.h"
 
 using namespace httpsserver;
 
 //void (esp32_config_controller::*getAvailableWifi)(HTTPRequest* req, HTTPResponse* res) = NULL;
-class esp32_config_controller : public Base_Controller {
+class esp32_config_controller : public esp32_base_controller {
 public:
     inline void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
