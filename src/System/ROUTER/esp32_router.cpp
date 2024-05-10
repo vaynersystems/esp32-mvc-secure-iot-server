@@ -1,10 +1,7 @@
 #ifndef _ESP32_ROUTER_CPP
 #define _ESP32_ROUTER_CPP
 #include "esp32_router.h"
-#include "../Config.h"
-#include "../CORE/esp32_server.h"
-#include <string_extensions.h>
-#include <System/CORE/esp32_fileio.h>
+#include "System/CORE/esp32_server.h"
 
 extern esp32_server server;
 
@@ -657,16 +654,17 @@ void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
 }
 
 string esp32_router::handleServiceRequest(esp32_service_route route){
-        auto serviceObject = serviceFactory->createInstance(route);
-        
-
-        if (serviceObject == NULL)
-        {
-            Serial.println("Service not found");
-            return "error";
-        }
-
-        return serviceObject->Execute();
+    auto service = serviceFactory->createInstance(route);
+    if (service == NULL)
+    {
+        Serial.println("Service not found");
+        return "error";
     }
+
+    string returnValue = "";
+    returnValue = service->Execute();
+    delete service;
+    return returnValue;
+}
 
 #endif

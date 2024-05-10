@@ -1,5 +1,5 @@
 #include "esp32_socket.h"
-
+static esp32_socket* activeClients[SOCKET_MAX];
 // This method is called by the webserver to instantiate a new handler for each
 // client that connects to the websocket endpoint
 WebsocketHandler* esp32_socket::createSocket(){

@@ -437,6 +437,7 @@
                         realtime: {
                             delay: 2500,
                             onRefresh: function(chart) {
+                                if(persistanceSocket.socket.readyState !== 1) return;
                                 chart.data.datasets.forEach(ds => {
                                     ds.data.push({
                                         x: Date.now(),
