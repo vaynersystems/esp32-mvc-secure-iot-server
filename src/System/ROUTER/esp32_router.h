@@ -16,16 +16,20 @@ enum HTTPMETHOD {
 
 #include "FS.h"
 #include "SPIFFS.h"
-#include "../CORE/esp32_fileio.h"
-#include "../Config.h"
-#include "../CORE/esp32_base_controller.hpp"
-#include "../AUTH/esp32_middleware.h"
+#include "System/Config.h"
+#include "System/CORE/esp32_fileio.h"
+#include "System/CORE/esp32_fileio.h"
+#include "System/CORE/esp32_base_controller.hpp"
+#include "System/CORE/esp32_base_service.hpp"
+#include "System/AUTH/esp32_middleware.h"
 #include "esp32_template.h"
+
+#include <string_extensions.h>
 
 #include <HTTPSServer.hpp>
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
-#include <System/CORE/esp32_base_service.hpp>
+
 using namespace httpsserver;
 //#include <SSLCert.hpp>
 //#include <ArduinoJson.h>
@@ -141,6 +145,7 @@ private:
     static void writeFileToResponse(HTTPRequest* req, HTTPResponse* res);
     static bool IsValidRoute(esp32_controller_route & route);
 };
+
 
 #endif
 

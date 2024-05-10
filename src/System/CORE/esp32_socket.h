@@ -1,5 +1,5 @@
 #ifndef _ESP32_SOCKET_H
-#define _ESP32_SCOKET_H
+#define _ESP32_SOCKET_H
 
 #include "../Config.h"
 
@@ -46,6 +46,6 @@ protected:
     
 };
 
-static esp32_socket* activeClients[SOCKET_MAX];
+
 #endif
 

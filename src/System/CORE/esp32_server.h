@@ -3,12 +3,12 @@
 
 #include "../Config.h"
 
-#include "../AUTH/cert.h"
-#include "../AUTH/key.h"
-#include "../AUTH/ArduinoJWT.h"
-#include "../ROUTER/esp32_router.h"
+#include "System/AUTH/cert.h"
+#include "System/AUTH/key.h"
+#include "System/AUTH/ArduinoJWT.h"
+#include "System/ROUTER/esp32_router.h"
 
-#include "../AUTH/esp32_middleware.h"
+#include "System/AUTH/esp32_middleware.h"
 
 #include <HTTPSServer.hpp>
 //#include <SSLCert.hpp>

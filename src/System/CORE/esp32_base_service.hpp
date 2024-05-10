@@ -20,7 +20,7 @@ class esp32_base_service {
 
         
         /// @brief Execute service action. Service will use parameters from route
-        virtual string Execute();
+        virtual string Execute(){};
 
         void SetRoute(esp32_service_route reqRoute) {
             route = esp32_service_route(reqRoute);
@@ -72,14 +72,19 @@ public:
         for (int i = 0; i < idx && i < getMap()->size(); i++) it++;
         return *it;
     }
-    static bool hasInstance(std::string const& s) {
+    /// @brief Chjecks if instance of service has been registered
+    /// @param s Service name
+    /// @return Index of service. -1 if not found. 
+    static uint8_t indexOf(std::string const& s) {
+        if(getInstanceCount() <= 0 ) return -1;
         map_type::iterator it = getMap()->begin();
+        uint8_t idx = 0;
         while (it != getMap()->end()) {
-            if (it->first == s) return true;            
-            it++;
+            if (it->first == s) return idx;            
+            it++; idx++;
         }        
         //HTTPS_LOGW("Service instance of %s not found among the %i controllers\n",s.c_str(), getInstanceCount());
-        return false;
+        return -1;
        
     }
 
