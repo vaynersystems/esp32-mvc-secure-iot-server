@@ -1,3 +1,4 @@
+<link rel="stylesheet" type="text/css" href="/CSS/style.css"/>
 <link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
 <div class="config-view">
 
@@ -28,6 +29,7 @@
             <div class="menu-header">Server</div>
             <ul>
                 <li id="boot">Boot</li>
+                <li id="certificates">Certificates</li>
                 <li id="backup">Backup</li>
                 <li id="restore">Restore</li>
                 <li id="reset">Reset</li>
@@ -244,6 +246,28 @@
                 </div> 
             </div>
         </div>
+
+        <div class="section" name="certificates">
+            <div class="section-header">Certificate Manager</div>
+            <div class="section-content">
+                <div class="column">
+                    <div class="header">Upload new</div>
+                    <div class="row">
+                        <div class="column">
+                            <label for="private-cert">Private certificate file (.key)</label>
+                            <input type="file" name="private-cert" accept=".key, .der" id="private-cert"/>
+                        </div>
+                        <div class="column">
+                            <label for="public-cert">Public certificate file (.cer)</label>
+                            <input type="file" name="public-cert" accept=".cer, .crt" id="public-cert"/>
+                        </div>
+                        
+                    </div>                    
+                                        
+                </div> 
+            </div>
+        </div>
+
         <div class="section" name="backup">
             <div class="section-header">Backup</div>
             <div class="section-content">

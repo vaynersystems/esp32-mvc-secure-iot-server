@@ -203,6 +203,7 @@ int esp32_router::handlePagePart_Content(HTTPRequest *req, HTTPResponse *res, St
     return idx;
 }
 
+
 int esp32_router::handlePagePart_Footer(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
@@ -542,53 +543,17 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
     esp32_controller_route route;
     if (GetControllerRoute(req, route))
     {
-        // route is under controller
-
-        auto controllerObj =                          /*controllerFactory->hasInstance(route.controller) ? */
-            controllerFactory->createInstance(route); // : NULL;
-
-        // esp32_template controllerTemplate = esp32_template();
-        if (controllerObj == NULL)
-        {
-            res->println("Controller not found");
-            handle404(req, res);
-            return;
-        }
-
-        if (!controllerObj->HasAction(route.action.c_str()))
-        {
-            esp32_router::handle404(req, res);
-            vector<string> actions;
-            controllerObj->GetActions(&actions);
-            // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());
-            // for(int i = 0; i < actions.size(); i++)
-            //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());
-        }
-        else
-        {
-
-            controllerObj->Action(req, res);
-            controllerObj->controllerTemplate.ClearVariables();
-
-            Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
-        }
-        delete controllerObj;
+        handleControllerRequest(req, res, route);        
     }
     else
     {
         Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
-        writeFileToResponse(req, res);
+        handleFile(req, res);
     }
 }
 
 void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 {
-    writeFileToResponse(req, res);
-}
-
-void esp32_router::writeFileToResponse(HTTPRequest *req, HTTPResponse *res)
-{
-
     esp32_route_file_info fileInfo = esp32_route_file_info();
     fileInfo.requestPath = req->getRequestString().c_str();
 
@@ -596,49 +561,12 @@ void esp32_router::writeFileToResponse(HTTPRequest *req, HTTPResponse *res)
     {
         handle404(req, res);
         return;
-    }
-    // if(!fileInfo.exists)
-    // {
-    //     res->setStatusCode(404);
-    //     res->setStatusText("File not found");
-    //     return;
-    // }
-    File f = SPIFFS.open(fileInfo.filePath.c_str(), "r");
-
-    if (fileInfo.isGZ)
-        res->setHeader("Content-Encoding", "gzip");
-
-    res->setHeader("Cache-Control", strstr(f.name(), "list?") != nullptr || String(req->getHeader("Refer").c_str()).endsWith("edit.html") ? "no-store" : "private, max-age=604800");
-
-    if (fileInfo.isDownload)
-    {
-        char dispStr[128];
-        sprintf(dispStr, " attachment; filename = \"%s\"", fileInfo.fileName);
-        res->setHeader("Content - Disposition", dispStr);
-        fileInfo.fileExtension = "application/octet-stream";
-    }
-    else
-    {
-        if (fileInfo.fileExtension == "htm")
-            fileInfo.fileExtension = "html"; // workaround for encoding
-        else if (fileInfo.fileExtension == "js")
-            fileInfo.fileExtension = "javascript"; // workaround for encoding
-        fileInfo.fileExtension = "text/" + fileInfo.fileExtension;
-    }
-    res->setHeader("Content-Type", fileInfo.fileExtension.c_str());
-    res->setStatusCode(200);
-    char buff[32];
-    while (true)
-    {
-
-        uint16_t bytestoRead = f.available() < sizeof(buff) ? f.available() : sizeof(buff);
-        if (bytestoRead == 0)
-            break;
-        f.readBytes(buff, bytestoRead);
-        res->write((uint8_t *)buff, bytestoRead);
-        // Serial.printf("Wrote %u bytes to %s\n", bytestoRead, f.name());
-    }
+    }   
+    
+    esp32_fileio::writeFileToResponse(fileInfo, res);
 }
+
+
 
 void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
 {
@@ -652,6 +580,37 @@ void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
     res->println("<body><h1>404 Not Found</h1><p>The requested resource was not found on this server.</p></body>");
     res->println("</html>");
 }
+
+void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, esp32_controller_route route)
+{
+    // route is under controller
+    auto controllerObj = controllerFactory->createInstance(route);
+    if (controllerObj == NULL)
+    {
+        res->println("Controller not found");
+        handle404(req, res);
+        return;
+    }
+
+    if (!controllerObj->HasAction(route.action.c_str()))
+    {
+        esp32_router::handle404(req, res);
+        // vector<string> actions;
+        // controllerObj->GetActions(&actions);
+        // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());
+        // for(int i = 0; i < actions.size(); i++)
+        //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());
+    }
+    else
+    {
+        controllerObj->Action(req, res);
+        controllerObj->controllerTemplate.ClearVariables();
+
+        Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+    }
+    delete controllerObj;
+}
+
 
 string esp32_router::handleServiceRequest(esp32_service_route route){
     auto service = serviceFactory->createInstance(route);

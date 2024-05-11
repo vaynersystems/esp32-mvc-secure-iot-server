@@ -1,6 +1,7 @@
 #ifndef _ESP32_SERVER_H
 #define _ESP32_SERVER_H
 
+#include "SPIFFS.h"
 #include "../Config.h"
 
 #include "System/AUTH/cert.h"
@@ -28,8 +29,8 @@ class esp32_server
 {
 public:
     
-    //esp32_server();
-    esp32_server(SSLCert * cert);
+    esp32_server();
+    //esp32_server(SSLCert * cert);
     bool start();
     bool stop();
     bool isRunning();
@@ -44,11 +45,26 @@ public:
     void registerNode(HTTPNode *node);
 
 private:
+
+    bool hasPrivateKey();
+    bool hasPublicCert();
+
+    void loadCertificates();
+    void generateCert(
+        const char* deviceName = "myesp32.local",
+        const char* companyName = "Fancy Co",
+        const char* validFrom = "20240101000000",
+        const char* validTo = "20350101000000"
+    );
+
     // Create an SSL certificate object from the files included above    
     esp32_router* _router;
     SSLCert* _cert;
     hw_timer_t* timer = NULL;
     bool _enableSSL;
+
+    char *publicKey;
+    char *privateKey;
 };
 #endif
 

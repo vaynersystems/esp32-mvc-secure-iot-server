@@ -5,7 +5,8 @@
 #include <list>
  //Hard(ish) drive
 #include "FS.h"
-#include "SPIFFS.h"
+#include "System/ROUTER/esp32_routing.h"
+#include "HTTPResponse.hpp"
 #include "HTTPMultipartBodyParser.hpp"
 
 using namespace std;
@@ -86,6 +87,7 @@ public:
 
         }
     }
+    static void writeFileToResponse(esp32_route_file_info  fileInfo, httpsserver::HTTPResponse * response);
 protected:
     
 };

@@ -11,12 +11,7 @@
 //#define CERT_FILE_CER   "/PRI/CERT.DER"
 //#define CERT_FILE_KEY   "/PRI/CERM.KEY.DER"
 
-public_cert pubCert = public_cert();
-private_cert priCert = private_cert();
-static SSLCert  cert = 
-SSLCert((unsigned char*)pubCert.esp32_vaynersystems_com_der, pubCert.esp32_vaynersystems_com_der_len,
-(unsigned char*)priCert.esp32_vaynersystems_com_key, priCert.esp32_vaynersystems_com_key_der_len);
-esp32_server server(&cert);
+esp32_server server;
 esp32_wifi wifi;
 esp32_fileio disk;
 

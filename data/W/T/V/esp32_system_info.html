@@ -1,28 +1,18 @@
-
-
 <script type="text/javascript" src="/JS/C/moment.js"></script>
 <script type="text/javascript" src="/JS/C/chart.js"></script>
+<script type="text/javascript" src="/JS/C/luxon.js"></script>
+<script type="text/javascript" src="/JS/C/chart.luxon.js"></script>
 <script type="text/javascript" src="/JS/C/chart.zoom.js"></script>
 <script type="text/javascript" src="/JS/C/chart.stream.js"></script>
-<style type="text/css">
-    .content{
-        display: flex;
-        flex-direction: column;
-    }
+<script type="text/javascript" src="/JS/esp32_chart.js"></script>
+<script type="text/javascript" src="/JS/esp32_socket.js"></script>
+<script type="text/javascript" src="/JS/esp32_system_info.js"></script>
+
+<style type="text/css">    
     .row{
         font-size: 12px;
-        background-color: #fcf3ff;
     }
-    .header{
-        font-weight: 600;
-    }
-    .header, .header-sub{
-        display: flex;
-        /* flex-grow: 1; */
-        border-color: #7d4682;
-        color: #323;
-        /* border-width: 0 0 1px 0;
-        border-style: solid; */
+    .header, .header-sub{        
         font-size: 20px;
     }
     .header-memory{
@@ -53,13 +43,7 @@
         border-radius: 6px;
         padding: 6px 20px;
         background-color: #fcf3ff;        
-    }
-    .wide{
-        width: 468px;
-    }
-    .conditional{
-        display: var(--available,block);
-    }
+    }    
     .detail>div:nth-child(1){
         font-weight: 600;
         font-size: 16px;
@@ -67,17 +51,14 @@
     .detail>div:nth-child(2){
         font-size: 14px;
     }
-    /* .SPIFFS, .HEAP, .PSRAM, .SKETCH, .NVS, .STACK{
-        margin: 10px;
-        padding: 6px 20px;       
-        display: flex;
-        flex-direction: column;
-        display: var(--available);
-        border: solid 6px #c780f7;
-        border-width: 1px 2px 1px 6px;
-        border-radius: 6px;
-        width: 200px;
-    } */
+
+    .wide{
+        width: 468px;
+    }
+    .conditional{
+        display: var(--available,block);
+    }
+    
     .bar {
         height: 4px !important;
         background-color: #f5f5f5;
@@ -241,25 +222,25 @@
             <div class="detail wide conditional">
                 <div class="header-memory">
                     <div>STACK</div>
-                    <div>$STACK_PERCENT_USED%</div>
+                    <div id="stack-percent-used">$STACK_PERCENT_USED%</div>
                 </div>  
-                <div class="bar" style="-height:28px; --percent: $STACK_PERCENT_USED;"></div>    
+                <div class="bar" id="stack-percent-used-bar" style="-height:28px; --percent: $STACK_PERCENT_USED;"></div>    
                 <div class="row">
-                    <div>Used: $STACK_USED</div>
-                    <div>Free: $STACK_FREE</div>
-                    <div>Total: $STACK_TOTAL</div>
+                    <div>Used: <span id="stack-used">$STACK_USED</span></div>
+                    <div>Free: <span id="stack-free">$STACK_FREE</span></div>
+                    <div>Total: <span id="stack-total">$STACK_TOTAL</span></div>
                 </div>
             </div>
             <div class="detail wide conditional" style="--available: $HEAP_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>HEAP</div>
-                    <div>$HEAP_MEMORY_PERCENT_USED%</div>
+                    <div id="heap-percent-used">$HEAP_MEMORY_PERCENT_USED%</div>
                 </div>   
-                <div class="bar" style="height:28px; --percent: $HEAP_MEMORY_PERCENT_USED;"></div>
+                <div class="bar" id="heap-percent-used-bar" style="height:28px; --percent: $HEAP_MEMORY_PERCENT_USED;"></div>
                 <div class="row">
-                    <div>Used: $HEAP_MEMORY_USED</div>
-                    <div>Free: $HEAP_MEMORY_FREE</div>
-                    <div>Total: $HEAP_MEMORY_TOTAL</div>
+                    <div>Used: <span id="heap-used">$HEAP_MEMORY_USED</span></div>
+                    <div>Free: <span id="heap-free">$HEAP_MEMORY_FREE</span></div>
+                    <div>Total: <span id="heap-total">$HEAP_MEMORY_TOTAL</span></div>
                 </div>
             </div>        
         </div>
@@ -273,7 +254,7 @@
         <div class="details">
             <div class="detail wide conditional">
                 <div class="row">
-                    <div class="header">Status</div>
+                    <div class="header-sub">Status</div>
                     <div id="connection-status"></div>
                 </div>  
                 
@@ -281,216 +262,30 @@
         </div>
     </div>
     <div class="section">
-        <div class="header-sub">STACK</div>    
-        <div class="details">
-            <div class="detail wide conditional">
-                <div class="row">
-                    <canvas id="stack-chart"></canvas>
-                </div>  
-                
-            </div>           
+        <div class="grid-2">
+            <div>
+                <div class="header-sub">STACK</div>    
+                <div class="details">
+                    <div class="detail wide conditional">
+                        <div class="row">
+                            <canvas id="stack-chart"></canvas>
+                        </div>  
+                        
+                    </div>           
+                </div>
+            </div>
+            <div>
+                <div class="header-sub">HEAP</div>    
+                <div class="details">
+                    <div class="detail wide conditional">
+                        <div class="row">
+                            <canvas id="heap-chart"></canvas>
+                        </div>  
+                        
+                    </div>           
+                </div>
+            </div>
         </div>
-
-        <div class="header-sub">HEAP</div>    
-        <div class="details">
-            <div class="detail wide conditional">
-                <div class="row">
-                    <canvas id="heap-chart"></canvas>
-                </div>  
-                
-            </div>           
-        </div>
+        
     </div>
 </div>
-
-<script type="text/javascript" src="/JS/esp32_socket.js"></script>
-<script type="text/javascript">
-    let persistanceSocket = new esp32_socket('status');
-
-    document.addEventListener('DOMContentLoaded', () => {
-        
-        lastLiveDataFrame = {};
-        persistanceSocket.connect(serverMessage);
-        setTimeout(updateStatus, 1000);
-        console.log(persistanceSocket);
-
-        //initialize charts
-        createChart('stack-chart',[
-            {
-                label: 'Free Stack',
-                borderColor: '#F70809',
-                backgroundColor: 'rgba(127,124,210, .4)',
-                field: 'STACK_FREE',
-                fill: false,
-            },
-            {
-                label: 'Used Stack',
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(240,160,70, .3)',
-                field: 'STACK_USED',
-                fill: false,
-            },
-            {
-                label: 'Total Stack',
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(167, 162, 235, 0.1)',
-                field: 'STACK_TOTAL'
-            }
-        ]);
-
-        createChart('heap-chart',[
-            {
-                label: 'Free Heap',
-                borderColor: '#F70809',
-                backgroundColor: 'rgba(127,124,210, .4)',
-                field: 'HEAP_FREE',
-                cubicInterpolationMode: 'easeInCubic'
-            },
-            {
-                label: 'Used Heap',
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.25)',
-                field: 'HEAP_USED',
-                cubicInterpolationMode: 'easeInCubic'
-            },
-            {
-                label: 'Total Heap',
-                borderColor: 'rgb(54, 162, 235)',
-                backgroundColor: 'rgba(167, 162, 235, 0.1)',
-                field: 'HEAP_TOTAL'
-            }
-        ]);
-
-        
-    }, false);
-    
-    function serverMessage(event){
-        if(event.data === null || event.data === undefined) return;
-        if(event.data == 'pong') return; 
-        
-        //update chart stream data
-        lastLiveDataFrame = JSON.parse(event.data);
-        //update uptime clock
-        setUptime(lastLiveDataFrame.UPTIME);
-    }
-    
-    function setUptime(seconds){
-        const uptimeElement = document.getElementById('uptime');
-        var timeLeft = seconds;
-        if(uptimeElement === null) return;
-        
-        var partHours=0, partMinutes=0, partSecods = 0;
-        if(timeLeft / 3600 > 1){
-            partHours = Math.floor(timeLeft / 3600);
-            timeLeft -= partHours * 3600;
-        }
-        if(timeLeft / 60 > 1){
-            partMinutes = Math.floor(timeLeft / 60);
-            timeLeft -= partMinutes * 60;
-        }
-        partSeconds = timeLeft;
-
-        uptimeElement.textContent = (partHours > 0 ? partHours + (partHours > 1 ? ' hours ' : ' hour ') : '') +
-            (partMinutes > 0 ? partMinutes + (partMinutes > 1 ? ' minutes ' : ' minute ') : '') +
-            (partSeconds > 0 ? partSeconds + (partSeconds > 1 ? ' seconds ' : ' second ') : '');
-    }
-
-    function updateStatus(){
-        const connectionStatusElement = document.getElementById('connection-status');
-        if(connectionStatusElement === null) return;
-        
-        persistanceSocket.send(''); //anything other than ping to this service will return memory usage
-        connectionStatusElement.innerHTML = printStateName( persistanceSocket.socket.readyState);
-
-        if(persistanceSocket.socket.readyState == 3)
-            persistanceSocket.connect( serverMessage);
-        setTimeout(updateStatus, 2500);
-    }
-
-    function printStateName(state){
-        switch(state){
-            case 0:
-                return 'Connecting';
-                
-            case 1:
-                return 'Open';
-            case 2:
-                return 'Closing';
-            default:
-                return 'Closed';
-        }        
-    }
-
-    function createChart(chartEmementId, chartDatasets){
-        var ctx = document.getElementById(chartEmementId).getContext('2d');
-        var chart = new Chart(ctx, {
-            type: 'line',
-            data: {
-                datasets: chartDatasets
-                
-            },
-            options: {
-              
-                scales: {
-                    xAxes: [{
-                        type: 'realtime',
-                        realtime: {
-                            delay: 2500,
-                            onRefresh: function(chart) {
-                                if(persistanceSocket.socket.readyState !== 1) return;
-                                chart.data.datasets.forEach(ds => {
-                                    ds.data.push({
-                                        x: Date.now(),
-                                        y: lastLiveDataFrame[ds.field]    
-                                    })
-                                })       
-                            }
-
-                        }
-                    }],
-                    yAxes: [{
-                        ticks:{
-                            /* beginAtZero: true, */
-                            callback: function(value,index,ticks){
-                                if(value/1024/1024 > 1.05)
-                                    return Math.round((value/1024/1024) * 100) / 100 + ' MB';
-                                if(value/1024 > 1.05)
-                                    return Math.round((value/1024) * 100) / 100 + ' KB';
-                                return value + ' B';
-                            }
-                        }
-                    }]
-                },
-                plugins: {
-                    zoom:{
-                        pan: {
-                            enabled: true,
-                            mode: 'x',
-                            rangeMax: {
-                                x: 400
-                            },
-                            rangeMin: {
-                                x: 0
-                            }
-                        },
-                        zoom: {
-                            enabled: true,
-                            mode: 'x',
-                            wheel: {
-                                enabled: true
-                            },
-                            rangeMax: {
-                                x: 20000
-                            },
-                            rangeMin: {
-                                x: 1
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-  </script>
-  
-
