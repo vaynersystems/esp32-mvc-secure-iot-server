@@ -23,6 +23,7 @@ enum HTTPMETHOD {
 #include "System/CORE/esp32_base_service.hpp"
 #include "System/AUTH/esp32_middleware.h"
 #include "esp32_template.h"
+#include "esp32_routing.h"
 
 #include <string_extensions.h>
 
@@ -72,7 +73,7 @@ public:
 	static int handlePagePart_FromString(HTTPRequest* req, HTTPResponse* res, String line, const char* searchString, std::string content);
 
 	static int handlePagePart_Content(HTTPRequest* req, HTTPResponse* res, String line, esp32_base_controller* controller);
-
+    static void handleControllerRequest(HTTPRequest* req, HTTPResponse* res, esp32_controller_route route);
     static string handleServiceRequest(esp32_service_route route);
 
 protected:
@@ -83,6 +84,7 @@ protected:
 
         bool internalFile = fileName.startsWith(INTERNAL_ROOT);
         bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";
+        bool isEditorRequest = String(req->getHeader("Refer").c_str()).endsWith("edit.html");
         if(internalFile && !isAdminUser){
             return false;
         }
@@ -137,6 +139,7 @@ protected:
             fileRequestInfo.exists ? " OK" : " FAILED"
         );
 #endif
+        fileRequestInfo.isEditorRequest = isEditorRequest;
         return fileRequestInfo.fileExtension.length() > 0 && fileRequestInfo.exists;
     }
 private:

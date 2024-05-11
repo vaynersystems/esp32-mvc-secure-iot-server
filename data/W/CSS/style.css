@@ -105,6 +105,17 @@ input,select{
     font: 18pt Tahoma;
 }
 
+.header{
+    font-weight: 600;
+    font-size:16px;
+    background-color: rgba(232, 229, 238, 0.4);
+    margin: 2px;
+    padding: 4px;    
+    color: var(--primary-color);
+
+    
+}
+
 .content {
     border: solid 2px var(--primary-border);;
     border-radius: 10px;
@@ -152,6 +163,10 @@ input,select{
     display: flex;
     flex-direction: row;    
     justify-content: space-between;
+}
+.column{
+    display: flex;
+    flex-direction: column;
 }
 .grow{
     flex-grow: 1;

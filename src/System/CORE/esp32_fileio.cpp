@@ -275,3 +275,42 @@ bool esp32_fileio::DeleteFile(const char * filename){
     }
     return SPIFFS.remove(name.c_str());
 }
+
+void esp32_fileio::writeFileToResponse(esp32_route_file_info fileInfo, httpsserver::HTTPResponse *response)
+{
+    File f = SPIFFS.open(fileInfo.filePath.c_str(), "r");
+
+    if (fileInfo.isGZ)
+        response->setHeader("Content-Encoding", "gzip");
+
+    response->setHeader("Cache-Control", strstr(f.name(), "list?") != nullptr || fileInfo.isEditorRequest ? "no-store" : "private, max-age=604800");
+
+    if (fileInfo.isDownload)
+    {
+        char dispStr[128];
+        sprintf(dispStr, " attachment; filename = \"%s\"", fileInfo.fileName);
+        response->setHeader("Content - Disposition", dispStr);
+        fileInfo.fileExtension = "application/octet-stream";
+    }
+    else
+    {
+        if (fileInfo.fileExtension == "htm")
+            fileInfo.fileExtension = "html"; // workaround for encoding
+        else if (fileInfo.fileExtension == "js")
+            fileInfo.fileExtension = "javascript"; // workaround for encoding
+        fileInfo.fileExtension = "text/" + fileInfo.fileExtension;
+    }
+    response->setHeader("Content-Type", fileInfo.fileExtension.c_str());
+    response->setStatusCode(200);
+    char buff[32];
+    while (true)
+    {
+
+        uint16_t bytestoRead = f.available() < sizeof(buff) ? f.available() : sizeof(buff);
+        if (bytestoRead == 0)
+            break;
+        f.readBytes(buff, bytestoRead);
+        response->write((uint8_t *)buff, bytestoRead);
+        // Serial.printf("Wrote %u bytes to %s\n", bytestoRead, f.name());
+    }
+}
