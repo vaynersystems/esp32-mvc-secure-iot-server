@@ -1,4 +1,7 @@
-<link rel="stylesheet" type="text/css" href="/CSS/style.css"/>
+<!-- <script type="text/javascript" src="/JS/system.js"></script>  
+<script type="text/javascript" src="/JS/modal.js"></script>
+<link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
+<link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
 <link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
 <div class="config-view">
 
@@ -41,6 +44,9 @@
 
         </div>
         <div class="config-actions">
+            <div id="pending-changes">
+                You have pending changes. Hit save to apply these changes to your device.
+            </div>
             <button onclick="seveSettingsFromForm()">Save</button>
         </div>
     </div>
@@ -228,7 +234,8 @@
                         <option value='light'>Light</option>
                         <option value='dark'>Dark</option>
                     </select>                      
-                </div>                        
+                </div>        
+                <div class="hint">This functionality is in early development.</div>                
             </div>
         </div>
         <div class="section" name="boot">
@@ -248,21 +255,34 @@
         </div>
 
         <div class="section" name="certificates">
-            <div class="section-header">Certificate Manager</div>
+            <div class="section-header">Certificate Manager</div>         
+
             <div class="section-content">
-                <div class="column">
-                    <div class="header">Upload new</div>
+
+                <div class="grid-2">
+                    <span>Certificate Storage</span>
                     <div class="row">
-                        <div class="column">
-                            <label for="private-cert">Private certificate file (.key)</label>
-                            <input type="file" name="private-cert" accept=".key, .der" id="private-cert"/>
-                        </div>
-                        <div class="column">
-                            <label for="public-cert">Public certificate file (.cer)</label>
-                            <input type="file" name="public-cert" accept=".cer, .crt" id="public-cert"/>
-                        </div>
-                        
-                    </div>                    
+                        <div>
+                            <label>NVS</label>
+                            <input type="radio" id="source-nvs" name="certificate-source" value="nvs">
+                        </div>        
+                        <div>
+                            <label for="source-spiffs">SPIFFS</label>
+                            <input type="radio" id="source-spiffs" name="certificate-source" value="spiffs">
+                        </div>           
+                    </div>
+                </div> 
+
+
+                <div class="grid-2">
+                    <div>I want to </div>
+                    <div class="row">
+                        <select id="certificate-action">
+                            <option value="upload">Upload a new certifciate</option>
+                            <option value="generate">Generate a self-signed certificate</option>
+                        </select>
+                        <button id="certificate-action-button">Go</button>
+                    </div>                                       
                                         
                 </div> 
             </div>
@@ -374,6 +394,74 @@
                             </select>
                         </div>
                     </div>
+
+                    <div id="editor-certificate-upload">
+                        <div class="header-sub">If you want to upload new certificates, you can do that here.</div>
+                        <div class="tiny">Certificates must be in DER format!</div>
+                        <div class="hint">
+                            <div>To convert PEM to DER Files</div>
+                            
+                            <div>
+                                <p>
+                                    Certificate:                                                                                                           
+                                </p>
+                                <p>
+                                    openssl x509 -inform PEM -outform DER -in myCert.crt -out cert.der  
+                                </p>
+                            </div>
+                            
+                            <div>
+                                <p>
+                                    Private Key:    
+                                </p>
+                                <p>                               
+                                    openssl rsa -inform PEM -outform DER -in myCert.key -out key.der                              
+                                </p>
+                            </div>
+
+                             
+                             
+                             
+                            </pre>
+                        </div>
+                        <div class="row">
+                           
+                            <div class="column">
+                                <label for="public-cert">Public certificate file <span class="fine">(in DER format)</span></label>
+                                <input type="file" name="public-cert" accept=".cer, .crt, .der" id="public-cert"/>
+                            </div>
+                            <div class="column">                                
+                                <label for="private-cert">Private certificate file  <span class="fine">(in DER format)</span></label>
+                                <input type="file" name="private-cert" accept=".key, .der" id="private-cert"/>
+                            </div>
+                            
+                        </div> 
+                    </div>
+
+                    <div id="editor-certificate-generate">
+                        <div class="hint">If you want to generate a new self signed certificate, you can do that here.</div>
+                        <div class="column">
+                            <div class="row">
+                                <label for="device-name">Device Name</label>
+                                <input type="text" name="device-name" id="device-name"/>
+                            </div>
+                            <div class="row">
+                                <label for="company-name">Company Name</label>
+                                <input type="text" name="company-name" id="company-name"/>
+                            </div>
+                            <div class="row">
+                                <label for="valid-from">Valid From</label>
+                                <input type="date" name="valid-from" id="valid-from"/>
+                            </div>
+                            <div class="row">
+                                <label for="valid-to">Valid To</label>
+                                <input type="date" name="valid-to" id="valid-to"/>
+                            </div>
+                            
+                        </div>    
+                        
+                    </div>
+                    
                 </div>
                 
                 

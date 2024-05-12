@@ -114,6 +114,7 @@ void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
 bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
   int payloadLength = getJWTPayloadLength(jwt.c_str());
   if(payloadLength > 0) {
+    Serial.printf("\t\t PAYLOAD LENGTH: %d\n", payloadLength);
     char jsonPayload[payloadLength];
     if(decodeJWT(jwt.c_str(), (char*)jsonPayload, payloadLength)) {
       payload = jsonPayload;

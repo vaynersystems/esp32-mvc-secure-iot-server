@@ -248,11 +248,11 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
             return -1;
     }
     File file = SPIFFS.open(name.c_str(), "w");
-    byte* buf = new byte[80]; //must be at least 72 chars to detect boundary
+    byte* buf = new byte[512]; //must be at least 72 chars to detect boundary
     size_t readLength = 0;
     while (!parser->endOfField()) {
         
-        readLength = parser->read(buf, 80);
+        readLength = parser->read(buf, 512);
         file.write(buf, readLength);
         //Serial.write(buf,readLength);
         fieldLength += readLength;

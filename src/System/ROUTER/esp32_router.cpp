@@ -381,7 +381,10 @@ bool esp32_router::IsValidRoute(esp32_controller_route &route)
     }
     return false;
 }
-void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res)
+void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res){
+    handleFileUpload(req, res, NULL);
+}
+void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const char * overwriteFilePath)
 {
     if (req->getMethod() == "DELETE")
     {
@@ -473,8 +476,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res)
 
                 size_t readLength = parser->read((byte *)buf, 512);
                 filename = string("/") + string(buf, readLength);
+                
             }
-            else if (name == "data")
+            else if (name == "data" || name == "file")
             {
                 filename = parser->getFieldFilename();
                 // size_t readLength = parser->read((byte*)buf, 512);
@@ -501,11 +505,15 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res)
                 }
                 else
                 {
+                    //if want to overwrite filename, do it here
+                    if(overwriteFilePath != NULL)
+                        filename = overwriteFilePath;
+                    unsigned long startWrite = millis();
                     Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
                     size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
                     savedFile = bytes > 0;
                     res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
-                    Serial.println(" done");
+                    Serial.printf(" done in %u ms", millis() - startWrite);
                 }
             }
             else if (name == "path")

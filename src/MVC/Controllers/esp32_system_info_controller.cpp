@@ -93,9 +93,9 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_AVAILABLE", ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
     
 
-    controllerTemplate.SetTemplateVariable("$NVS_FREE_ENTRIES", (to_string_with_precision(stats.free_entries,0) + " bytes").c_str());
-    controllerTemplate.SetTemplateVariable("$NVS_USED_ENTRIES", (to_string_with_precision(stats.used_entries,0)+ " bytes").c_str());
-    controllerTemplate.SetTemplateVariable("$NVS_TOTAL_ENTRIES", (to_string_with_precision(stats.total_entries,0)+ " bytes").c_str());
+    controllerTemplate.SetTemplateVariable("$NVS_FREE_ENTRIES", (to_string_with_precision(stats.free_entries,0)).c_str());
+    controllerTemplate.SetTemplateVariable("$NVS_USED_ENTRIES", (to_string_with_precision(stats.used_entries,0)).c_str());
+    controllerTemplate.SetTemplateVariable("$NVS_TOTAL_ENTRIES", (to_string_with_precision(stats.total_entries,0)).c_str());
     controllerTemplate.SetTemplateVariable("$NVS_PERCENT_USED", (to_string_with_precision(round(((float)stats.used_entries/(float)stats.total_entries)*100),1).c_str()));
 	controllerTemplate.SetTemplateVariable("$NVS_MEMORY_AVAILABLE", ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
     //Print debug message

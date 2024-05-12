@@ -7,9 +7,49 @@
 #include "System/AUTH/esp32_authentication.h"
 #include "System/AUTH/esp32_sha256.h"
 
-//TODO: store cert in SPIFFS
-//#define CERT_FILE_CER   "/PRI/CERT.DER"
-//#define CERT_FILE_KEY   "/PRI/CERM.KEY.DER"
+#include "SD.h"
+#include "SPI.h"
+
+// #define LED_PIN 23
+// File myFile;
+// const int CS = 15;
+
+// void WriteFile(const char * path, const char * message){
+//   // open the file. note that only one file can be open at a time,
+//   // so you have to close this one before opening another.
+//   myFile = SD.open(path, FILE_WRITE);
+//   // if the file opened okay, write to it:
+//   if (myFile) {
+//     Serial.printf("Writing to %s ", path);
+//     myFile.println(message);
+//     myFile.close(); // close the file:
+//     Serial.println("completed.");
+//   } 
+//   // if the file didn't open, print an error:
+//   else {
+//     Serial.println("error opening file ");
+//     Serial.println(path);
+//   }
+// }
+
+
+// void ReadFile(const char * path){
+//   // open the file for reading:
+//   myFile = SD.open(path);
+//   if (myFile) {
+//      Serial.printf("Reading file from %s\n", path);
+//      // read from the file until there's nothing else in it:
+//     while (myFile.available()) {
+//       Serial.write(myFile.read());
+//     }
+//     myFile.close(); // close the file:
+//   } 
+//   else {
+//     // if the file didn't open, print an error:
+//     Serial.println("error opening test.txt");
+//   }
+// }
+
 
 esp32_server server;
 esp32_wifi wifi;
@@ -48,6 +88,7 @@ void serverTask(void* params) {
 }
 
 void setup() {
+    
     //logging
     Serial.begin(115200);
     //spiffs
@@ -56,10 +97,23 @@ void setup() {
     wifi.start();     
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 1, task, ARDUINO_RUNNING_CORE); 
+    //pinMode(LED_PIN, OUTPUT);
+
+    // if (!SD.begin(CS)) {
+    //     Serial.println("initialization failed!");
+    //     return;
+    // }
+    // WriteFile("/test.txt", "ElectronicWings.com");
+    // ReadFile("/test.txt");
 }
 
 
+//unsigned long lastToggled = millis();
 void loop() {   
-
+    // if(millis() - lastToggled > 1000)
+    // {
+    //     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
+    //     lastToggled = millis();
+    // }
 
 }

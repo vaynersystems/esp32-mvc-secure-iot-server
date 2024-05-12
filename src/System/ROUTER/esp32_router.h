@@ -51,7 +51,8 @@ public:
     static void RegisterWebsocket(WebsocketNode* resourceNode);
 
 	static void handleRoot(HTTPRequest* req, HTTPResponse* res);
-	static void handleFileUpload(HTTPRequest* req, HTTPResponse* res);	
+    static void handleFileUpload(HTTPRequest* req, HTTPResponse* res);	
+	static void handleFileUpload(HTTPRequest* req, HTTPResponse* res, const char * overwriteFilePath = NULL);	
 	static void handle404(HTTPRequest* req, HTTPResponse* res);
 
 	static void handleFile(HTTPRequest* req, HTTPResponse* res);

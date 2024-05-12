@@ -15,5 +15,8 @@ html, body{
     --modal-background: rgba(3, 45, 9, 0.4);
     --modal-header-color: #fff;
     --modal-header-background: #1d8e56;
+
+    --primary-header-background: #86b92c;
+    --primary-footer-background: #8ebd54;
  
 }
