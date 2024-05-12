@@ -7,8 +7,8 @@ function hideLoading() {
     _destroyWaitComponent();
 }
 
-function showModalComponent(component, header, actions){
-    const modalComponent = _generateModalComponent();
+function showModalComponent(component, header, actions, width){
+    const modalComponent = _generateModalComponent(width);
     //var m = document.getElementById('system-modal');
     //if (modalComponent !== null) m.style.display = 'block';
 
@@ -42,8 +42,8 @@ function showModalComponent(component, header, actions){
     })
 }
 
-function showModal(text, header, actions){
-    const modalComponent = _generateModalComponent();
+function showModal(text, header, actions, width){
+    const modalComponent = _generateModalComponent(width);
     
     var t = document.getElementById('system-modal-text');
     if (t !== null) t.innerHTML = text;
@@ -90,7 +90,7 @@ function hideWait(which){
 
 /* ******************************** */
 //generates the HTML component drawing the modal window and adds it to the document
-function _generateModalComponent(){
+function _generateModalComponent(width){
     const html = `
     <div id="system-modal">        
         <div id="system-modal-content">
@@ -108,6 +108,13 @@ function _generateModalComponent(){
     modalComponent.innerHTML = html;
     modalComponent.className = "system-modal-container"
     document.body.appendChild(modalComponent);
+
+    const modalContentComponent = document.getElementById('system-modal-content');
+    if(modalContentComponent !== null && width !== undefined) {
+        modalContentComponent.style.minWidth = width;
+        modalContentComponent.style.maxWidth = width;
+        modalContentComponent.style.width = width;
+    }
     return modalComponent
 }
 

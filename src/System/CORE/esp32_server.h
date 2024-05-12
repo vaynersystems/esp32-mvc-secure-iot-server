@@ -4,11 +4,8 @@
 #include "SPIFFS.h"
 #include "../Config.h"
 
-#include "System/AUTH/cert.h"
-#include "System/AUTH/key.h"
 #include "System/AUTH/ArduinoJWT.h"
 #include "System/ROUTER/esp32_router.h"
-
 #include "System/AUTH/esp32_middleware.h"
 
 #include <HTTPSServer.hpp>
@@ -21,6 +18,8 @@
 #include <HTTPURLEncodedBodyParser.hpp>
 #include "esp32_socket.h"
 #include "esp32_config.h"
+#include <System/AUTH/CERT/esp32_cert_nvs.hpp>
+#include <System/AUTH/CERT/esp32_cert_spiffs.hpp>
 
 using namespace httpsserver;
 
@@ -39,32 +38,22 @@ public:
     HTTPSServer *secureServer;
     HTTPServer *unsecureServer;
     
-    bool registerNewCert(SSLCert* cert);
+    //bool registerNewCert(SSLCert* cert);
+    bool importCertFromTemporaryStorage();
+    void generateCertificate(const char * deviceName, const char* companyName, const char* validFrom, const char* validTo);
     esp32_middleware* middleware;  
 
     void registerNode(HTTPNode *node);
 
 private:
 
-    bool hasPrivateKey();
-    bool hasPublicCert();
-
-    void loadCertificates();
-    void generateCert(
-        const char* deviceName = "myesp32.local",
-        const char* companyName = "Fancy Co",
-        const char* validFrom = "20240101000000",
-        const char* validTo = "20350101000000"
-    );
-
     // Create an SSL certificate object from the files included above    
     esp32_router* _router;
-    SSLCert* _cert;
+    //esp32_cert_nvs* _certManager;
+    esp32_cert_base* _certManager;
+   
     hw_timer_t* timer = NULL;
     bool _enableSSL;
-
-    char *publicKey;
-    char *privateKey;
 };
 #endif
 

@@ -1,8 +1,12 @@
 #include "esp32_config_controller.hpp"
 #include "string_extensions.h"
 #include <WiFi.h>
+#include <System/AUTH/CERT/esp32_cert_base.hpp>
+#include <System/CORE/esp32_server.h>
 
-
+extern esp32_server server;
+extern const char* PUBLIC_TEMP_PATH;
+extern const char* PRIVATE_TEMP_PATH;
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
 void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
@@ -42,6 +46,12 @@ void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
     else if (route.action.compare("ResetDevice") == 0) {
         ResetDevice(req,res);
     }
+    else if (route.action.compare("UploadCertificate") == 0) {
+        UploadCertificate(req,res);
+    }
+    else if (route.action.compare("GenerateCertificate") == 0) {
+        GenerateCertificate(req,res);
+    }
     else
         esp32_base_controller::Action(req,res);
 }
@@ -62,10 +72,20 @@ bool esp32_config_controller::HasAction(const char * action){
     else if (strcmp(action, "ResetDevice") == 0) {
         return true;
     }
+
+    else if (strcmp(action, "UploadCertificate") == 0) {
+        return true;
+    }
+
+    else if (strcmp(action, "GenerateCertificate") == 0) {
+        return true;
+    }
     
     else
         return esp32_base_controller::HasAction(action);
 }
+
+
 
 
 //custom action to get wifi list, or other list
@@ -163,6 +183,13 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     auto error = deserializeJson(doc, content);
 
     if(error.code() == DeserializationError::Ok){
+        //if we need to apply certs do so and clear it
+        if(!doc["server"]["certificates"].isNull() && !doc["server"]["certificates"]["uploaded"].isNull()){
+            if(doc["server"]["certificates"]["uploaded"].as<bool>() == true){
+                server.importCertFromTemporaryStorage();
+                doc["server"]["certificates"]["uploaded"] = NULL;
+            }
+        }
         File f = SPIFFS.open(PATH_SYSTEM_CONFIG, "w");
         serializeJson(doc,f);
         f.close();
@@ -185,4 +212,62 @@ void esp32_config_controller::ResetDevice(HTTPRequest* req, HTTPResponse* res){
     if(strcmp(req->getHeader(HEADER_GROUP).c_str(),"ADMIN") == 0)
         esp_restart();
     else res->setStatusCode(401);
+}
+
+void esp32_config_controller::UploadCertificate(HTTPRequest *req, HTTPResponse *res)
+{
+    Serial.printf("Uploading with action %s and parameter %s\n",
+        route.action.c_str(), route.params.c_str());
+    //req has post of file.
+    if(strcmp(route.params.c_str(), "Public") == 0){
+        esp32_router::handleFileUpload(req,res, PUBLIC_TEMP_PATH);
+    } else if(strcmp(route.params.c_str(), "Private") == 0){
+        esp32_router::handleFileUpload(req,res, PRIVATE_TEMP_PATH);
+    }
+    
+}
+
+void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse *res)
+{
+    const int length = req->getContentLength();
+    
+    DynamicJsonDocument doc(length * 2);
+    string content;
+    Serial.printf("Generating certificate...\n");
+    char * buf = new char[32];
+    while(true){
+        
+        int bytesRead = req->readBytes((byte*)buf,32); 
+        if(bytesRead <= 0) break;       
+        content.append(buf,bytesRead);
+    }
+    delete[] buf;
+
+    auto error = deserializeJson(doc, content);
+
+    if(error.code() == DeserializationError::Ok){
+        string deviceName = "", companyName = "", validFrom="", validTo="";
+        //get certificate parameters
+        if(doc["device"].isNull() || doc["company"].isNull()){
+            res->println("Missing device or company. Please fill in fields and retry");
+            return;
+        }
+
+        deviceName = doc["device"].as<const char*>();
+        companyName = doc["company"].as<const char*>();
+        validFrom = doc["from"].as<const char*>();
+        validTo = doc["to"].as<const char*>();
+
+        Serial.printf(".. parsed \n\tdevice: %s\n\t company %s\n\t valid-from: %s\n\t valid-to: %s\n",
+            deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str()
+        );
+
+        if(deviceName.length() > 0 && deviceName.length() < 32 &&
+            companyName.length() > 0 && companyName.length() < 32 && 
+            validFrom.length() == 14 && validTo.length() == 14)
+            server.generateCertificate(deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str());
+        
+    } else {
+        Serial.printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
+    }
 }

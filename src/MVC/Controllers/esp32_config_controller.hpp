@@ -21,6 +21,8 @@ public:
     virtual void LoadConfigData(HTTPRequest* req, HTTPResponse* res);
     virtual bool SaveConfigData(HTTPRequest* req, HTTPResponse* res);
     virtual void ResetDevice(HTTPRequest* req, HTTPResponse* res);
+    virtual void UploadCertificate(HTTPRequest * req, HTTPResponse * res);
+    virtual void GenerateCertificate(HTTPRequest *req, HTTPResponse * res);
     
     
 protected:

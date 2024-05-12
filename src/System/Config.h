@@ -11,10 +11,6 @@
 #define PATH_SYSTEM_CONFIG "/INT/system_config.json"
 #define PATH_PUBLIC_PAGES "/INT/public_pages.txt"
 
-// Can be used if we add option to store in SPIFFS.
-// downside to cert in spiffs is that it gets erased when you upload data.
-//#define PATH_PUBLIC_CERT_FILE "/INT/cert.cer"
-//#define PATH_PRIVATE_KEY_FILE "/INT/key.der"
 
 #define HTML_REF_CONST_TITLE "$title"
 #define HTML_REF_CONST_HEAD "$doc_head"

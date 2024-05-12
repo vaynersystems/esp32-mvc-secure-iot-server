@@ -68,6 +68,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     }
 
     if(!jwtTokenValid){ //fall back to processing from request if available
+        
         jwtTokenValid = (jwtTokenFromRequest.length() > 0 && !server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString));
     }
     
@@ -226,7 +227,8 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         return;
     }    
     
-    string jwtDecodedString = "";    
+    string jwtDecodedString="";
+    jwtDecodedString.reserve(jwtToken.length() * 4);    
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
 
@@ -246,11 +248,15 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //authResult.authenticated = true; //IF YOU WANT TO BYPAS VERIFIACTION OF USER
             #ifdef DEBUG
             Serial.printf(
-                "**Authorization** Result %s\tUsername: %s\tRole: %s\n", 
-                authResult.authenticated ? "Authenticated" : "Unauthorized", 
-                authResult.username.c_str(), 
-                authResult.role.c_str()
+                "**Authorization** Result\n", 
+                authResult.authenticated ? "Authenticated" : "Unauthorized"
             ); 
+            if(authResult.authenticated)
+                Serial.printf(
+                    "\tUsername: %s\tRole: %s\n", 
+                    authResult.username.c_str(), 
+                    authResult.role.c_str()
+                );
             #endif
             if(authResult.authenticated){                
             

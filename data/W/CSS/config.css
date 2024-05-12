@@ -78,10 +78,6 @@ body{
     padding: 10px;
 }
 
-.hint{
-    font-style: italic;
-    font-size: 12px;
-}
 .config-content{
     display: flex;
     flex-direction: column;
@@ -90,7 +86,7 @@ body{
 }
 .config-actions{
     flex-direction: row;
-    justify-content: end;
+    justify-content: space-between;
     display: flex;
     border-style: solid;
     border-width: 1px 0px 0 0;    
@@ -148,6 +144,20 @@ body{
 #editor-device-trigger-panel{
     display: none;
 }
+#editor-certificate-upload{
+    margin: 10px;
+    padding: 5px;
+}
+
+#pending-changes{
+    color:rgb(181, 0, 0);
+    visibility: hidden;
+}
 .content{
     border-style: none !important;
+}
+
+.fine{
+    font-size: 10px;
+    font-style: italic;
 }
