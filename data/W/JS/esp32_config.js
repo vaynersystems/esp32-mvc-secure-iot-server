@@ -618,8 +618,8 @@ function loadSettings(){
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
     if(timeZoneElement !== null) timeZoneElement.value = activeConfig.system.ntp.timezone;
 
-    if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.server.enableSSL;
-    if(hostEnableMDNSElement !== null) hostEnableMDNSElement.value = activeConfig.server.enableMDNS;
+    if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
+    if(hostEnableMDNSElement !== null) hostEnableMDNSElement.value = activeConfig.system.enableMDNS;
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');

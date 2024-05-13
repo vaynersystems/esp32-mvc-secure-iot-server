@@ -21,7 +21,7 @@ void esp32_cert_spiffs::loadCertificates()
         generateCert("esp32-dev","Fun company");
         return;
     } else{
-        Serial.println("Certificates found in NVS... retrieveing");
+        Serial.println("Certificates found in SPIFFS... retrieveing");
     }
     
     bool errorReadingCert = false;

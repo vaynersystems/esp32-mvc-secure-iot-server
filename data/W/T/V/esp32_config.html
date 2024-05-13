@@ -1,7 +1,8 @@
-<!-- <script type="text/javascript" src="/JS/system.js"></script>  
+<!--
 <script type="text/javascript" src="/JS/modal.js"></script>
 <link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
 <link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
+<script type="text/javascript" src="/JS/system.js"></script>  
 <link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
 <div class="config-view">
 
@@ -271,6 +272,10 @@
                             <input type="radio" id="source-spiffs" name="certificate-source" value="spiffs">
                         </div>           
                     </div>
+                    <div class="hint row">
+                        NVS certificate store is convenient. It is not erased when you flash the file system image nor the firmware to the device.
+                        It is the default, but if security is paramount, use SPIFFS store and be sure to encrypt your flash when building.
+                    </div>
                 </div> 
 
 
@@ -394,80 +399,80 @@
                             </select>
                         </div>
                     </div>
-
-                    <div id="editor-certificate-upload">
-                        <div class="header-sub">If you want to upload new certificates, you can do that here.</div>
-                        <div class="tiny">Certificates must be in DER format!</div>
-                        <div class="hint">
-                            <div>To convert PEM to DER Files</div>
-                            
-                            <div>
-                                <p>
-                                    Certificate:                                                                                                           
-                                </p>
-                                <p>
-                                    openssl x509 -inform PEM -outform DER -in myCert.crt -out cert.der  
-                                </p>
-                            </div>
-                            
-                            <div>
-                                <p>
-                                    Private Key:    
-                                </p>
-                                <p>                               
-                                    openssl rsa -inform PEM -outform DER -in myCert.key -out key.der                              
-                                </p>
-                            </div>
-
-                             
-                             
-                             
-                            </pre>
-                        </div>
-                        <div class="row">
-                           
-                            <div class="column">
-                                <label for="public-cert">Public certificate file <span class="fine">(in DER format)</span></label>
-                                <input type="file" name="public-cert" accept=".cer, .crt, .der" id="public-cert"/>
-                            </div>
-                            <div class="column">                                
-                                <label for="private-cert">Private certificate file  <span class="fine">(in DER format)</span></label>
-                                <input type="file" name="private-cert" accept=".key, .der" id="private-cert"/>
-                            </div>
-                            
-                        </div> 
-                    </div>
-
-                    <div id="editor-certificate-generate">
-                        <div class="hint">If you want to generate a new self signed certificate, you can do that here.</div>
-                        <div class="column">
-                            <div class="row">
-                                <label for="device-name">Device Name</label>
-                                <input type="text" name="device-name" id="device-name"/>
-                            </div>
-                            <div class="row">
-                                <label for="company-name">Company Name</label>
-                                <input type="text" name="company-name" id="company-name"/>
-                            </div>
-                            <div class="row">
-                                <label for="valid-from">Valid From</label>
-                                <input type="date" name="valid-from" id="valid-from"/>
-                            </div>
-                            <div class="row">
-                                <label for="valid-to">Valid To</label>
-                                <input type="date" name="valid-to" id="valid-to"/>
-                            </div>
-                            
-                        </div>    
-                        
-                    </div>
-                    
                 </div>
                 
                 
             </div>
         </div>
 
+
+
+        <div class="section" id="editor-certificate-upload">
+            <div class="header-sub">If you want to upload new certificates, you can do that here.</div>
+            <div class="tiny">Certificates must be in DER format!</div>
+            <div class="hint">
+                <div>To convert PEM to DER Files</div>
+                
+                <div>
+                    <p>
+                        Certificate:                                                                                                           
+                    </p>
+                    <p>
+                        openssl x509 -inform PEM -outform DER -in myCert.crt -out cert.der  
+                    </p>
+                </div>
+                
+                <div>
+                    <p>
+                        Private Key:    
+                    </p>
+                    <p>                               
+                        openssl rsa -inform PEM -outform DER -in myCert.key -out key.der                              
+                    </p>
+                </div>
+
+                 
+                 
+                 
+                </pre>
+            </div>
+            <div class="row">
+               
+                <div class="column">
+                    <label for="public-cert">Public certificate file <span class="fine">(in DER format)</span></label>
+                    <input type="file" name="public-cert" accept=".cer, .crt, .der" id="public-cert"/>
+                </div>
+                <div class="column">                                
+                    <label for="private-cert">Private certificate file  <span class="fine">(in DER format)</span></label>
+                    <input type="file" name="private-cert" accept=".key, .der" id="private-cert"/>
+                </div>
+                
+            </div> 
+        </div>
+
+        <div class="section" id="editor-certificate-generate">
+            <div class="hint">If you want to generate a new self signed certificate, you can do that here.</div>
+            <div class="column">
+                <div class="row">
+                    <label for="device-name">Device Name</label>
+                    <input type="text" name="device-name" id="device-name"/>
+                </div>
+                <div class="row">
+                    <label for="company-name">Company Name</label>
+                    <input type="text" name="company-name" id="company-name"/>
+                </div>
+                <div class="row">
+                    <label for="valid-from">Valid From</label>
+                    <input type="date" name="valid-from" id="valid-from"/>
+                </div>
+                <div class="row">
+                    <label for="valid-to">Valid To</label>
+                    <input type="date" name="valid-to" id="valid-to"/>
+                </div>
+                
+            </div>    
+            
+        </div>
 
     </div>
 </div>

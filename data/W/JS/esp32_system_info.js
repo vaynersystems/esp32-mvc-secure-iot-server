@@ -70,7 +70,7 @@ function updateStatus(){
     persistanceSocket.send(''); //anything other than ping to this service will return memory usage
     connectionStatusElement.innerHTML = printStateName( persistanceSocket.socket.readyState);
 
-    if(persistanceSocket.socket.readyState == 3)
+    if(persistanceSocket.socket.readyState == 3) //closed
         persistanceSocket.connect( serverMessage);
     setTimeout(updateStatus, 500);
 }
@@ -157,8 +157,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 function onRefresh(chart) {
-    if(persistanceSocket.socket.readyState !== 1) return;
-    if(dataAvailable == false) return;
+    if(persistanceSocket.socket.readyState !== 1) return; //if socket is not open, nothing to do.
+    if(dataAvailable == 0) return; //if no new data, nothing to do
     //update data field if available
     chart.data.datasets.forEach(ds => {
         ds.data.push({
@@ -166,7 +166,7 @@ function onRefresh(chart) {
             y: lastLiveDataFrame[ds.field]    
         })
     });
-    if(dataAvailable > 0) dataAvailable--;
+    if(dataAvailable > 0) dataAvailable--; // keep track of 2 data points
 }
 
 function onticksFormatBytes(value,index,ticks){        

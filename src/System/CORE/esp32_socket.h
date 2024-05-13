@@ -23,6 +23,9 @@ using namespace httpsserver;
 class esp32_socket : public WebsocketHandler
 {
 public:
+    esp32_socket(int clientId){
+        _clientId = clientId;
+    }
     
     // This method is called by the webserver to instantiate a new handler for each
     // client that connects to the websocket endpoint
@@ -43,6 +46,10 @@ protected:
     //hw_timer_t* timer = NULL;
     //string service;
     void sendToAllClients(string message);
+    void sendToClient(int clientId, string message);
+
+private:
+    int _clientId = 0;
     
 };
 
