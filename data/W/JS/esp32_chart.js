@@ -11,7 +11,8 @@ function createChart(chartEmementId, chartDatasets, onRefresh, onTicksFormat){
         data: {
             datasets: chartDatasets                
         },
-        options: {              
+        options: {     
+            responsive: true,         
             scales: {
                 x: {
                     type: 'realtime',

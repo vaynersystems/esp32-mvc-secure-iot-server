@@ -27,6 +27,5 @@ string esp32_status_service::Execute()
 
     string ret = "";
     serializeJson(doc,ret);
-    
     return ret;
 }

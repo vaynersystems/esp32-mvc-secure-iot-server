@@ -5,7 +5,7 @@ html, body{
     height: 100%;   
 }
 body {
-    margin: 20px auto;
+    margin: 0;
     border-color: aqua;
     border-radius: 4px;
     border-width: 8px;    
@@ -46,11 +46,10 @@ input,select{
 .menu {
     color: var(--primary-control-color);    
     background-color: var(--primary-header-background);
-    margin: 6px 12px;
-    padding: 2px 12px;
+    padding: 12px 20px;
     
     display: flex;
-    flex-wrap: wrap;    
+    flex-wrap: wrap;        
 }
 
 .menu-div {
@@ -58,42 +57,28 @@ input,select{
     display: inline-block;
 }
 
-#user-placeholder {
-    display: inline-block;
-    right: 0px;
-    margin: 20px;
-    border-radius: 50%;
-    width: 50px;
-    height: 50px;
-    background-color: #ded;
-    text-align: center;
-    padding: 30px 15px 0px 15px;
-    -webkit-transform-origin-x: center;
-}
-
 .menu a {
     /* background-color: #62636d; */
-    color: var(--primary-color);
+    color: #fffce8;
     text-decoration: none;
-    padding: 6px 10px;
-    
+    padding: 6px 10px;    
     margin: 3px 6px;
+    border-style: solid;
+    border-color: var(--primary-color);    
+    border-width: 0 0 3px 0;     
+    font-size: 20px;
 }
 
-    .menu a:hover {
-        background-color: #738C78;
-        color: #eefeff;
-        text-decoration: none;
-        padding: 6px 10px;
-    }
+.menu a:hover {
+    color: #eefeff;
+    text-decoration: none;    
+    border-color: #fff; 
+}
 
-    .menu a:active {
-        background-color: #eeeeed;
-        color: #323;
-        text-decoration: none;
-        padding: 6px 10px;
-        border: solid 1px black;
-    }
+.menu a:active {
+    text-decoration: none;
+    border-color: #c8c4f7; 
+}
 
 .debug-message {
     color: #222;
@@ -102,22 +87,34 @@ input,select{
     font: 18pt Tahoma;
 }
 
-.header{
+#header{
     font-weight: 600;
     /* font-size:16px; */
     background-color: var(--primary-header-background);
-    margin: 2px;
     padding: 4px;    
-    color: var(--primary-color);   
+    color: var(--primary-header-color);      
 }
 .header, .header-sub{        
     font-size: 20px;
+    font-weight: 600;
+    /* font-size:16px; */
+    /* background-color: var(--secondary-background); */
+    background: rgb(208,207,209);
+    background: linear-gradient(112deg, rgba(208,207,209,0.7) 0%, rgba(216,216,234,0.7) 20%, rgba(220,220,236,0.6) 48%, rgba(225,225,238,0.5) 80%, rgba(240,237,244,0.4) 100%);
+    padding: 4px;    
+    color: var(--secondary-color);
+}
+.header-sub{        
+    font-size: 16px;  
+    background-color: transparent;
+    border-bottom: solid 1px var(--primary-border);
+    padding-bottom: 2px;
+    margin: 2px 10px;
 }
 
 .content {
     /* border: solid 2px var(--primary-border);;
-    border-radius: 10px; */
-    margin: 6px 12px;
+    border-radius: 10px; */   
     padding: 20px 12px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     color: var(--primary-control-color);    
@@ -132,14 +129,13 @@ input,select{
 .footer {
     /* border: solid 2px #efefed;
     border-width: 0px 1px 0px 6px; */
-    margin: 6px 12px;
-    padding: 2px 12px;
+    padding: 12px 20px;
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     /*background-image: linear-gradient(to bottom, rgba(0,0,0,.7) 25%, rgba(30,30,30,.5)5%, rgba(255,245,228,.2) 30%,rgba(255,245,228,.1)) border-width: 0px 1px 0px 6px;*/
     /* border-color: var(--primary-border);
     border-style: solid;
     border-radius: 10px; */
-    color: var(--primary-control-color);    
+    color: var(--primary-footer-color);    
     background-color: var(--primary-footer-background);
 }
 
@@ -205,6 +201,18 @@ input,select{
     text-align: right;
 }
 
+#user-placeholder {
+    display: inline-block;
+    right: 0px;
+    margin: 20px;
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    background-color: #ded;
+    text-align: center;
+    padding: 30px 15px 0px 15px;
+    -webkit-transform-origin-x: center;
+}
 
 #page-wait {
     width: 100%;
@@ -261,6 +269,10 @@ input,select{
     
     margin: auto;
 }
+#system-modal-content .header{
+    color: var(--primary-color);
+    background-color: var(--primary-background);
+}
 #system-modal-header{
     background-color: var(--modal-header-background);
     height: 30px;
@@ -288,7 +300,8 @@ input,select{
         width:90px;
     }
     button:hover{
-        background-color:var(--secondary-button-background-hover);
+        /* background-color: rgba(var(--secondary-button-background), 0.8); */
+        background: color-mix(in srgb, var(--secondary-button-background ) 90%, black);
         cursor: pointer;
     }
 }

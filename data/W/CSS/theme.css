@@ -1,13 +1,13 @@
 html, body{
     --primary-color: #191955;
-    --primary-border: rgb(164, 190, 216);
+    --primary-border: rgb(66, 80, 207);
     --primary-background: #f4f5f1;
-    --secondary-color: #d0e9d1;
-    --secondary-background: #191955;
+    --secondary-color: #030b31;
+    --secondary-background: #dfdff1;
     --primary-control-color: #053f16;
     --primary-control-background: #ffffff;
     --primary-button-color: #edeeef;
-    --primary-button-background: #0b2d64;
+    --primary-button-background:  #0b2d64;
     --secondary-button-color: #edeeef;
     --secondary-button-background: #1d8e56;
     --secondary-button-background-hover: #11633a;
@@ -16,7 +16,9 @@ html, body{
     --modal-header-color: #fff;
     --modal-header-background: #1d8e56;
 
-    --primary-header-background: #86b92c;
-    --primary-footer-background: #8ebd54;
+    --primary-header-background: var(--primary-color); /* #86b92c; */
+    --primary-header-color: var(--primary-background); /* #fff; */
+    --primary-footer-background: var(--primary-color); /* #8ebd54; */
+    --primary-footer-color: var(--primary-background); /* #fff; */
  
 }

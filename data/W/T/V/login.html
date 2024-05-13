@@ -3,24 +3,18 @@
     #login{
         display: flex;
         flex-direction: column;
-        padding: 20px;
-        background-color: #f0edee;
+        background-color: #d9dcea2e;
         border-radius: 15px;
         margin: 20px auto;
         min-width: 200px;
     }
+    .header{
+        padding: 10px 20px;
+    }
     .row{
         font-size: 12px;
-        background-color: #fcf3ff;
         flex-wrap: wrap;
-    }
-    .header{ font-weight: 600; }
-    .header{        
-        border-color: #7d4682;
-        color: #323;
-        border-width: 0 0 1px 0;
-        border-style: solid;
-        font-size: 20px;
+        padding: 10px 20px;
     }
     .detail{ font-size: 16px; }
     input{
@@ -29,6 +23,15 @@
     }
     input[type="text"], textarea {
         background-color : #e3dfe6; 
+    }
+    input[type="button"] {
+        color: var(--primary-button-color);
+        background-color: var(--primary-button-background);
+    }
+    input[type="button"]:hover {
+        color: var(--primary-button-color);
+        background-color: rgba(var(--primary-button-background), 0.8);
+        cursor: pointer;
     }
     
 </style>
