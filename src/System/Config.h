@@ -3,6 +3,7 @@
 #define FIRMWARE_VERSION "0.10"
 #define SITE_ROOT "/W"
 #define INTERNAL_ROOT "/INT"
+#define PATH_LOGGING_ROOT "/LOG"
 #define TEMPLE_VAR_COUNT 50
 
 #define SOCKET_MAX 5 //we should only have one client connected to a socket since the scope of the socket is user-browser
@@ -10,6 +11,7 @@
 #define PATH_AUTH_FILE "/INT/authorized.dat"
 #define PATH_SYSTEM_CONFIG "/INT/system_config.json"
 #define PATH_PUBLIC_PAGES "/INT/public_pages.txt"
+
 
 
 #define HTML_REF_CONST_TITLE "$title"

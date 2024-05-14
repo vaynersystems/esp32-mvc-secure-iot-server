@@ -271,13 +271,12 @@
                             <label for="source-spiffs">SPIFFS</label>
                             <input type="radio" id="source-spiffs" name="certificate-source" value="spiffs">
                         </div>           
-                    </div>
-                    <div class="hint row">
-                        NVS certificate store is convenient. It is not erased when you flash the file system image nor the firmware to the device.
-                        It is the default, but if security is paramount, use SPIFFS store and be sure to encrypt your flash when building.
-                    </div>
+                    </div>                   
                 </div> 
-
+                <div class="hint row">
+                    NVS certificate store is convenient. It is not erased when you flash the file system image nor the firmware to the device.
+                    It is the default, but if security is paramount, use SPIFFS store and be sure to encrypt your flash when building.
+                </div>
 
                 <div class="grid-2">
                     <div>I want to </div>
@@ -331,13 +330,13 @@
                             <div>
                                 <select id="editor-device-type" name="editor-device-type">
                                     <optgroup label="Inputs">
-                                        <option value="din">Digital Input</option>
-                                        <option value="ain">Analig Input</option>   
-                                        <option value="thermometer">Thermometer</option>
+                                        <option value="DigitalInput">Digital Input</option>
+                                        <option value="AnalogInput">Analig Input</option>   
+                                        <option value="Thermometer">Thermometer</option>
                                     </optgroup>
                                     <optgroup label="Outputs">
-                                        <option value="relay">Relay</option>
-                                    <option value="switch">Switch</option>        
+                                        <option value="Relay">Relay</option>
+                                    <option value="Switch">Switch</option>        
                                     </optgroup>      
                                 </select>
                             </div>
@@ -368,6 +367,12 @@
                                     <option value="high">Active High</option>
                                     <option value="low">Active Low</option>
                                 </select>
+                            </div>
+                        </div> 
+                        <div class="grid-2"  id="editor-device-duration-container">
+                            <span>Duration <span class="hint"> (in seconds)</span>
+                            <div>
+                                <input type="number" id="editor-device-duration" name="editor-device-duration">                               
                             </div>
                         </div>                  
                     

@@ -128,8 +128,9 @@ bool esp32_wifi::start(){
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
-    sntp_init();
-Serial.printf("Initialized NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
+    sntp_init();    
+    
+    Serial.printf("Initialized NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
     return WiFi.status() == WL_CONNECTED;
 }
 

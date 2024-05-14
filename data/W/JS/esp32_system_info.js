@@ -58,9 +58,10 @@ function updateUptime(seconds){
     }
     partSeconds = timeLeft;
 
-    uptimeElement.textContent = (partHours > 0 ? partHours + (partHours > 1 ? ' hours ' : ' hour ') : '') +
-        (partMinutes > 0 ? partMinutes + (partMinutes > 1 ? ' minutes ' : ' minute ') : '') +
-        (partSeconds > 0 ? partSeconds + (partSeconds > 1 ? ' seconds ' : ' second ') : '');
+    // uptimeElement.textContent = (partHours > 0 ? partHours + (partHours > 1 ? ' hours ' : ' hour ') : '') +
+    //     (partMinutes > 0 ? partMinutes + (partMinutes > 1 ? ' minutes ' : ' minute ') : '') +
+    //     (partSeconds > 0 ? partSeconds + (partSeconds > 1 ? ' seconds ' : ' second ') : '');
+    uptimeElement.textContent = partHours.toString().padStart(2,'0') + ':' + partMinutes.toString().padStart(2,'0') + ':' + partSeconds.toString().padStart(2,'0');
 }
 
 function updateStatus(){

@@ -3,6 +3,18 @@
 #include <string>
 using namespace std;
 
+static tm getDate(){
+    time_t now;
+    char strftime_buf[64];
+    struct tm timeinfo;
+
+    time(&now);
+    // Set timezone to Eastern Standard Time
+    setenv("Eastern", "EST-5", 1);
+    tzset();
+    localtime_r(&now, &timeinfo);
+    return timeinfo;
+}
 static string getCurrentTime(){
     time_t now;
     char strftime_buf[64];

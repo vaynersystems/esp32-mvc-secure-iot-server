@@ -64,6 +64,7 @@ body{
     display: flex;
     flex-direction: column;
     flex-grow: 1;                
+    overflow-x: scroll;
 }
 .section-content{
     overflow-y: scroll;

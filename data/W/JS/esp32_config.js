@@ -176,8 +176,8 @@ function getAvailableWifiNetworks(){
 
 /* DEVICES */
 deviceTypes = [
-    {name: 'termometer', description: 'Thermometer', Type: 'input'},
-    {name: 'relay', description: 'Relay', Type: 'output'}
+    {name: 'Thermometer', description: 'Thermometer', Type: 'input'},
+    {name: 'Relay', description: 'Relay', Type: 'output'}
 ]
 function loadDevices(devices){
     const deviceListElement = document.getElementById('device-list');
@@ -264,6 +264,7 @@ function saveDevice(){
     device.type = modalElement.querySelector('#editor-device-type').value;
     device.pin = modalElement.querySelector('#editor-device-pin').value;
     device.signal = modalElement.querySelector('#editor-device-signal').value;
+    device.duration = modalElement.querySelector('#editor-device-duration').value;
     if(triggerSelector.checked){
     device.trigger = {};    
         device.trigger.active = triggerSelector.checked;
@@ -318,6 +319,8 @@ function showDeviceEditor(device){
     const deviceTypeElement = deviceEditorElement.querySelector('#editor-device-type');
     const devicePinElement = deviceEditorElement.querySelector('#editor-device-pin'); 
     const deviceSignalElement = deviceEditorElement.querySelector('#editor-device-signal'); 
+    const deviceDurationElement = deviceEditorElement.querySelector('#editor-device-duration'); 
+    
     const deviceTriggerSourceElement = deviceEditorElement.querySelector('#editor-device-trigger-source-device');
     const deviceTriggerTypeElement = deviceEditorElement.querySelector('#editor-device-trigger-type'); 
     const deviceTriggerValueElement = deviceEditorElement.querySelector('#editor-device-trigger-value'); 
@@ -325,23 +328,25 @@ function showDeviceEditor(device){
     const triggerContainerElement = deviceEditorElement.querySelector('#editor-device-use-trigger-container');
     const toggleTriggerElement = deviceEditorElement.querySelector('#editor-device-use-trigger');
     const deviceSignalContainerElement = deviceEditorElement.querySelector('#editor-device-signal-container');
-    
+    const deviceDurationContainerElement = deviceEditorElement.querySelector('#editor-device-duration-container');
     if(deviceIdElement !== null) deviceIdElement.innerHTML =  device.id;
     if(deviceNameElement !== null) deviceNameElement.value = device.name;
     if(deviceTypeElement !== null) {
         if(device.type !== undefined) deviceTypeElement.value = device.type;
         toggleTriggerElement.checked =  device.trigger === undefined ? false : device.trigger.active;
         // if(device.type.length > 0) deviceTypeElement.value = device.type;
-        isOutputDevice = device.type == 'relay' || device.type == 'switch';
+        isOutputDevice = device.type == 'Relay' || device.type == 'Switch';
         triggerContainerElement.style.display = isOutputDevice ? 'block' : 'none'; 
         deviceSignalContainerElement.style.display = isOutputDevice ? '' : 'none'; 
+        deviceDurationContainerElement.style.display = device.type == 'Relay' ? 'block' : 'none';
         
         triggerPanelElement.style.display = isOutputDevice && toggleTriggerElement.checked ? 'block' : 'none'; 
 
         deviceTypeElement.addEventListener('change',(event) => {
-            isOutputDevice = event.target.value == 'relay' || event.target.value == 'switch';
+            isOutputDevice = event.target.value == 'Relay' || event.target.value == 'Switch';
             triggerContainerElement.style.display = isOutputDevice ? '' : 'none'; 
             deviceSignalContainerElement.style.display = isOutputDevice ? '' : 'none'; 
+            deviceDurationContainerElement.style.display = event.target.value == 'Relay' ? 'block' : 'none';
             triggerPanelElement.style.display = isOutputDevice && toggleTriggerElement.checked ? 'block' : 'none'; 
         })
     }
@@ -367,6 +372,12 @@ function showDeviceEditor(device){
         deviceSignalElement.setAttribute('value', device.signal);
         if(device.signal.length > 0) deviceSignalElement.value = device.signal;
     }
+
+    if(deviceDurationElement !== null) {
+        deviceDurationElement.setAttribute('value', device.duration);
+        if(device.duration.length > 0) deviceDurationElement.value = device.duration;
+    }
+    
 
     
     if(toggleTriggerElement !== null)
