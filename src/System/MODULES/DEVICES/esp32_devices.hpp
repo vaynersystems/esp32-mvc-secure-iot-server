@@ -1,66 +1,73 @@
 #include <vector>
 #include <utility>
+#include "esp32_device_types.hpp"
+#include "esp32_analog_input_device.hpp"
+#include "esp32_digital_input_device.hpp"
+#include "esp32_thermometer_device.hpp"
+#include "esp32_switch_device.hpp"
+#include "esp32_relay_device.hpp"
 #include <System/CORE/esp32_config.h>
 #include "ArduinoJson.h"
+
+#include <OneWire.h>
+#include <DallasTemperature.h>
+
 using namespace std;
+extern DallasTemperature sensors;
 
-enum esp32_device_type{
-    Unknown = 0,
-    Thermometer = 1,
-    DigitalInput = 2,
-    AnalogInput = 3,
-    Switch = 4,
-    Relay = 5
-};
-
-enum esp32_device_direction{
-    Input = 1,
-    Output = 2
-} ;
-
-enum esp32_device_trigger_type{
-    LessThan = 0,
-    GreaterThan = 1,
-    Equals = 2
-};
-
-struct esp32_device_info{
-    int id;
-    esp32_device_type type;
-    string name;
-    int pin;
-    esp32_device_direction direction;
-    bool useTrigger = false;
-    int triggerDeviceId = -1;
-    esp32_device_trigger_type triggerType;
-    double triggerValue;
-
-
-};
-
-/* thiking out loud*/
-struct esp32_output_device_next_state{
-    int deviceId;
-    bool state; //false for off, true for on
-};
 
 class esp32_devices{
 
 public:
     /// @brief Load device configuration from SPIFFS volume
-    esp32_devices(){
-        loadDeviceConfiguration();
-    }
+    esp32_devices(){};
+    void onInit();
 
-    vector<esp32_device_info> GetDevices();
-    esp32_device_info GetDevice(int id);
-    vector<pair<int,bool>> GetDeviceStates();
-    template <typename T>
-    T GetDeviceState(int id);
-    template <typename T>
-    bool SetDeviceState(int id, T state);
+    void onLoop();
 
-private:
+    void onDestroy();
+
+protected:
     bool loadDeviceConfiguration();
+    
+    //esp32_device_info GetDevice(int id);
+    //vector<pair<int,bool>> GetDeviceStates();
+    template <typename T>
+    T getDeviceState(int id);
+    template <typename T>
+    bool setDeviceState(int id, T state);
+
+    
+private:
+    vector<esp32_device_info> getDevices();
     vector<esp32_device_info> _devices;
+    unsigned long _lastSnapshotTime = 0, _lastSnapshotStoreTime = 0;
+
+    template<typename T>
+    esp32_base_device<T>* getDevice(T type);
+    void logSnapshot(JsonArray snapshot);
+
+    static JsonObject findDeviceState(JsonArray devices, int deviceId);
+
+    bool getDesiredState(
+        bool currentState,
+        esp32_device_trigger_type triggerType, 
+        JsonVariant value, 
+        double triggerValue, 
+        const char * valueType
+    );
+
+    static esp32_device_type typeFromTypeName(const char * typeName);
+
+    static bool isLessThan(JsonVariant value, double triggerValue, const char * type);
+    static bool isGreaterThan(JsonVariant value, double triggerValue, const char * type);
+    static bool isEqualTo(JsonVariant value, double triggerValue, const char * type);
+
+    /* For temperature sensors*/
+    OneWire oneWire;
+    
+    
+    
 };
+
+

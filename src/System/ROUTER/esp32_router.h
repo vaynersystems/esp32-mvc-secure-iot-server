@@ -83,7 +83,7 @@ protected:
     static bool parseFileRequest(HTTPRequest* req, esp32_route_file_info& fileRequestInfo){
         String fileName = String(fileRequestInfo.requestPath.c_str());
 
-        bool internalFile = fileName.startsWith(INTERNAL_ROOT);
+        bool internalFile = fileName.startsWith(INTERNAL_ROOT) || fileName.startsWith(PATH_LOGGING_ROOT);
         bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";
         bool isEditorRequest = String(req->getHeader("Refer").c_str()).endsWith("edit.html");
         if(internalFile && !isAdminUser){

@@ -10,14 +10,14 @@
         {
             "id": "1",
             "name": "Pool thermometer",
-            "type": "thermometer",
+            "type": "Thermometer",
             "pin": "21",
             "signal": "high"
         },
         {
             "id": "2",
             "name": "Heater switch",
-            "type": "switch",
+            "type": "Switch",
             "pin": "26",
             "signal": "high"
         }

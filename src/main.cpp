@@ -9,6 +9,7 @@
 
 #include "SD.h"
 #include "SPI.h"
+#include "System/MODULES/DEVICES/esp32_devices.hpp"
 
 // #define LED_PIN 23
 // File myFile;
@@ -54,9 +55,13 @@
 esp32_server server;
 esp32_wifi wifi;
 esp32_fileio disk;
+esp32_devices deviceManager;
+DallasTemperature sensors;
 
-TaskHandle_t* task;
+TaskHandle_t* serverTaskHandle;
+TaskHandle_t* deviceTaskHandle;
 void serverTask(void* params);
+void deviceTask(void* params);
 
 #if CONFIG_FREERTOS_UNICORE
     #define ARDUINO_RUNNING_CORE 0
@@ -64,6 +69,7 @@ void serverTask(void* params);
     #define ARDUINO_RUNNING_CORE 1
 #endif
 extern const int SERVER_STACK_SIZE = 1024*24;
+extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 12;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -87,6 +93,17 @@ void serverTask(void* params) {
     #endif
 }
 
+
+void deviceTask(void* params) {
+    deviceManager.onInit();
+
+    while(true)
+        deviceManager.onLoop();
+
+    
+
+}
+
 void setup() {
     
     //logging
@@ -96,7 +113,11 @@ void setup() {
     //Connect to wifi
     wifi.start();     
     //Create Server
-    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 1, task, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 1, serverTaskHandle, ARDUINO_RUNNING_CORE); 
+
+    //deviceManager.onInit();
+
+    xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
     //pinMode(LED_PIN, OUTPUT);
 
     // if (!SD.begin(CS)) {
@@ -107,13 +128,6 @@ void setup() {
     // ReadFile("/test.txt");
 }
 
-
-//unsigned long lastToggled = millis();
 void loop() {   
-    // if(millis() - lastToggled > 1000)
-    // {
-    //     digitalWrite(LED_PIN, !digitalRead(LED_PIN));
-    //     lastToggled = millis();
-    // }
-
+    
 }
