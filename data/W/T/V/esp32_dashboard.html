@@ -1,0 +1,111 @@
+<script type="text/javascript" src="/JS/C/moment.js"></script>
+<script type="text/javascript" src="/JS/C/chart.js"></script>
+<script type="text/javascript" src="/JS/C/luxon.js"></script>
+<script type="text/javascript" src="/JS/C/chart.luxon.js"></script>
+<script type="text/javascript" src="/JS/C/chart.zoom.js"></script>
+<script type="text/javascript" src="/JS/C/chart.stream.js"></script>
+<script type="text/javascript" src="/JS/esp32_chart.js"></script>
+<script type="text/javascript" src="/JS/esp32_socket.js"></script>
+<script type="text/javascript" src="/JS/esp32_dashboard.js"></script>
+
+<style type="text/css">    
+    .row{
+        font-size: 12px;
+    }
+ 
+    .section{
+        /* border: solid 1px #f3cfed;
+        border-radius: 5px; */
+        padding:0px;
+        display: flex;
+        flex-direction: column;
+        margin: 8px 0px;
+    }
+    .details{
+        display: flex;
+        flex-wrap: wrap;
+        flex-grow: 1;
+        
+    }
+    .detail,
+    .detail-wide{
+        margin:10px;
+        width: 200px;
+        border: solid 6px #5d5eb0;
+        border-width: 1px 2px 1px 6px;
+        border-radius: 6px;
+        padding: 6px 20px;
+        background-color: #f3f5ff;        
+    }    
+    .detail>div:nth-child(1){
+        font-weight: 600;
+        font-size: 16px;
+    }
+    .detail>div:nth-child(2){
+        font-size: 14px;
+    }
+
+    .wide{
+        width: 468px;
+    }
+    .conditional{
+        display: var(--available,block);
+    }
+    
+    .bar {
+        height: 4px !important;
+        background-color: #f5f5f5;
+    }.bar::before {
+        content: '';
+        display: flex;
+        justify-content: end;
+        width: calc(var(--percent) * 1%);
+        height: 3px !important;
+        background: hsl(calc(100 - var(--percent)) 95 50) !important;
+        
+    }    
+</style>
+
+
+<div class="section">
+    <div class="header">Devices</div>
+    <div class="section">
+        <div class="header-sub">Web Socket</div>    
+        <div class="details">
+            <div class="detail wide conditional">
+                <div class="row">
+                    <div class="">Status</div>
+                    <div id="connection-status"></div>
+                </div>  
+                
+            </div>           
+        </div>
+    </div>
+    <div class="section" id="device-charts">
+        <div class="grid-2">
+            <div class="grow">
+                <div class="header-sub">STACK</div>    
+                <div class="details grow">
+                    <div class="detail grow conditional">
+                        <div class="row grow">
+                            <canvas id="stack-chart"></canvas>
+                        </div>  
+                        
+                    </div>           
+                </div>
+            </div>
+            <div class="grow">
+                <div class="header-sub">HEAP</div>    
+                <div class="details grow">
+                    <div class="detail grow conditional">
+                        <div class="row grow">
+                            <canvas id="heap-chart"></canvas>
+                        </div>  
+                        
+                    </div>           
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</div>

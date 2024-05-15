@@ -434,6 +434,58 @@ function showDeviceEditor(device){
 
 
 /* END OF DEVICES */
+
+function formatByte(value){
+    if(value/1024/1024 > 1.05)
+        return Math.round((value/1024/1024) * 100) / 100 + ' MB';
+    if(value/1024 > 1.05)
+        return Math.round((value/1024) * 100) / 100 + ' KB';
+    return value + ' B';
+}
+function getProjectionColor(bytes){
+    if(bytes > 1024*1024)
+        return 'red';
+    if(bytes > 1024*64)
+        return 'orange';
+
+        return 'green';
+}
+
+/* Logging  */
+function showLoggingProjections(frequency){
+    const envelope = 35;
+    const messageLength = 32;
+
+    const projectionContainerElement = document.getElementById('device-logging-projection');
+    if(projectionContainerElement === null) return;
+    projectionContainerElement.innerHTML = '';
+    for(var deviceCount = 1; deviceCount < 8; deviceCount++){
+        const entriesPerDay = ((24*3600)/frequency) * deviceCount;
+        const bytesPerDay = entriesPerDay * 32 + 35;
+        const deviceCell = document.createElement('div');
+        const dailyCell = document.createElement('div');
+        const weeklyCell = document.createElement('div');
+        const monthlyCell = document.createElement('div');
+        const yearlyCell = document.createElement('div');
+        deviceCell.textContent = deviceCount;        
+        dailyCell.textContent = formatByte(bytesPerDay);
+        dailyCell.style.color = getProjectionColor(bytesPerDay);
+        weeklyCell.textContent = formatByte(bytesPerDay * 7);
+        weeklyCell.style.color = getProjectionColor(bytesPerDay * 7);
+        monthlyCell.textContent = formatByte(bytesPerDay * 30);
+        monthlyCell.style.color = getProjectionColor(bytesPerDay * 30);
+        yearlyCell.textContent = formatByte(bytesPerDay * 365);
+        yearlyCell.style.color = getProjectionColor(bytesPerDay * 365);
+        projectionContainerElement.appendChild(deviceCell); 
+        projectionContainerElement.appendChild(dailyCell);
+        projectionContainerElement.appendChild(weeklyCell);
+        projectionContainerElement.appendChild(monthlyCell);
+        projectionContainerElement.appendChild(yearlyCell);
+    }
+
+
+}
+
 var publicCertFile = undefined;
 var privateCertFile = undefined;
 var publicSaved = 0, privateSaved = 0, certificateGenerated=0;
@@ -758,7 +810,7 @@ function saveSettings(config){
             }
             var response = request.responseText;
             if(request.status == 200){
-                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal(); setTimeout(location.reload,500)}}]);
+                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal(); setTimeout(window.location.reload,500)}}]);
             }
                             
         }
@@ -795,6 +847,12 @@ function restoreSettings() {
     }
 }
 
+function invalidateOnChange(componentId){
+    const element = document.getElementById(componentId);
+    if(element === null) return;
+    element.addEventListener('change', () => {pendingChanges = true});
+}
+
 
 function esp32_config_init(configDataSting){
     
@@ -821,6 +879,11 @@ function esp32_config_init(configDataSting){
     if(themeSelectorElement !== null){
         themeSelectorElement.addEventListener('change', (event) => setTheme(event.target.value));
     }
+    const loggingFrequencyElement = document.getElementById('device-logging-frequency');
+    if(loggingFrequencyElement !== null){
+        loggingFrequencyElement.addEventListener('change',(event) => showLoggingProjections(loggingFrequencyElement.value));
+    }
+
     if(configDataSting === "$_CONFIGURATION_DATA")
         persistedConfig = {};
     else 
@@ -855,8 +918,9 @@ function esp32_config_init(configDataSting){
     }
     if(persistedConfig.system.logging === undefined){
         persistedConfig.system.logging = {};
-        persistedConfig.system.logging.frequency = 60; //default to logging every minute
-        persistedConfig.system.logging.retention = 365; //default retention to 1 year
+        persistedConfig.system.logging.frequency = 5 * 60; //default to logging every 5 minutes
+        persistedConfig.system.logging.retention = 7; //default retention to 1 week
+        showLoggingProjections(persistedConfig.system.logging.frequency);
     }
 
     if(persistedConfig.server === undefined)
@@ -877,6 +941,38 @@ function esp32_config_init(configDataSting){
     hideLoading();
 
     //start checking for pending changes
+    invalidateOnChange('host-name');
+    invalidateOnChange('host-enable-ssl');
+    invalidateOnChange('host-enable-mdns');
+    invalidateOnChange('host-name');
+
+
+    invalidateOnChange('network-mode');
+    invalidateOnChange('wifi-network');
+    invalidateOnChange('wifi-network-password');
+    invalidateOnChange('wifi-network-dhcp-yes');
+    invalidateOnChange('wifi-network-dhcp-no');
+    
+    invalidateOnChange('wifi-network-name');
+    invalidateOnChange('wifi-network-password');
+    invalidateOnChange('wifi-network-ap-ip');
+    invalidateOnChange('wifi-network-ap-subnet');
+
+    invalidateOnChange('device-logging-frequency');
+    invalidateOnChange('device-logging-retention');
+
+    invalidateOnChange('ntp-host-name');
+    invalidateOnChange('time-zone');
+    invalidateOnChange('system-theme');
+
+    invalidateOnChange('disable-wifi-timer');
+    invalidateOnChange('certificate-source');
+
+    invalidateOnChange('source-nvs');
+    invalidateOnChange('source-spiffs');
+    
+    
+    
     checkPendingChanges();
     
 }
@@ -928,8 +1024,11 @@ function setTheme(theme){
 
 function checkPendingChanges(){
     const pendingElement = document.getElementById('pending-changes');
+    const saveButtonElement = document.getElementById('save-button');
     if(pendingElement === null) return;
     pendingElement.style.visibility = pendingChanges ? 'visible' : 'hidden';
+    saveButtonElement.disabled = !pendingChanges;
+
     setTimeout(checkPendingChanges, 500);
 }
 

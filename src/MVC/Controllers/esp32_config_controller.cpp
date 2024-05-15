@@ -14,7 +14,7 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     title = "Module Configuration Page";
 
     File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
-    StaticJsonDocument<1024> configDoc;
+    StaticJsonDocument<2048> configDoc;
     auto error = deserializeJson(configDoc, f);
     string configData;
     serializeJson(configDoc, configData);
