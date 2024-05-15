@@ -70,6 +70,7 @@ void deviceTask(void* params);
 #endif
 extern const int SERVER_STACK_SIZE = 1024*24;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 16;
+const TickType_t xDelay = 200 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -78,8 +79,10 @@ String freeBytesSTACKPretty("");
 //for starting and looping server task
 void serverTask(void* params) {
     server.start();
-    while (true)         
+    while (true) {
         server.step();
+         //vTaskDelay(xDelay);
+    }
 
     #ifdef DEBUG
     if(millis() - lastreport > 1000){
@@ -93,13 +96,20 @@ void serverTask(void* params) {
     #endif
 }
 
-
+unsigned long deviceLoopTime = 0;
 void deviceTask(void* params) {
-    const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
+    
     deviceManager.onInit();
 
     while(true){
+        #ifdef DEBUG
+        deviceLoopTime = millis();
+        #endif
         deviceManager.onLoop();
+
+        #ifdef DEBUG
+        Serial.printf("Device Loop took %lu ms.\n", millis() - deviceLoopTime);
+        #endif
         vTaskDelay(xDelay);
     }   
 

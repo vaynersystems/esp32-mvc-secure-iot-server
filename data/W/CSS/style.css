@@ -23,6 +23,12 @@ button:hover{
     background-color: #04193a;
     cursor: pointer;
 }
+button[disabled]{
+    background-color: rgb(199, 212, 231);
+    color:var(--primary-button-background);
+    min-width:90px;
+    cursor: not-allowed;
+}
 
 input,select{
     background: #eaf4ff;

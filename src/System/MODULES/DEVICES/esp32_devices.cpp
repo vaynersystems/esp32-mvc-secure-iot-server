@@ -1,6 +1,6 @@
 #include "esp32_devices.hpp"
 #include <esp32-hal-gpio.h>
-#include "ArduinoJson.h"
+
 #include <system_helper.h>
 #include <string_extensions.h>
 void esp32_devices::onInit()
@@ -17,8 +17,9 @@ void esp32_devices::onInit()
                 pinMode(_devices[idx].pin, INPUT_PULLUP);
                 //init one wire
                 oneWire = OneWire(_devices[idx].pin);
-                sensors.setOneWire(&oneWire);
+                sensors.setOneWire(&oneWire);                
                 sensors.begin();
+                sensors.setResolution(10); //9 bit takes 155ms, 12bit 810ms
                 break;
 
             case esp32_device_type::Switch:
@@ -40,9 +41,9 @@ void esp32_devices::onLoop()
     //if(millis() - _lastSnapshotTime < 500) return;
     //vector<esp32_device_collection_snapshot> snapshot;
 
-    StaticJsonDocument<2048> snapshot;
+    _snapshot.clear();
     
-    auto seriesEntry = snapshot.createNestedObject();
+    auto seriesEntry = _snapshot.createNestedObject();
     
     tm now = getDate();
     auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", now.tm_mon, now.tm_mday, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec);
@@ -332,7 +333,11 @@ vector<esp32_device_info> esp32_devices::getDevices()
         deviceConfig.id = devicesConfig[idx]["id"];
         deviceConfig.name = devicesConfig[idx]["name"].as<string>();
         deviceConfig.pin = devicesConfig[idx]["pin"];
-        if(!devicesConfig[idx]["trigger"].isNull()){
+        if(
+            !devicesConfig[idx]["trigger"].isNull() && 
+            !devicesConfig[idx]["trigger"]["source"].isNull() && 
+            !devicesConfig[idx]["trigger"]["type"].isNull()
+        ){
             deviceConfig.useTrigger = true;
             deviceConfig.triggerDeviceId = devicesConfig[idx]["trigger"]["source"];
             deviceConfig.triggerType = triggerTypeFromName(devicesConfig[idx]["trigger"]["type"]);
@@ -374,6 +379,16 @@ vector<esp32_device_info> esp32_devices::getDevices()
 
     return _devices;
 }
+
+StaticJsonDocument<2048> *esp32_devices::getLastSnapshot()
+{
+    return &_snapshot;
+}
+
+// vector<esp32_device_info> esp32_devices::getDeviceConfiguration()
+// {
+//     return _devices;
+// }
 
 bool esp32_devices::loadDeviceConfiguration()
 {

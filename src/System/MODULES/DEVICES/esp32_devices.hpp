@@ -27,15 +27,18 @@ public:
 
     void onDestroy();
 
+    StaticJsonDocument<2048>* getLastSnapshot();
+    //vector<esp32_device_info> getDeviceConfiguration();
+
 protected:
     bool loadDeviceConfiguration();
     
     //esp32_device_info GetDevice(int id);
     //vector<pair<int,bool>> GetDeviceStates();
-    template <typename T>
-    T getDeviceState(int id);
-    template <typename T>
-    bool setDeviceState(int id, T state);
+    // template <typename T>
+    // T getDeviceState(int id);
+    // template <typename T>
+    // bool setDeviceState(int id, T state);
 
     
 private:
@@ -48,8 +51,8 @@ private:
 
     void removeOldLogs();
 
-    template<typename T>
-    esp32_base_device<T>* getDevice(T type);
+    // template<typename T>
+    // esp32_base_device<T>* getDevice(T type);
     void logSnapshot(JsonObject snapshot);
 
     static JsonObject findDeviceState(JsonArray deviceStates, int deviceId);
@@ -73,7 +76,7 @@ private:
     /* For temperature sensors*/
     OneWire oneWire;
     
-    
+    StaticJsonDocument<2048> _snapshot;
     
 };
 
