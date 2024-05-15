@@ -43,11 +43,17 @@ private:
     vector<esp32_device_info> _devices;
     unsigned long _lastSnapshotTime = 0, _lastSnapshotStoreTime = 0;
 
+    unsigned long _snapshotFrequency = 60*1000;
+    int _retentionDays = 365;
+
+    void removeOldLogs();
+
     template<typename T>
     esp32_base_device<T>* getDevice(T type);
-    void logSnapshot(JsonArray snapshot);
+    void logSnapshot(JsonObject snapshot);
 
-    static JsonObject findDeviceState(JsonArray devices, int deviceId);
+    static JsonObject findDeviceState(JsonArray deviceStates, int deviceId);
+    static int findDeviceStateIndex(JsonArray deviceStates, int deviceId);
 
     bool getDesiredState(
         bool currentState,
@@ -58,6 +64,7 @@ private:
     );
 
     static esp32_device_type typeFromTypeName(const char * typeName);
+    static esp32_device_trigger_type triggerTypeFromName(const char * triggerTypeName);
 
     static bool isLessThan(JsonVariant value, double triggerValue, const char * type);
     static bool isGreaterThan(JsonVariant value, double triggerValue, const char * type);

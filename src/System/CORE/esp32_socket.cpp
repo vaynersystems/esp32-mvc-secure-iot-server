@@ -44,7 +44,7 @@ void esp32_socket::onMessage(WebsocketInputStreambuf * input){
     else 
         sendToAllClients(msg);
     #ifdef DEBUG
-    Serial.printf("Processed websocket message in %d ms\n", millis() - startTime);
+    Serial.printf("[%d] Processed websocket message in %d ms\n", this->_clientId, millis() - startTime);
     #endif
 }
 

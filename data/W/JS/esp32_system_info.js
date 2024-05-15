@@ -105,7 +105,7 @@ document.addEventListener('DOMContentLoaded', () => {
             label: 'Free Stack',
             borderColor: '#F70809',
             borderWidth: 1,
-            backgroundColor: 'rgba(127,124,210, .4)',
+            backgroundColor: 'rgba(247,8,8, .5)',
             field: 'STACK_FREE',
             fill: false,
             tension: 0.2
@@ -114,7 +114,7 @@ document.addEventListener('DOMContentLoaded', () => {
             label: 'Used Stack',
             borderColor: 'rgb(255, 99, 132)',
             borderWidth: 1,
-            backgroundColor: 'rgba(240,160,70, .3)',
+            backgroundColor: 'rgba(255, 99, 132, .5)',
             field: 'STACK_USED',
             fill: false,
             tension: 0.2
@@ -123,7 +123,7 @@ document.addEventListener('DOMContentLoaded', () => {
             label: 'Total Stack',
             borderColor: 'rgb(54, 162, 235)',
             borderWidth: 1,
-            backgroundColor: 'rgba(167, 162, 235, 0.1)',
+            backgroundColor: 'rgba(54, 162, 235, 0.5)',
             field: 'STACK_TOTAL',
             tension: 0.2
         }
@@ -132,22 +132,22 @@ document.addEventListener('DOMContentLoaded', () => {
     createChart('heap-chart',[
         {
             label: 'Free Heap',
-            borderColor: '#F70809',
-            backgroundColor: 'rgba(127,124,210, .4)',
+            borderColor: 'rgba(127,124,210, 1)',
+            backgroundColor: 'rgba(127,124,210, .5)',
             field: 'HEAP_FREE',
             tension: 0.2
         },
         {
             label: 'Used Heap',
-            borderColor: 'rgb(255, 99, 132)',
-            backgroundColor: 'rgba(255, 99, 132, 0.25)',
+            borderColor: 'rgb(223, 194, 32)',
+            backgroundColor: 'rgba(223, 194, 32, 0.75)',
             field: 'HEAP_USED',
             tension: 0.2
         },
         {
             label: 'Total Heap',
-            borderColor: 'rgb(54, 162, 235)',
-            backgroundColor: 'rgba(167, 162, 235, 0.1)',
+            borderColor: 'rgb(167, 162, 235)',
+            backgroundColor: 'rgba(167, 162, 235, 0.5)',
             field: 'HEAP_TOTAL',
             tension: 0.2
         }

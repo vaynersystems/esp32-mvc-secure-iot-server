@@ -1,6 +1,7 @@
 #ifndef _ESP32_BASE_DEVICE_H
 #define _ESP32_BASE_DEVICE_H
 #include "Arduino.h"
+//#include "esp32_abstract_device.hpp"
 enum esp32_device_type{
     Unknown = 0,
     Thermometer = 1,
@@ -11,11 +12,15 @@ enum esp32_device_type{
 };
 
 template<typename T>
-class esp32_base_device{
+class esp32_base_device{//} : public esp32_abstract_device{
 
 public:
     esp32_base_device<T>(int pin){
         _pin = pin;
+    }
+
+    virtual ~esp32_base_device(){
+
     }
 
         //initialization for uint16_t (analog) devices

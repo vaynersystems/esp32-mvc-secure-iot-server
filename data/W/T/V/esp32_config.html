@@ -25,6 +25,7 @@
             <div class="menu-header">System</div>
             <ul>
                 <li id="system">General</li>
+                <li id="logging">Logging</li>
                 <li id="ntp">NTP</li>
                 <li id="theme">Theme</li>
             </ul>
@@ -174,9 +175,41 @@
                 <div class="grid-2">
                     <span>Enable MDNS</span>
                     <input type="checkbox" name="host-enable-mdns" id="host-enable-mdns"/>                        
-                </div>               
+                </div>                           
             </div>
         </div>
+
+        <div class="section" name="logging">
+            <div class="section-header">Logging</div>
+            <div class="section-content">
+
+                <div class="grid-2">
+                    <span>Device Log Frequency</span>
+                    <select id="device-logging-frequency">
+                        <option value="15">15 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="300">5 minutes</option>
+                        <option value="900">15 minutes</option>
+                        <option value="1800">30 minutes</option>
+                        <option value="3600">1 hour</option>
+                    </select>                                           
+                </div>   
+                <div class="grid-2">
+                    <span>Device Log Retention</span>
+                    <select id="device-logging-retention">
+                        <option value="7">1 week</option>
+                        <option value="14">2 weeks</option>
+                        <option value="30">1 month</option>
+                        <option value="91">3 months</option>
+                        <option value="182">6 months</option>
+                        <option value="365">1 year</option>
+                        <option value="0">Forever</option>
+                    </select>                                           
+                </div>      
+            </div>
+        </div>
+        
         <div class="section" name="ntp">
             <div class="section-header">NTP</div>
             <div class="section-content">
@@ -370,7 +403,7 @@
                             </div>
                         </div> 
                         <div class="grid-2"  id="editor-device-duration-container">
-                            <span>Duration <span class="hint"> (in seconds)</span>
+                            <span>Duration <span class="hint"> (in seconds)</span></span>
                             <div>
                                 <input type="number" id="editor-device-duration" name="editor-device-duration">                               
                             </div>
