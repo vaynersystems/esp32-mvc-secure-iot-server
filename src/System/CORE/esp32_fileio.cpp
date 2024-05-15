@@ -237,7 +237,8 @@ bool esp32_fileio::CreateFile(const char * filename){
 size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipartBodyParser* parser, bool createIfNotFound){
     string name = filename;
     if(name[0] != '/') name = "/" + name;
-    if(!iequals(SITE_ROOT, name.c_str(),strlen(SITE_ROOT))){
+    if(!iequals(SITE_ROOT, name.c_str(),strlen(SITE_ROOT)) &&
+        !iequals(PATH_LOGGING_ROOT, name.c_str(),strlen(PATH_LOGGING_ROOT))){
         name = SITE_ROOT + name;
     }
 
@@ -267,7 +268,9 @@ bool esp32_fileio::DeleteFile(const char * filename){
        return false;
     }
     string name = filename;
-    if(!iequals(SITE_ROOT, filename, strlen(SITE_ROOT))){
+    if(!iequals(SITE_ROOT, filename, strlen(SITE_ROOT)) &&
+        !iequals(PATH_LOGGING_ROOT, name.c_str(),strlen(PATH_LOGGING_ROOT))
+    ){
         name = SITE_ROOT + name;
     }
     if (!SPIFFS.exists(name.c_str())) {
