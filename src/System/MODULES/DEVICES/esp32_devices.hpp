@@ -60,15 +60,15 @@ private:
         esp32_device_trigger_type triggerType, 
         JsonVariant value, 
         double triggerValue, 
-        const char * valueType
+        unsigned long triggerThreshold
     );
 
     static esp32_device_type typeFromTypeName(const char * typeName);
     static esp32_device_trigger_type triggerTypeFromName(const char * triggerTypeName);
 
-    static bool isLessThan(JsonVariant value, double triggerValue, const char * type);
-    static bool isGreaterThan(JsonVariant value, double triggerValue, const char * type);
-    static bool isEqualTo(JsonVariant value, double triggerValue, const char * type);
+    static bool isLessThan(bool currentState, JsonVariant value, double triggerValue, unsigned long triggerThreshold);
+    static bool isGreaterThan(bool currentState, JsonVariant value, double triggerValue, unsigned long triggerThreshold);
+    static bool isEqualTo(JsonVariant value, double triggerValue);
 
     /* For temperature sensors*/
     OneWire oneWire;
