@@ -23,11 +23,12 @@ public:
     esp32_device_type type;
     string name;
     int pin;
-    esp32_device_direction direction;
+    //esp32_device_direction direction;
     bool useTrigger = false;
     int triggerDeviceId = -1;
     esp32_device_trigger_type triggerType;
     double triggerValue;
+    unsigned long triggerThreshold;
     unsigned long duration;
     
     unsigned long _lastStartTime = 0;

@@ -264,13 +264,15 @@ function saveDevice(){
     device.type = modalElement.querySelector('#editor-device-type').value;
     device.pin = modalElement.querySelector('#editor-device-pin').value;
     device.signal = modalElement.querySelector('#editor-device-signal').value;
-    device.duration = modalElement.querySelector('#editor-device-duration').value;
+    if(device.type === 'Relay')
+        device.duration = modalElement.querySelector('#editor-device-duration').value;
     if(triggerSelector.checked){
     device.trigger = {};    
         device.trigger.active = triggerSelector.checked;
         device.trigger.source = modalElement.querySelector('#editor-device-trigger-source-device').value;
         device.trigger.type = modalElement.querySelector('#editor-device-trigger-type').value;
         device.trigger.value = modalElement.querySelector('#editor-device-trigger-value').value;
+        device.trigger.threshold = modalElement.querySelector('#editor-device-trigger-threshold').value;
     }
     console.log('saving device', device);
 
@@ -324,6 +326,8 @@ function showDeviceEditor(device){
     const deviceTriggerSourceElement = deviceEditorElement.querySelector('#editor-device-trigger-source-device');
     const deviceTriggerTypeElement = deviceEditorElement.querySelector('#editor-device-trigger-type'); 
     const deviceTriggerValueElement = deviceEditorElement.querySelector('#editor-device-trigger-value'); 
+    const deviceTriggerThresholdElement = deviceEditorElement.querySelector('#editor-device-trigger-threshold'); 
+    
     const triggerPanelElement = deviceEditorElement.querySelector('#editor-device-trigger-panel');
     const triggerContainerElement = deviceEditorElement.querySelector('#editor-device-use-trigger-container');
     const toggleTriggerElement = deviceEditorElement.querySelector('#editor-device-use-trigger');
@@ -411,6 +415,11 @@ function showDeviceEditor(device){
     if(deviceTriggerValueElement !== null){
         //deviceTriggerValueElement.setAttribute('value',device.trigger.value);
         deviceTriggerValueElement.value = device.trigger.value;
+    }
+
+    if(deviceTriggerThresholdElement !== null){
+        //deviceTriggerValueElement.setAttribute('value',device.trigger.value);
+        deviceTriggerThresholdElement.value = device.trigger.threshold;
     }
 
     
