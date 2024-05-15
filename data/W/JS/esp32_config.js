@@ -370,12 +370,12 @@ function showDeviceEditor(device){
     }
     if(deviceSignalElement !== null) {
         deviceSignalElement.setAttribute('value', device.signal);
-        if(device.signal.length > 0) deviceSignalElement.value = device.signal;
+        if(device.signal !== undefined && device.signal.length > 0) deviceSignalElement.value = device.signal;
     }
 
-    if(deviceDurationElement !== null) {
-        deviceDurationElement.setAttribute('value', device.duration);
-        if(device.duration.length > 0) deviceDurationElement.value = device.duration;
+    if(deviceDurationElement !== null && device.type == 'Relay') {
+        //deviceDurationElement.setAttribute('value', device.duration);
+        if(device.duration !== undefined && device.duration.length > 0) deviceDurationElement.value = device.duration;
     }
     
 
@@ -625,12 +625,18 @@ function loadSettings(){
     const ntpServerElement = document.getElementById('ntp-host-name');
     const timeZoneElement = document.getElementById('time-zone');
 
+    const loggingFrequencyElement = document.getElementById('device-logging-frequency');
+    const loggingRetentionElement = document.getElementById('device-logging-retention');
+
     if(hostNameElement !== null) hostNameElement.value = activeConfig.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
     if(timeZoneElement !== null) timeZoneElement.value = activeConfig.system.ntp.timezone;
 
     if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
     if(hostEnableMDNSElement !== null) hostEnableMDNSElement.value = activeConfig.system.enableMDNS;
+
+    if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
+    if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
@@ -666,8 +672,14 @@ function seveSettingsFromForm(){
     config.system.ntp.timezone = document.getElementById('time-zone').value;
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    const loggingFrequencyElement = document.getElementById('device-logging-frequency');
+    const loggingRetentionElement = document.getElementById('device-logging-retention');
+    
     if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
     if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
+
+    if(loggingFrequencyElement !== null) activeConfig.system.logging.frequency = loggingFrequencyElement.value;
+    if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
 
     const certificateSourceElement = document.querySelector('input[name="certificate-source"]:checked');
 
@@ -737,7 +749,7 @@ function saveSettings(config){
             }
             var response = request.responseText;
             if(request.status == 200){
-                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal();}}]);
+                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal(); setTimeout(location.reload,500)}}]);
             }
                             
         }
@@ -831,6 +843,11 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.ntp = {};
         persistedConfig.system.ntp.server = 'us.pool.ntp.org';
         persistedConfig.system.ntp.timezone = '-5';
+    }
+    if(persistedConfig.system.logging === undefined){
+        persistedConfig.system.logging = {};
+        persistedConfig.system.logging.frequency = 60; //default to logging every minute
+        persistedConfig.system.logging.retention = 365; //default retention to 1 year
     }
 
     if(persistedConfig.server === undefined)

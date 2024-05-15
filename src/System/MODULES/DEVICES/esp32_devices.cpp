@@ -3,7 +3,6 @@
 #include "ArduinoJson.h"
 #include <system_helper.h>
 #include <string_extensions.h>
-
 void esp32_devices::onInit()
 {
     loadDeviceConfiguration();
@@ -31,29 +30,34 @@ void esp32_devices::onInit()
                 break;
         }       
     }
+    Serial.println("Done initializing devices");
 }
 
 
 void esp32_devices::onLoop()
 {
-    if(millis() - _lastSnapshotTime < 1000) return;
+    //handled by task manager delay
+    //if(millis() - _lastSnapshotTime < 500) return;
     //vector<esp32_device_collection_snapshot> snapshot;
 
     StaticJsonDocument<2048> snapshot;
-
     
-    auto deviceArray = snapshot.to<JsonArray>();
+    auto seriesEntry = snapshot.createNestedObject();
+    
+    tm now = getDate();
+    auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", now.tm_mon, now.tm_mday, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec);
+    seriesEntry["time"] = date;
+    auto seriesEntries = seriesEntry["series"].to<JsonArray>();
     // get all devices. For each device, read value, store in object
     // if output device, determine desired state. set state if not already set to desired state. 
+
     /* Read all states */
     /* NOTE: could use arduino json's .is(T) method to test for type instead of storing manually */
     for (int idx = 0; idx < _devices.size(); idx++){        
         int pin = _devices[idx].pin;
         esp32_device_type type = _devices[idx].type;
-        JsonObject deviceSeriesEntry = deviceArray.createNestedObject();
-        tm now = getDate();
+        JsonObject deviceSeriesEntry = seriesEntries.createNestedObject();
         deviceSeriesEntry["id"] = _devices[idx].id;
-        deviceSeriesEntry["time"] = string_format("%02d/%02d/%d %02d:%02d:%02d", now.tm_mon, now.tm_mday, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec);
         // Serial.printf("Getting state of device id %d and type %s..", _devices[idx].id, 
         //     type == esp32_device_type::AnalogInput ? "Analog Input" :
         //     type == esp32_device_type::DigitalInput ? "Digital Input" :
@@ -61,7 +65,7 @@ void esp32_devices::onLoop()
         //     type == esp32_device_type::Switch ? "Switch" :
         //     type == esp32_device_type::Relay ? "Relay" : "Unknown"
         // );
-
+        
         switch(type){
             case esp32_device_type::AnalogInput:
             {
@@ -108,9 +112,12 @@ void esp32_devices::onLoop()
             break;
         }
     }
-    //TODO: make configurable parameter
-    if(millis() - _lastSnapshotStoreTime > 10000){
-        logSnapshot(deviceArray);
+    // Serial.printf("Checking if time passed (%u ms) is greater than configured frequency (%u ms)", 
+    //    millis() - _lastSnapshotStoreTime,
+    //     _snapshotFrequency
+    // );
+    if(millis() - _lastSnapshotStoreTime > _snapshotFrequency){
+        logSnapshot(seriesEntry);
         _lastSnapshotStoreTime = millis();
     }
     
@@ -126,22 +133,53 @@ void esp32_devices::onLoop()
                 if(!_devices[idx].useTrigger)
                     continue; //until scheduling is implemented, nothing to do for output device without trigger
 
+                // Serial.printf("Testing switch device for trigger %c %lf\n",
+                //     _devices[idx].triggerType == LessThan ? '<' : 
+                //         _devices[idx].triggerType == GreaterThan? '>' : '=',
+                //     _devices[idx].triggerValue);
                 auto device = esp32_switch_device(pin);
-                auto sourceDeviceState = findDeviceState(deviceArray, _devices[idx].triggerDeviceId);
-                auto destinationDeviceState = findDeviceState(deviceArray, _devices[idx].id);
+                auto sourceDeviceStateIdx = findDeviceStateIndex(seriesEntries, _devices[idx].triggerDeviceId);
+                auto destinationDeviceIdx = findDeviceStateIndex(seriesEntries, _devices[idx].id);
+
+                if(sourceDeviceStateIdx < 0 || destinationDeviceIdx < 0) 
+                    continue; //canot process
+
+                bool currentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+
+                // Serial.printf("Source Device Idx: %d, Destination Device Idx: %d\n", sourceDeviceStateIdx, destinationDeviceIdx);
+                // Serial.printf("Device Config:\n  ID: %d\n  Name: %s\n  Pin: %d\n  Trigger ID: %d\n  Trigger Value: %lf\n",
+                //     _devices[idx].id,
+                //     _devices[idx].name.c_str(),
+                //     _devices[idx].pin,
+                //     _devices[idx].triggerDeviceId,
+                //     _devices[idx].triggerValue
+                // );
 
                 //switch should maintain the state it had previously
                 bool shouldBeOn = getDesiredState(
-                    destinationDeviceState["value"].as<bool>(),
+                    seriesEntries[destinationDeviceIdx]["value"].as<bool>(),
                     _devices[idx].triggerType,
-                    sourceDeviceState["value"],
+                    seriesEntries[sourceDeviceStateIdx]["value"],
                     _devices[idx].triggerValue,
-                    sourceDeviceState["type"].as<const char *>()
+                    seriesEntries[sourceDeviceStateIdx]["type"].as<const char *>()
                 );
 
+                if(!currentState && shouldBeOn)
+                    Serial.printf("Turning %s ON at %s\n", _devices[idx].name.c_str(), date.c_str());
+                else if(currentState && !shouldBeOn)
+                    Serial.printf("Turning %s OFF at %s\n", _devices[idx].name.c_str(), date.c_str());
+
+
+                // Serial.printf(" Setting state to %s based on state from source device %d with value %f\n",
+                //     shouldBeOn ? "On" : "Off",
+                //     seriesEntries[sourceDeviceStateIdx]["id"].as<int>(),
+                //     seriesEntries[sourceDeviceStateIdx]["value"].as<double>() 
+                // );
+
                 //if desired state is different that current state, change it
-                if(destinationDeviceState["value"].as<bool>() != shouldBeOn)
-                    device.setValue(shouldBeOn); 
+                if(seriesEntries[destinationDeviceIdx]["value"].as<bool>() != shouldBeOn){
+                    device.setValue(shouldBeOn);                     
+                }
             }            
             break;
             case esp32_device_type::Relay:
@@ -152,23 +190,31 @@ void esp32_devices::onLoop()
                 //if relay is off:
                 //   1.  we will turn it on (same as "on 1.") is desired state is to turn on
                 //   2.  otherwise do nothing
-                auto device = esp32_relay_device(pin);
-                auto sourceDeviceState = findDeviceState(deviceArray, _devices[idx].triggerDeviceId);
-                auto destinationDeviceState = findDeviceState(deviceArray, _devices[idx].id);
+                auto device = esp32_relay_device(pin, _devices[idx]._lastStartTime);
+                auto sourceDeviceStateIdx = findDeviceStateIndex(seriesEntries, _devices[idx].triggerDeviceId);
+                auto destinationDeviceIdx = findDeviceStateIndex(seriesEntries, _devices[idx].id);
                 
+                if(sourceDeviceStateIdx < 0 || destinationDeviceIdx < 0) 
+                    continue; //canot process
                 //switch should maintain the state it had previously
+                bool currentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
                 bool shouldBeOn = getDesiredState(
-                    destinationDeviceState["value"].as<bool>(),
+                    currentState,
                     _devices[idx].triggerType,
-                    sourceDeviceState["value"],
+                    seriesEntries[sourceDeviceStateIdx]["value"],
                     _devices[idx].triggerValue,
-                    sourceDeviceState["type"].as<const char *>()
+                    seriesEntries[sourceDeviceStateIdx]["type"].as<const char *>()
                 );
+                if(!currentState && shouldBeOn)
+                    Serial.printf("Turning %s ON at %s\n", _devices[idx].name.c_str(), date.c_str());
 
-                if(shouldBeOn)
+                if(shouldBeOn){
                     device.setValue(true);
+                    _devices[idx]._lastStartTime = millis();
+                }
                 
-                device.turnOffIfTime(); //dont do it here, do it in set loop
+                if(device.turnOffIfTime(_devices[idx].duration)) //dont do it here, do it in set loop
+                    Serial.printf("Turned %s OFF at %s\n", _devices[idx].name.c_str(), date.c_str());
             }            
             break;
             //no output actions for input devices
@@ -242,6 +288,7 @@ bool esp32_devices::isGreaterThan(JsonVariant value, double triggerValue, const 
         bool sourceDeviceValue = value.as<bool>();
         return sourceDeviceValue > triggerValue;
     }
+    return false;
 }
 
 bool esp32_devices::isEqualTo(JsonVariant value, double triggerValue, const char *type)
@@ -261,43 +308,33 @@ bool esp32_devices::isEqualTo(JsonVariant value, double triggerValue, const char
         bool sourceDeviceValue = value.as<bool>();
         return sourceDeviceValue == triggerValue;
     }
+    return false;
 }
-
-// template<typename T>
-// inline esp32_base_device<T> *esp32_devices::getDevice(T type)
-// {
-//     switch(type){
-//             case esp32_device_type::AnalogInput:
-//                 return esp32_analog_input_device();
-//             break;
-//             case esp32_device_type::DigitalInput:
-//                 return esp32_digital_input_device();
-//             break;
-//             case esp32_device_type::Thermometer:
-            
-//             break;
-//             case esp32_device_type::Switch:
-            
-//             break;
-//             case esp32_device_type::Relay:
-            
-//             break;
-//             case esp32_device_type::Unknown:
-//             default:
-//                 return nullptr;
-//             break;
-//         }
-    
-// }
 
 JsonObject esp32_devices::findDeviceState(JsonArray deviceStates, int deviceId){
     for(JsonObject deviceState : deviceStates){
-        if(!deviceState["id"].isNull() && deviceState["id"].as<int>() == deviceId)
+        if(!deviceState["id"].isNull() && deviceState["id"].as<int>() == deviceId){            
             return deviceState;        
+        }
+            
     }
+    Serial.println("Not found");
     return JsonObject();
 }
 
+int esp32_devices::findDeviceStateIndex(JsonArray deviceStates, int deviceId)
+{
+    int idx = 0;
+    for(JsonObject deviceState : deviceStates){
+        if(!deviceState["id"].isNull() && deviceState["id"].as<int>() == deviceId){            
+            return idx;        
+        }
+        idx++;
+            
+    }
+    
+    return -1;
+}
 
 vector<esp32_device_info> esp32_devices::getDevices()
 {
@@ -312,94 +349,125 @@ vector<esp32_device_info> esp32_devices::getDevices()
         deviceConfig.id = devicesConfig[idx]["id"];
         deviceConfig.name = devicesConfig[idx]["name"].as<string>();
         deviceConfig.pin = devicesConfig[idx]["pin"];
-        deviceConfig.triggerDeviceId = devicesConfig[idx]["triggerDeviceId"];
-        deviceConfig.triggerType = devicesConfig[idx]["triggerType"];
-        deviceConfig.triggerValue = devicesConfig[idx]["triggerValue"];
-        deviceConfig.type = typeFromTypeName(devicesConfig[idx]["type"]);
-        deviceConfig.useTrigger = devicesConfig[idx]["useTrigger"];
+        if(!devicesConfig[idx]["trigger"].isNull()){
+            deviceConfig.useTrigger = true;
+            deviceConfig.triggerDeviceId = devicesConfig[idx]["trigger"]["source"];
+            deviceConfig.triggerType = triggerTypeFromName(devicesConfig[idx]["trigger"]["type"]);
+            deviceConfig.triggerValue = devicesConfig[idx]["trigger"]["value"];
+        }
+            
+        deviceConfig.type = typeFromTypeName(devicesConfig[idx]["type"]);       
+        if(deviceConfig.type == Relay)
+            deviceConfig.duration =  devicesConfig[idx]["duration"].isNull() ? 5000 : devicesConfig[idx]["duration"].as<int>() * 1000;
 
-        Serial.printf("Adding device to list:\n\tID: \t\t%d\n\tName: \t%s\n\tPin: \t\t%d\n\tDirection: \t%s\n\tHas Trigger: \t%s\n",
+        Serial.printf("Adding device to list:\n\tID: \t\t%d\n\t\tName: \t%s\n\tType: \t\t%s%s\n\tPin: \t\t%d\n\tDirection: \t%s\n\tHas Trigger: \t%s\n",
             deviceConfig.id,    
-            deviceConfig.name.c_str(),    
+            deviceConfig.name.c_str(),
+            deviceConfig.type == AnalogInput ? "Analog" :
+                deviceConfig.type == DigitalInput ? "Digital" :
+                deviceConfig.type == Thermometer ? "Thermometer" :
+                deviceConfig.type == Switch ? "Switch" : "Relay",
+            deviceConfig.type == Relay ? string_format("\n\tDuration: 't%d seconds",deviceConfig.duration / 1000).c_str() : "",
             deviceConfig.pin,    
             deviceConfig.direction == esp32_device_direction::Input ? "Input" : "Output",
             deviceConfig.useTrigger ? "Yes" : "No"
         );
 
+        
         _devices.push_back(deviceConfig);
     }
 
     return _devices;
 }
 
-// vector<pair<int, bool>> esp32_devices::GetDeviceStates()
-// {
-//     vector<pair<int, bool>> deviceStates;
-//     auto foundDevices = GetDevices();
-//     for(int idx=0; idx< foundDevices.size(); idx++){
-//         deviceStates.push_back(pair<int, bool>(foundDevices[idx].id, GetDeviceState<bool>(foundDevices[idx].id)));
-//     }
-//     return deviceStates;
-// }
-
 bool esp32_devices::loadDeviceConfiguration()
 {
+    StaticJsonDocument<2048> systemConfig;
+    esp32_config::getConfigSection("system", &systemConfig);   
+    if(!systemConfig["logging"].isNull()){
+        if(!systemConfig["logging"]["frequency"].isNull())
+            _snapshotFrequency = systemConfig["logging"]["frequency"].as<unsigned long>() * 1000;       
+
+        if(!systemConfig["logging"]["retention"].isNull() )
+        _retentionDays = systemConfig["logging"]["retention"].as<int>();
+    }
+    
     return getDevices().size() > 0;
 }
 
+void esp32_devices::removeOldLogs()
+{
+    //enuerate logs directory, remove files older than retention period (in days)
+    if(!SPIFFS.exists(PATH_LOGGING_ROOT)) return;
+    File logsDir = SPIFFS.open(PATH_LOGGING_ROOT);
+    if(!logsDir.isDirectory()) return;
+    Serial.printf("Removing files older than %d days\n", _retentionDays);
+    tm now = getDate(); 
+    time_t secondsNow = mktime(&now);
+    File file = logsDir.openNextFile();
+    while (file) {
+        if (file.isDirectory()) { //we're done with logs files
+            return;
+        }
+        else {
+            time_t lastWrite = file.getLastWrite();
+            if(secondsNow - lastWrite > _retentionDays * 24 * 60 * 60){
+                Serial.printf("Removing log file %s due to retention policy.\n", file.name());
+            } else {
+                Serial.printf("Keeping log file %s since it is %d days old", file.name(), (secondsNow - lastWrite)/(60*60*24));
+            }            
+        }
+        file = logsDir.openNextFile();
+        //esp_task_wdt_reset();
+    }
+}
 
-// template <typename T>
-// T esp32_devices::getDeviceState(int id)
-// {
-//     auto device = getDevice(id);
-//     // according to esp32-hal-gpio, pin state can be read even when its in output mode
-//     // so no need to set state.
-    
-//     auto analogChannel = digitalPinToAnalogChannel(device.pin);
-//     if(analogChannel >= 0)
-//         return analogRead(device.pin);
-    
-//     return digitalRead(device.pin);
-// }
-
-// template <typename T>
-// bool esp32_devices::SetDeviceState(int id, T state)
-// {
-//     auto device = GetDevice(id);
-//     if(device.direction != esp32_device_direction::Output)
-//         return false;
-
-//     //set pin mode, write output
-//     pinMode(device.pin, OUTPUT);
-//     digitalWrite(device.pin, state);
-//     return true;
-// }
-
-/// @brief For FUCKS SAKE!! the seek function does not work, so we cannot have a properly formatted json array with open and close brackets.
-/// @brief Need to work with file directly since loading existing records in log to json doc can overflow (at about 60 entries)
-/// @param snapshot 
-void esp32_devices::logSnapshot(JsonArray snapshot){
+/// @brief Create or append this frame to the daily snapshot file
+/// @param snapshot
+void esp32_devices::logSnapshot(JsonObject snapshot){
     if(snapshot.isNull() || snapshot.size() == 0) return;
     string snapshotString = "";
     serializeJson(snapshot, snapshotString);
     
     struct tm timeinfo = getDate();
     
-    // if(timeinfo.tm_year == 70)
-    //     return; // clock not initialized
-    string filename = string_format("%s/Devices_%d-%d-%d.log",PATH_LOGGING_ROOT, timeinfo.tm_year + 1900, timeinfo.tm_mon, timeinfo.tm_mday);
+    if(timeinfo.tm_year == 70)
+        return; // clock not initialized
+    string filename = string_format("%s/Devices_%04d-%02d-%02d.log",PATH_LOGGING_ROOT, timeinfo.tm_year + 1900, timeinfo.tm_mon, timeinfo.tm_mday);
 
     bool logFileExists =  SPIFFS.exists(filename.c_str());
-
-    File snapshotFile = SPIFFS.open(filename.c_str(),"a",true);
-    
-    if(logFileExists)
-        snapshotFile.print(',');
-    
-    Serial.printf("Adding snapshot data of length %d at position %d to today's snapshots.\n\n\n", snapshotString.length(), snapshotFile.position());
-    snapshotFile.print(snapshotString.c_str());
-    snapshotFile.println();       
-    snapshotFile.close();
+  
+    if(!logFileExists){ //new log file
+        //run cleanup
+        removeOldLogs();
+        File snapshotFile = SPIFFS.open(filename.c_str(),"w",true);
+        snapshotFile.print("[\n\t ");
+        snapshotFile.print(snapshotString.c_str());
+        snapshotFile.println();
+        snapshotFile.print(']');
+        Serial.printf("Saved first record to snapshot file %s\n", filename.c_str());
+        snapshotFile.close();
+    } else{
+        File snapshotFile = SPIFFS.open(filename.c_str(),"r+w",true);
+        int fileSize = snapshotFile.size();
+        int seekPos = fileSize - 2;
+        //Serial.printf("Seeking from position %d to position %d of %d in daily snapshot file .\n", snapshotFile.position(), seekPos, fileSize);
+        bool seekWorked = snapshotFile.seek(seekPos, SeekMode::SeekSet);
+        if(!seekWorked){
+            #ifdef DEBUG
+            Serial.println("Logging - Failed to seek. Aborting!");
+            #endif
+            return;
+        }
+        snapshotFile.print("\t,");
+        
+        // #ifdef DEBUG
+        // Serial.printf("Adding snapshot data of length %d at position %d to today's snapshots.\n\n\n", snapshotString.length(), snapshotFile.position(), snapshotString.c_str());
+        // #endif
+        snapshotFile.print(snapshotString.c_str());
+        snapshotFile.println();
+        snapshotFile.print(']');
+    }
     
     return;
 }
@@ -417,4 +485,14 @@ esp32_device_type esp32_devices::typeFromTypeName(const char * typeName){
     if(strcmp(typeName, "Relay") == 0)
         return esp32_device_type::Relay;
     return esp32_device_type::Unknown;
+}
+
+esp32_device_trigger_type esp32_devices::triggerTypeFromName(const char *triggerTypeName)
+{
+    if(strcmp(triggerTypeName,"<") == 0)
+        return  LessThan;
+    if(strcmp(triggerTypeName,"=") == 0)
+        return  Equals;
+    if(strcmp(triggerTypeName,">") == 0)
+        return  GreaterThan;
 }

@@ -27,7 +27,11 @@ public:
     bool useTrigger = false;
     int triggerDeviceId = -1;
     esp32_device_trigger_type triggerType;
-    double triggerValue;    
+    double triggerValue;
+    unsigned long duration;
+    
+    unsigned long _lastStartTime = 0;
+    //esp32_base_device<uint16_t> deviceInstance;  
 
 protected:
     

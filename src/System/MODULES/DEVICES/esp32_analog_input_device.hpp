@@ -4,6 +4,9 @@ class esp32_analog_input_device : public esp32_base_device<uint16_t>{
 public:
     esp32_analog_input_device(int pin) : esp32_base_device<uint16_t>(pin){
     }
+
+    ~esp32_analog_input_device(){
+    }
     
     uint16_t getValue();
 

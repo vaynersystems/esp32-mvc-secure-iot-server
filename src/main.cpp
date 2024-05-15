@@ -69,7 +69,7 @@ void deviceTask(void* params);
     #define ARDUINO_RUNNING_CORE 1
 #endif
 extern const int SERVER_STACK_SIZE = 1024*24;
-extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 12;
+extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 16;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -95,28 +95,28 @@ void serverTask(void* params) {
 
 
 void deviceTask(void* params) {
+    const TickType_t xDelay = 500 / portTICK_PERIOD_MS;
     deviceManager.onInit();
 
-    while(true)
+    while(true){
         deviceManager.onLoop();
-
-    
+        vTaskDelay(xDelay);
+    }   
 
 }
 
 void setup() {
     
-    //logging
+    //debug logging
     Serial.begin(115200);
     //spiffs
     disk.start();    
     //Connect to wifi
     wifi.start();     
     //Create Server
-    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 1, serverTaskHandle, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
 
-    //deviceManager.onInit();
-
+    //Create Device Manager
     xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
     //pinMode(LED_PIN, OUTPUT);
 
