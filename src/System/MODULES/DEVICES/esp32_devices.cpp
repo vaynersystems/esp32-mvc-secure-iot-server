@@ -375,37 +375,32 @@ bool esp32_devices::loadDeviceConfiguration()
 //     return true;
 // }
 
+/// @brief For FUCKS SAKE!! the seek function does not work, so we cannot have a properly formatted json array with open and close brackets.
+/// @brief Need to work with file directly since loading existing records in log to json doc can overflow (at about 60 entries)
+/// @param snapshot 
 void esp32_devices::logSnapshot(JsonArray snapshot){
     if(snapshot.isNull() || snapshot.size() == 0) return;
-
+    string snapshotString = "";
+    serializeJson(snapshot, snapshotString);
     
     struct tm timeinfo = getDate();
     
-    if(timeinfo.tm_year == 70)
-        return; // clock not initialized
+    // if(timeinfo.tm_year == 70)
+    //     return; // clock not initialized
     string filename = string_format("%s/Devices_%d-%d-%d.log",PATH_LOGGING_ROOT, timeinfo.tm_year + 1900, timeinfo.tm_mon, timeinfo.tm_mday);
 
-    File snapshotFile = SPIFFS.open(filename.c_str(),"r");
-    int docSize = (snapshotFile.size() * 1.7);
-    DynamicJsonDocument doc(docSize);
+    bool logFileExists =  SPIFFS.exists(filename.c_str());
 
-    auto err = deserializeJson(doc, snapshotFile);
+    File snapshotFile = SPIFFS.open(filename.c_str(),"a",true);
+    
+    if(logFileExists)
+        snapshotFile.print(',');
+    
+    Serial.printf("Adding snapshot data of length %d at position %d to today's snapshots.\n\n\n", snapshotString.length(), snapshotFile.position());
+    snapshotFile.print(snapshotString.c_str());
+    snapshotFile.println();       
     snapshotFile.close();
-    if(err.code() != ESP_OK){
-        Serial.printf("Error occured reading snapshot data: %s\n", err.c_str());
-    }
-    JsonArray docArray;
-    if(doc.size() > 0) 
-        docArray = doc.as<JsonArray>();
-    else 
-        docArray = doc.to<JsonArray>();
-    Serial.printf("Adding snapshot to %d existing snapshots for today with. Allocated %d bytes. Actual doc size %d bytes\n", docArray.size(), docSize, doc.memoryUsage());
-    docArray.add(snapshot);
-
-    snapshotFile = SPIFFS.open(filename.c_str(),"w");
-    //snapshotFile.seek(0);
-    serializeJson(doc, snapshotFile);
-    snapshotFile.close();
+    
     return;
 }
 
