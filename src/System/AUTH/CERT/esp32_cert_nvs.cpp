@@ -41,7 +41,7 @@ void esp32_cert_nvs::loadCertificates()
         generateCert("esp32-dev","Fun company");
         return;
     } else{
-        Serial.println("Certificates found in NVS... retrieveing");
+        logger.logDebug("Certificates found in NVS... retrieveing");        
     }
     
     bool errorReadingCert = false;
@@ -51,33 +51,33 @@ void esp32_cert_nvs::loadCertificates()
     uint16_t publicLength, privateLength;
 
     if(nvs_get_u16(storage_handle, NVS_CERT_LENGTH_FIELD,&publicLength) != ESP_OK){
-        Serial.printf("Error, failed to get public key length from NVS reading field %s\n", NVS_CERT_LENGTH_FIELD);
+        logger.logError(string_format("Error, failed to get public key length from NVS reading field %s", NVS_CERT_LENGTH_FIELD));        
         errorReadingCert = true;
     }
 
     if(nvs_get_u16(storage_handle,NVS_KEY_LENGTH_FIELD ,&privateLength) != ESP_OK){
-        Serial.printf("Error, failed to get private key length from NVS reading field %s\n", NVS_KEY_LENGTH_FIELD);
+        logger.logError(string_format("Error, failed to get private key length from NVS reading field %s", NVS_KEY_LENGTH_FIELD));
         errorReadingCert = true;
     }
 
-    Serial.printf("Loading certificate from NVS with length of %u and private key length of %u\n", 
-        publicLength, privateLength    
-    );
+    logger.logInfo(string_format("Loading certificate from NVS with length of %u and private key length of %u", 
+        publicLength, privateLength
+    ));
 
     publicKey = new char[publicLength];
     privateKey = new char[privateLength];
 
     if (nvs_get_blob(storage_handle, NVS_CERT_FIELD, publicKey, (size_t*)&publicLength) == ESP_OK) {
-        ESP_LOGI(TAG, "Successfully read blob from NVS: name:%s, id:%d", read_blob.name, read_blob.id);
+        logger.logDebug(string_format("Successfully read blob from NVS: %s", NVS_CERT_FIELD));
     } else {
-        Serial.printf("Error reading public certificate from NVS. ");
+        logger.logError("Error reading public certificate from NVS.");
         errorReadingCert = true;
         //ESP_LOGE(TAG, "Failed to read blob from NVS");
     }
     if (nvs_get_blob(storage_handle,NVS_KEY_FIELD , privateKey, (size_t*)&privateLength) == ESP_OK) {
-        ESP_LOGI(TAG, "Successfully read blob from NVS: name:%s, id:%d", read_blob.name, read_blob.id);
+        logger.logDebug(string_format("Successfully read blob from NVS: %s", NVS_KEY_FIELD));
     } else {
-        Serial.printf("Error reading private certificate from NVS. ");
+        logger.logError("Error reading private certificate from NVS.");
         errorReadingCert = true;
         //ESP_LOGE(TAG, "Failed to read blob from NVS");
     }
@@ -104,26 +104,26 @@ void esp32_cert_nvs::saveCertificates(){
     err = nvs_commit(storage_handle);
 
     if(err != ESP_OK){
-        Serial.println("Failed to store public key in NVS");
+        logger.logError("Failed to store public key in NVS");
     }
 
     nvs_set_blob(storage_handle, NVS_KEY_FIELD, _cert->getPKData(), _cert->getPKLength());
     err = nvs_commit(storage_handle);
     if(err != ESP_OK){
-        Serial.println("Failed to store private key in NVS");
+        logger.logError("Failed to store private key in NVS");
     }
     
     //store size info
     nvs_set_u16(storage_handle, NVS_CERT_LENGTH_FIELD, _cert->getCertLength());
     err = nvs_commit(storage_handle);
     if(err != ESP_OK){
-        Serial.println("Failed to store public key length in NVS");
+        logger.logError("Failed to store public key length in NVS");
     }
     nvs_set_u16(storage_handle, NVS_KEY_LENGTH_FIELD, _cert->getPKLength());
 
     err = nvs_commit(storage_handle);
     if(err != ESP_OK){
-        Serial.println("Failed to store private key length in NVS");
+        logger.logError("Failed to store private key length in NVS");
     }
 
     nvs_close(storage_handle);
@@ -131,7 +131,7 @@ void esp32_cert_nvs::saveCertificates(){
 
 bool esp32_cert_nvs::importFromTemporary()
 {
-    Serial.println("[CERT_NVS] Importing certificats from temporary storage");
+    logger.logDebug("Importing certificats from temporary storage");    
     File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "r");
     File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "r");
 

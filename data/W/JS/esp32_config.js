@@ -6,13 +6,7 @@ var selectedSection;
 
 
 function selectView(section){
-    if(pendingChanges){
-        const retval = confirm("Are you sure you want to quit without saving changes?")
-        if(retval === false)
-            return;
-    }
-    pendingChanges = false;
-
+    
     if(selectedSection !== undefined)
     {
         var currentlyActiveSection = document.getElementById(selectedSection);
@@ -457,11 +451,13 @@ function showLoggingProjections(frequency){
     const messageLength = 32;
 
     const projectionContainerElement = document.getElementById('device-logging-projection');
+    
     if(projectionContainerElement === null) return;
     projectionContainerElement.innerHTML = '';
     for(var deviceCount = 1; deviceCount < 8; deviceCount++){
         const entriesPerDay = ((24*3600)/frequency) * deviceCount;
         const bytesPerDay = entriesPerDay * 32 + 35;
+        const projectionRowElement = document.createElement('div');
         const deviceCell = document.createElement('div');
         const dailyCell = document.createElement('div');
         const weeklyCell = document.createElement('div');
@@ -476,11 +472,14 @@ function showLoggingProjections(frequency){
         monthlyCell.style.color = getProjectionColor(bytesPerDay * 30);
         yearlyCell.textContent = formatByte(bytesPerDay * 365);
         yearlyCell.style.color = getProjectionColor(bytesPerDay * 365);
-        projectionContainerElement.appendChild(deviceCell); 
-        projectionContainerElement.appendChild(dailyCell);
-        projectionContainerElement.appendChild(weeklyCell);
-        projectionContainerElement.appendChild(monthlyCell);
-        projectionContainerElement.appendChild(yearlyCell);
+        projectionRowElement.className = "grid-row grid-5";
+
+        projectionRowElement.appendChild(deviceCell); 
+        projectionRowElement.appendChild(dailyCell);
+        projectionRowElement.appendChild(weeklyCell);
+        projectionRowElement.appendChild(monthlyCell);
+        projectionRowElement.appendChild(yearlyCell);
+        projectionContainerElement.appendChild(projectionRowElement);
     }
 
 
@@ -687,7 +686,8 @@ function loadSettings(){
     const timeZoneElement = document.getElementById('time-zone');
 
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
-    const loggingRetentionElement = document.getElementById('device-logging-retention');
+    const loggingRetentionElement = document.getElementById('logging-retention');
+    const loggingLevelElement = document.getElementById('logging-level');
 
     if(hostNameElement !== null) hostNameElement.value = activeConfig.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
@@ -698,6 +698,7 @@ function loadSettings(){
 
     if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
+    if(loggingLevelElement !== null) loggingLevelElement.value = activeConfig.system.logging.level;
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
@@ -734,13 +735,15 @@ function seveSettingsFromForm(){
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
-    const loggingRetentionElement = document.getElementById('device-logging-retention');
+    const loggingRetentionElement = document.getElementById('logging-retention');
+    const loggingLevelElement = document.getElementById('logging-level');
     
     if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
     if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
 
     if(loggingFrequencyElement !== null) activeConfig.system.logging.frequency = loggingFrequencyElement.value;
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
+    if(loggingLevelElement !== null) activeConfig.system.logging.level = loggingLevelElement.value;
 
     const certificateSourceElement = document.querySelector('input[name="certificate-source"]:checked');
 
@@ -810,7 +813,19 @@ function saveSettings(config){
             }
             var response = request.responseText;
             if(request.status == 200){
-                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {reset(true);closeModal(); setTimeout(window.location.reload,500)}}]);
+                pendingChanges = false;
+                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', 
+                [
+                    {text:'No',action: () => { closeModal();} }, 
+                    {
+                        text:'Yes', 
+                        action: () => {
+                            reset(true);closeModal(); 
+                            setTimeout( reload,2000)
+                        }
+                    }
+
+                ]);
             }
                             
         }
@@ -819,7 +834,9 @@ function saveSettings(config){
     showWait('page');
 }
 
-
+function reload(){
+    window.location.reload();
+}
 
 function restoreSettings() {
     var input = document.getElementById("restoreSettings");
@@ -920,8 +937,9 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.logging = {};
         persistedConfig.system.logging.frequency = 5 * 60; //default to logging every 5 minutes
         persistedConfig.system.logging.retention = 7; //default retention to 1 week
-        showLoggingProjections(persistedConfig.system.logging.frequency);
+        persistedConfig.system.logging.level = 2; //default to logging errors, warnings, and info        
     }
+    showLoggingProjections(persistedConfig.system.logging.frequency);
 
     if(persistedConfig.server === undefined)
         persistedConfig.server = {};
@@ -959,7 +977,8 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('wifi-network-ap-subnet');
 
     invalidateOnChange('device-logging-frequency');
-    invalidateOnChange('device-logging-retention');
+    invalidateOnChange('logging-retention');
+    invalidateOnChange('logging-level');
 
     invalidateOnChange('ntp-host-name');
     invalidateOnChange('time-zone');
@@ -971,7 +990,7 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('source-nvs');
     invalidateOnChange('source-spiffs');
     
-    
+    pendingChanges = false;
     
     checkPendingChanges();
     

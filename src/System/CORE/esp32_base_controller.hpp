@@ -70,6 +70,7 @@ class esp32_base_controller {
                 Index(req, res);
             }
         }
+        
         virtual void GetActions(vector<string> *actions){
             if((*this).isIndexImplemented()) actions->push_back("index");
             if((*this).isListImplemented()) actions->push_back("list");
@@ -77,9 +78,8 @@ class esp32_base_controller {
             if((*this).isPostImplemented()) actions->push_back("post");
             if((*this).isDeleteImplemented()) actions->push_back("delete");
             if((*this).isOptionsImplemented()) actions->push_back("options");
-        // }
-               
         }
+
         virtual bool HasAction(const char * action){
             if(iequals(action, "index", 5)) return this->isIndexImplemented();
             if(iequals(action, "list",4)) return this->isListImplemented();

@@ -1,7 +1,9 @@
 #ifndef _ESP32_CERT_BASE_H
 #define _ESP32_CERT_BASE_H
 #include <SSLCert.hpp>
+#include <System/MODULES/LOGGING/esp32_logging.hpp>
 using namespace httpsserver;
+extern esp32_logging logger;
 class esp32_cert_base{
 
 public:
@@ -22,7 +24,7 @@ public:
 
     virtual void loadCertificates(){};
     virtual void saveCertificates(){};
-    virtual bool importFromTemporary(){};
+    virtual bool importFromTemporary(){return false;};
     virtual void generateCert(
         const char* deviceName = "myesp32.local",
         const char* companyName = "Fancy Co",

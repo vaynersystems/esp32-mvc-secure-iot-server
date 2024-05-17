@@ -624,7 +624,7 @@ string esp32_router::handleServiceRequest(esp32_service_route route){
     auto service = serviceFactory->createInstance(route);
     if (service == NULL)
     {
-        Serial.println("Service not found");
+        Serial.printf("Service %s not found\n", route.service.c_str());
         return "error";
     }
 

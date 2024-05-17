@@ -21,7 +21,7 @@ void esp32_cert_spiffs::loadCertificates()
         generateCert("esp32-dev","Fun company");
         return;
     } else{
-        Serial.println("Certificates found in SPIFFS... retrieveing");
+        logger.logDebug("Certificates found in SPIFFS... retrieveing");
     }
     
     bool errorReadingCert = false;
@@ -79,7 +79,7 @@ void esp32_cert_spiffs::saveCertificates(){
 
 bool esp32_cert_spiffs::importFromTemporary()
 {
-    Serial.println("[CERT_SPIFFS] Importing certificats from temporary storage");
+    logger.logDebug("[CERT_SPIFFS] Importing certificats from temporary storage");
 
     File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "r");
     File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "r");

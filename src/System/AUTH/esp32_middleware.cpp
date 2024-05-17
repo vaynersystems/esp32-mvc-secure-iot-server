@@ -54,9 +54,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             reqPassword = password;
         }
         else {
-            #ifdef DEBUG
-            Serial.printf("Error %d deserializing json: %s\n", err.code(), err.c_str());
-            #endif
+            logger.logError(string_format("Middleware Authentication error %d deserializing json: %s", err.code(), err.c_str()));            
         }
         
 
@@ -80,7 +78,8 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                //Serial.printf("Authentication for: %s : %s\n", info.username.c_str(), info.authenticated ? "VALID" : "INVALID");
+                logger.logInfo(string_format("Authentication for: %s : %s\n", info.username.c_str(), info.authenticated ? "VALID" : "INVALID"), auth);
+                
                 
                 // if authentication was successful issue JWT token
                 if (info.authenticated) {
@@ -100,8 +99,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     //verify
                     string strippedToken = jwtToken.substr(7).c_str();
                     if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
-                        std::string message = "[ERROR]  *** Failed to encode JWT token. Security validation Failed.";
-                        res->print(message.c_str());
+                        logger.logInfo("[ERROR]  *** Failed to encode JWT token. Security validation Failed.", auth);
                     }
                     else {
 
@@ -183,8 +181,11 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     vector<string> chunks = explode(cookieHeader,";",true);
     for(size_t idx = 0; idx < chunks.size(); idx++){
         vector<string> parts = explode(chunks[idx],"=");
-        if(parts.size() == 1) //no name
+        if(parts.size() == 1){ //no name
+            #ifdef DEBUG
             Serial.printf("Invalid cookie parsed without name %s\n", parts[0].c_str());
+            #endif
+        }
         else if(strcmp(parts[0].c_str(),"auth") == 0){
             jwtTokenFromCookie = parts[1];
             //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
@@ -226,8 +227,15 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     jwtDecodedString.reserve(jwtToken.length() * 4);    
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
-
-    //Serial.printf("**Authorization**\t Decoded: %s\nJWT Encoded: %s\nJWT Decoded: %s\n", decodeResult ? "Yes" : "No", jwtToken.c_str(), jwtDecodedString.c_str());
+    logger.log(
+        string_format(
+            "**Authorization**\\t Decoded: %s\\nJWT Encoded: %s\\nJWT Decoded: %s\\n", decodeResult ? "Yes" : "No",
+            jwtToken.c_str(),
+            jwtDecodedString.c_str()
+        ),
+        auth, 
+        debug
+    );
     if (decodeResult) {        
         DynamicJsonDocument doc(jwtDecodedString.length() * 2);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
@@ -259,7 +267,17 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
                       
             }
         }
-        //else Serial.printf("ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s\n Details: %s", jwtDecodedString.c_str(), err.code(), err.c_str());
+        else    
+            logger.log(
+                string_format(
+                    "ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s   Details: %s",
+                    err.code(),
+                    jwtDecodedString.c_str(),
+                    err.c_str()
+                ),
+                auth, 
+                error
+            );        
         
     }
     // Everything else will be allowed, so we call next()

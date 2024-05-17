@@ -20,7 +20,7 @@ class esp32_base_service {
 
         
         /// @brief Execute service action. Service will use parameters from route
-        virtual string Execute(){};
+        virtual string Execute(){ return string_format("Service %s's Execute method not implemented", route.service.c_str());}
 
         void SetRoute(esp32_service_route reqRoute) {
             route = esp32_service_route(reqRoute);

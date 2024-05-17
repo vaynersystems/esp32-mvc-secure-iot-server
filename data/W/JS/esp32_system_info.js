@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log(persistanceSocket);
 
     //initialize charts
-    createChart('stack-chart',[
+    createRealtimeChart('stack-chart',[
         {
             label: 'Free Stack',
             borderColor: '#F70809',
@@ -129,7 +129,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     ], onRefresh, onticksFormatBytes);
 
-    createChart('heap-chart',[
+    createRealtimeChart('heap-chart',[
         {
             label: 'Free Heap',
             borderColor: 'rgba(127,124,210, 1)',
