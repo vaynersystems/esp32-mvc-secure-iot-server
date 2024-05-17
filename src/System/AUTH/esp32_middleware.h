@@ -14,9 +14,10 @@
 #include <HTTPBodyParser.hpp>
 #include <HTTPMultipartBodyParser.hpp>
 #include <HTTPURLEncodedBodyParser.hpp>
+#include <System/MODULES/LOGGING/esp32_logging.hpp>
 using namespace httpsserver;
 
-
+extern esp32_logging logger;
 
 
 class esp32_middleware

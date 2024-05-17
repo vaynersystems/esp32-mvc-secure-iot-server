@@ -30,7 +30,14 @@ SPIFFS_Info esp32_fileio::getMemoryInfo(){
     return info;
 }
 
-void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format) {
+/// @brief List files on the file system. Can be filtered to a path, and search string.
+/// @param fs File system to use. (e.g. SPIFFS, LittleFS)
+/// @param writeTo any object that inherits from Print class
+/// @param dirname name of directory to list. leave empty to list all files
+/// @param levels number of levels to traverse
+/// @param format text or json format
+/// @param searchString substring to match. leading ! will exclude search results matching @ref `searchString`
+void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format, const char* searchString) {
     if (format == HTTP_FORMAT::JSON) {
         bool first = true;
         File root = fs.open(dirname);
@@ -46,10 +53,21 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
             if (file.isDirectory()) {
                 writeTo->print(file.name());
                 if (levels) {
-                    esp32_fileio::listDir(fs, writeTo, file.name(), levels - 1,format);
+                    esp32_fileio::listDir(fs, writeTo, file.name(), levels - 1,format, searchString);
                 }
             }
             else {
+                if(strlen(searchString) > 0 && (
+                        (searchString[0] != '!' && strstr(file.name(),searchString) == nullptr) ||
+                        (searchString[0] == '!' && strstr(file.name(),string(searchString).substr(1).c_str()) != nullptr) 
+                    )
+                )
+                {
+                    Serial.printf("Excluding file %s\n", file.name());
+                    file = root.openNextFile();
+                    continue; //doesn't match
+                }
+                    
                 if (first) {
                     first = false;
                 }
@@ -58,7 +76,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                 char buff[20];
                 time_t lastWrite = file.getLastWrite();
                 strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&lastWrite));
-                writeTo->printf("{\"type\": \"file\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\"}", file.name() + 1, file.size(), buff);
+                writeTo->printf("{\"type\": \"file\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\"}", file.name(), file.size(), buff);
             }
             file = root.openNextFile();
             //esp_task_wdt_reset();

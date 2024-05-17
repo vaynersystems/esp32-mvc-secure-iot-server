@@ -1,16 +1,13 @@
 let deviceService = new esp32_socket('devices');
 let dataAvailable = 0;
 let lastLiveDataFrame = null;
+let devices =[];
 
 function onSnapshotData(event){
     if(event.data === null || event.data === undefined) return;
-    // {"time":"04/15/2024 09:13:00","series":[{"id":1,"value":76.88749695,"type":"double"},{"id":2,"value":true,"type":"bool"}]}
     //update chart stream data
     lastLiveDataFrame = JSON.parse(event.data);
-    dataAvailable = 2;
-    //update uptime clock
-    updateUptime(lastLiveDataFrame.UPTIME);
-    updateStackAndHeap();
+    dataAvailable = devices.length;   
 }
 
 
@@ -18,12 +15,12 @@ function updateStatus(){
     const connectionStatusElement = document.getElementById('connection-status');
     if(connectionStatusElement === null) return;
     
-    deviceService.send(''); //anything other than ping to this service will return memory usage
+    deviceService.send('snapshot'); // request snapshot
     connectionStatusElement.innerHTML = printStateName( deviceService.socket.readyState);
 
     if(deviceService.socket.readyState == 3) //closed
-        deviceService.connect( serverMessage);
-    setTimeout(updateStatus, 500);
+        deviceService.connect( onSnapshotData);
+    setTimeout(updateStatus, 5000);
 }
 
 function printStateName(state){
@@ -45,67 +42,47 @@ function printStateName(state){
 document.addEventListener('DOMContentLoaded', () => {
     
     lastLiveDataFrame = {};
-    deviceService.connect(serverMessage);
+    deviceService.connect(onSnapshotData);
     setTimeout(updateStatus, 1000);
     console.log(deviceService);
 
-    //initialize charts
-    createChart('stack-chart',[
-        {
-            label: 'Free Stack',
-            borderColor: '#F70809',
-            borderWidth: 1,
-            backgroundColor: 'rgba(247,8,8, .5)',
-            field: 'STACK_FREE',
-            fill: false,
-            tension: 0.2
-        },
-        {
-            label: 'Used Stack',
-            borderColor: 'rgb(255, 99, 132)',
-            borderWidth: 1,
-            backgroundColor: 'rgba(255, 99, 132, .5)',
-            field: 'STACK_USED',
-            fill: false,
-            tension: 0.2
-        },
-        {
-            label: 'Total Stack',
-            borderColor: 'rgb(54, 162, 235)',
-            borderWidth: 1,
-            backgroundColor: 'rgba(54, 162, 235, 0.5)',
-            field: 'STACK_TOTAL',
-            tension: 0.2
-        }
-    ], onRefresh, onticksFormatBytes);
 
-    createChart('heap-chart',[
-        {
-            label: 'Free Heap',
-            borderColor: 'rgba(127,124,210, 1)',
-            backgroundColor: 'rgba(127,124,210, .5)',
-            field: 'HEAP_FREE',
-            tension: 0.2
-        },
-        {
-            label: 'Used Heap',
-            borderColor: 'rgb(223, 194, 32)',
-            backgroundColor: 'rgba(223, 194, 32, 0.75)',
-            field: 'HEAP_USED',
-            tension: 0.2
-        },
-        {
-            label: 'Total Heap',
-            borderColor: 'rgb(167, 162, 235)',
-            backgroundColor: 'rgba(167, 162, 235, 0.5)',
-            field: 'HEAP_TOTAL',
-            tension: 0.2
-        }
-    ], onRefresh, onticksFormatBytes);
+    //creating a chart for each device
+    for(const device of devices){
+        createChartContainer(device.name);
+        var r = Math.random() * 255, g = Math.random() * 255, b = Math.random()*255;
 
+        createRealtimeChart(device.name + '-chart',[
+            {
+                label: device.name,
+                tension: 0.2,
+                deviceId: device.id,
+                borderColor: 'rgba(' + r + ',' + g + ',' + b + ', 1)',
+                backgroundColor: 'rgba(' + r + ',' + g + ',' + b + ', .7)',
+            }
+        ], onRefresh);
+        
+    }
     
 }, false);
 
+function createChartContainer(deviceName){
+    const chartsContainerElement = document.getElementById('charts-container');
+    const chartContainerElement = document.createElement('div');
+    const chartHeaderElement = document.createElement('div');   
+    const chartDetailElement = document.createElement('div');
+    const chartElement = document.createElement('canvas');
+    chartContainerElement.className = 'grow';
+    chartHeaderElement.className = 'header-sub';
+    chartHeaderElement.textContent = deviceName;
+    chartDetailElement.className = 'details grow';
+    chartElement.id = deviceName + '-chart';
+
+    chartDetailElement.appendChild(chartElement);
+    chartContainerElement.appendChild(chartHeaderElement);
+    chartContainerElement.appendChild(chartDetailElement);
+    chartsContainerElement.appendChild(chartContainerElement);
+}
 
 function onRefresh(chart) {
     if(deviceService.socket.readyState !== 1) return; //if socket is not open, nothing to do.
@@ -114,20 +91,16 @@ function onRefresh(chart) {
     chart.data.datasets.forEach(ds => {
         ds.data.push({
             x: Date.now(),
-            y: lastLiveDataFrame[ds.field]    
+            y: getLastValue(ds.deviceId)    
         })
     });
     if(dataAvailable > 0) dataAvailable--; // keep track of 2 data points
 }
 
-function onticksFormatBytes(value,index,ticks){        
-    return formatByte(value);
-}
-
-function formatByte(value){
-    if(value/1024/1024 > 1.05)
-        return Math.round((value/1024/1024) * 100) / 100 + ' MB';
-    if(value/1024 > 1.05)
-        return Math.round((value/1024) * 100) / 100 + ' KB';
-    return value + ' B';
+function getLastValue(deviceId){
+    const frameTime = lastLiveDataFrame["time"];
+    const frameDevices = lastLiveDataFrame["series"];
+    const device = frameDevices.find(d => d.id == deviceId);
+    if(device === undefined) return;
+    return device.value;
 }

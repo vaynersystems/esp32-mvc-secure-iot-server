@@ -7,7 +7,7 @@
 #define TEMPLE_VAR_COUNT 50
 
 #define SOCKET_MAX 5 //we should only have one client connected to a socket since the scope of the socket is user-browser
-#define DEBUG
+//#define DEBUG
 #define PATH_AUTH_FILE "/INT/authorized.dat"
 #define PATH_SYSTEM_CONFIG "/INT/system_config.json"
 #define PATH_PUBLIC_PAGES "/INT/public_pages.txt"

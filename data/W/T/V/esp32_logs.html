@@ -1,0 +1,26 @@
+<link rel="stylesheet" href="/CSS/grid.css">
+<script type="text/javascript" src="/JS/T/grid.js"></script>
+<script type="text/javascript" src="/JS/esp32_logs.js"></script>
+<style>
+    button{
+        color:rgb(18, 16, 36);
+        min-width: auto;
+    }
+    button.gridjs-spread {
+        display: none;
+    }
+</style>
+<div class="section">
+    <div class="header">Logs</div>   
+    <div class="grid-2">
+        <div>Select a log to view it</div>
+        <select id="log-files"></select>
+    </div>    
+    <div id="logs-container">
+    </div>
+</div>    
+</div>
+<script type="text/javascript">
+    let logFileText = '$_LOGFILES';    
+    if(logFileText[0] !== '$') logFiles = JSON.parse(logFileText);
+</script>

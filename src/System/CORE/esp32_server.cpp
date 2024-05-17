@@ -24,9 +24,10 @@ bool esp32_server::start() {
     // check for certificate storage location
     StaticJsonDocument<1024> serverConfig;
     esp32_config::getConfigSection("server", &serverConfig);
-    #ifdef DEBUG
-     Serial.printf("Setting certificate storage to %s\n", serverConfig["certificates"]["source"].isNull() ? "NVS by default" : serverConfig["certificates"]["source"].as<const char*>());
-    #endif
+    logger.logInfo(string_format("Setting certificate storage to %s",
+        serverConfig["certificates"]["source"].isNull() ? "NVS by default" : serverConfig["certificates"]["source"].as<const char*>()
+    ));
+    
     if(serverConfig["certificates"]["source"].isNull() || 
         iequals(serverConfig["certificates"]["source"].as<const char*>(),"nvs",3))
             _certManager = new esp32_cert_nvs();        
@@ -92,7 +93,9 @@ bool esp32_server::start() {
 
     bool isReady =  (!_enableSSL || secureServer->isRunning()) && unsecureServer->isRunning();
     if (isReady) {
+        #ifdef DEBUG
         Serial.println("Server ready.");
+        #endif
     }
     return isReady;
 }

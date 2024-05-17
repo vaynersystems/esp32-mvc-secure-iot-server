@@ -22,12 +22,8 @@ public:
     virtual ~esp32_base_device(){
 
     }
-
-        //initialization for uint16_t (analog) devices
     
-
-    
-    virtual T getValue(){};
+    virtual T getValue(){ return NULL;}
     
     virtual void setValue(T value){};
 

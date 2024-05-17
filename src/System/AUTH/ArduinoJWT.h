@@ -38,6 +38,7 @@ using namespace std;
 class ArduinoJWT {
 private:
   string _psk;
+  char _payload[127];
 
 public:
   ArduinoJWT(string psk);

@@ -10,7 +10,7 @@
 #include "SD.h"
 #include "SPI.h"
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
-
+#include "System/MODULES/LOGGING/esp32_logging.hpp"
 // #define LED_PIN 23
 // File myFile;
 // const int CS = 15;
@@ -56,6 +56,7 @@ esp32_server server;
 esp32_wifi wifi;
 esp32_fileio disk;
 esp32_devices deviceManager;
+esp32_logging logger;
 DallasTemperature sensors;
 
 TaskHandle_t* serverTaskHandle;
@@ -70,7 +71,7 @@ void deviceTask(void* params);
 #endif
 extern const int SERVER_STACK_SIZE = 1024*24;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 16;
-const TickType_t xDelay = 200 / portTICK_PERIOD_MS;
+const TickType_t xDelay = 600 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -102,14 +103,14 @@ void deviceTask(void* params) {
     deviceManager.onInit();
 
     while(true){
-        #ifdef DEBUG
-        deviceLoopTime = millis();
-        #endif
+        // #ifdef DEBUG
+        // deviceLoopTime = millis();
+        // #endif
         deviceManager.onLoop();
 
-        #ifdef DEBUG
-        Serial.printf("Device Loop took %lu ms.\n", millis() - deviceLoopTime);
-        #endif
+        // #ifdef DEBUG
+        // Serial.printf("Device Loop took %lu ms.\n", millis() - deviceLoopTime);
+        // #endif
         vTaskDelay(xDelay);
     }   
 
@@ -121,8 +122,12 @@ void setup() {
     Serial.begin(115200);
     //spiffs
     disk.start();    
+   
     //Connect to wifi
-    wifi.start();     
+    wifi.start();   
+
+    //start logger
+    logger.init();
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
 
@@ -136,6 +141,8 @@ void setup() {
     // }
     // WriteFile("/test.txt", "ElectronicWings.com");
     // ReadFile("/test.txt");
+    
+    logger.logInfo(string_format("System started at %s", getCurrentTime().c_str()).c_str());
 }
 
 void loop() {   

@@ -1,32 +1,70 @@
 {
-    "wifi": {
-        "mode": "client",
-        "dhcp": true,
-        "network": "dd-wrt",
-        "password": "4409420820"
+  "wifi": {
+    "mode": "client",
+    "dhcp": true,
+    "network": "dd-wrt",
+    "password": "4409420820"
+  },
+  "type": "esp32-config",
+  "devices": [
+    {
+      "id": "1",
+      "name": "Pool thermometer",
+      "type": "Thermometer",
+      "pin": "32",
+      "signal": "high"
     },
-    "type": "esp32-config",
-    "devices": [
-        {
-            "id": "1",
-            "name": "Pool thermometer",
-            "type": "Thermometer",
-            "pin": "21",
-            "signal": "high"
-        },
-        {
-            "id": "2",
-            "name": "Heater switch",
-            "type": "Switch",
-            "pin": "26",
-            "signal": "high"
-        }
-    ],
-    "preferences": { "lastPage": "devices" },
-    "system": {
-        "hostname": "ESP32-HOST",
-        "ntp": { "server": "us.pool.ntp.org", "timezone": "-5" }
+    {
+      "id": "2",
+      "name": "Heater switch",
+      "type": "Switch",
+      "pin": "26",
+      "signal": "high",
+      "trigger": {
+        "active": true,
+        "source": "1",
+        "type": "<",
+        "value": "75",
+        "threshold": "5"
+      }
     },
-    "server": { "disableWifiTimer": "never" },
-    "schedules": []
+    {
+      "id": "3",
+      "name": "Pool Pump",
+      "type": "Switch",
+      "pin": "25",
+      "signal": "high",
+      "trigger": {
+        "active": true,
+        "source": "2",
+        "type": "=",
+        "value": "1",
+        "threshold": ""
+      }
+    }
+  ],
+  "preferences": {
+    "lastPage": "logging"
+  },
+  "system": {
+    "hostname": "ESP32-HOST",
+    "ntp": {
+      "server": "us.pool.ntp.org",
+      "timezone": "-5"
+    },
+    "logging": {
+      "frequency": "300",
+      "retention": "2",
+      "level": 2
+    },
+    "enableSSL": true,
+    "enableMDNS": true
+  },
+  "server": {
+    "disableWifiTimer": "never",
+    "certificates": {
+      "source": "nvs"
+    }
+  },
+  "schedules": []
 }

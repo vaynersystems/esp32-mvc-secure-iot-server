@@ -113,31 +113,31 @@ void ArduinoJWT::encodeJWT(char* payload, char* jwt) {
 
 bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
     try{
-        int payloadLength = getJWTPayloadLength(jwt.c_str());
-        if(payloadLength > 0) {
+        //int payloadLength = getJWTPayloadLength(jwt.c_str());
+        //if(payloadLength > 0) {
             //Serial.printf("\t\t PAYLOAD LENGTH: %d\n", payloadLength);
-            char* jsonPayload = (char*)malloc(payloadLength);
-            if(jsonPayload == NULL) {
-                Serial.println("Failed to allocate memory to decode JWT Token");
-                return false;
-            }
+            //char* jsonPayload = (char*)malloc(payloadLength);
+            // if(jsonPayload == NULL) {
+            //     Serial.println("Failed to allocate memory to decode JWT Token");
+            //     return false;
+            // }
             //char jsonPayload[payloadLength];
-            if(decodeJWT(jwt.c_str(), (char*)jsonPayload, payloadLength)) {
-                payload = jsonPayload;
+            if(decodeJWT(jwt.c_str(), _payload, getJWTPayloadLength(jwt.c_str()))) {
+                payload = _payload;
 #ifdef DEBUG
                 Serial.printf("Sucessfully decoded JWT token payload: [%s]\n",payload.c_str());
-#endif      free(jsonPayload);
+#endif      //free(jsonPayload);
             return true;
             }
 #ifdef DEBUG
             Serial.printf("Failed to decoded JWT token: [%s]\n", jwt.c_str());
 #endif
-        }
-        else {
-#ifdef DEBUG
-            Serial.printf("Failed to decoded JWT token with 0 length!\n");
-#endif   
-        }
+//         }
+//         else {
+// #ifdef DEBUG
+//             Serial.printf("Failed to decoded JWT token with 0 length!\n");
+// #endif   
+//         }
     }
     catch(...){
 

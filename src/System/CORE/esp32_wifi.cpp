@@ -130,7 +130,16 @@ bool esp32_wifi::start(){
     sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
     sntp_init();    
     
-    Serial.printf("Initialized NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
+    Serial.printf("Initializing NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
+    Serial.printf("Waiting for NTP time..\n");
+    struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+    do{
+        gettimeofday(&tv, NULL);
+        if(tv.tv_usec%500==0) Serial.print(".");
+        
+    } while(tv.tv_sec < 100000);
+    Serial.println(" done!");
+
     return WiFi.status() == WL_CONNECTED;
 }
 

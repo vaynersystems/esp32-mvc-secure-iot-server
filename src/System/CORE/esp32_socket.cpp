@@ -3,11 +3,12 @@ static esp32_socket* activeClients[SOCKET_MAX];
 // This method is called by the webserver to instantiate a new handler for each
 // client that connects to the websocket endpoint
 WebsocketHandler* esp32_socket::createSocket(){
-    Serial.println("Creating new socket!");    
+      
     for(int i = 0; i < SOCKET_MAX; i++) {
         if (activeClients[i] == nullptr) {
-            esp32_socket * handler = new esp32_socket(i);
+            esp32_socket * handler = new esp32_socket(i+1);
             activeClients[i] = handler;
+            Serial.printf("Creating new socket for client id %d\n", i+1);  
             return handler;
         break;
         }

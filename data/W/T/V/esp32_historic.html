@@ -6,7 +6,7 @@
 <script type="text/javascript" src="/JS/C/chart.stream.js"></script>
 <script type="text/javascript" src="/JS/esp32_chart.js"></script>
 <script type="text/javascript" src="/JS/esp32_socket.js"></script>
-<script type="text/javascript" src="/JS/esp32_dashboard.js"></script>
+<script type="text/javascript" src="/JS/esp32_historic.js"></script>
 
 <style type="text/css">    
     .row{
@@ -68,16 +68,18 @@
 
 
 <div class="section">
-    <div class="header">Devices</div>
-    <div class="detail">
-        <div class="">Web Socket Status</div>
-        <div id="connection-status"></div>
-    </div>     
+    <div class="header">Historic Data</div>   
+    <div class="grid-2">
+        <div>Select a date to view logs</div>
+        <select id="log-days"></select>
+    </div>    
     <div class="grid-2" id="charts-container">
     </div>
 </div>    
 </div>
 <script type="text/javascript">
     let deviceConfig = '$_DEVICES';
+    let logDays = '$_LOGDAYS';
     if(deviceConfig[0] !== '$') devices = JSON.parse(deviceConfig);
+    if(logDays[0] !== '$') days = JSON.parse(logDays);
 </script>

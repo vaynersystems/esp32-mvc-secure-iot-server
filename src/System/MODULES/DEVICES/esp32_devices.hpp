@@ -1,3 +1,6 @@
+#ifndef _ESP32_DEVICES_H
+#define _ESP32_DEVICES_H
+
 #include <vector>
 #include <utility>
 #include "esp32_device_types.hpp"
@@ -7,14 +10,18 @@
 #include "esp32_switch_device.hpp"
 #include "esp32_relay_device.hpp"
 #include <System/CORE/esp32_config.h>
+#include "System/MODULES/LOGGING/esp32_logging.hpp"
+
 #include "ArduinoJson.h"
+#include <system_helper.h>
+#include <string_extensions.h>
 
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
 using namespace std;
 extern DallasTemperature sensors;
-
+extern esp32_logging logger;
 
 class esp32_devices{
 
@@ -27,18 +34,10 @@ public:
 
     void onDestroy();
 
-    StaticJsonDocument<2048>* getLastSnapshot();
-    //vector<esp32_device_info> getDeviceConfiguration();
+    StaticJsonDocument<512>* getLastSnapshot();
 
 protected:
     bool loadDeviceConfiguration();
-    
-    //esp32_device_info GetDevice(int id);
-    //vector<pair<int,bool>> GetDeviceStates();
-    // template <typename T>
-    // T getDeviceState(int id);
-    // template <typename T>
-    // bool setDeviceState(int id, T state);
 
     
 private:
@@ -47,13 +46,6 @@ private:
     unsigned long _lastSnapshotTime = 0, _lastSnapshotStoreTime = 0;
 
     unsigned long _snapshotFrequency = 60*1000;
-    int _retentionDays = 365;
-
-    void removeOldLogs();
-
-    // template<typename T>
-    // esp32_base_device<T>* getDevice(T type);
-    void logSnapshot(JsonObject snapshot);
 
     static JsonObject findDeviceState(JsonArray deviceStates, int deviceId);
     static int findDeviceStateIndex(JsonArray deviceStates, int deviceId);
@@ -76,8 +68,10 @@ private:
     /* For temperature sensors*/
     OneWire oneWire;
     
-    StaticJsonDocument<2048> _snapshot;
+    StaticJsonDocument<512> _snapshot;
+    StaticJsonDocument<512> _scratchpad;
     
 };
 
 
+#endif

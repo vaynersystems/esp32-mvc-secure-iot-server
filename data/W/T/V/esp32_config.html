@@ -1,7 +1,7 @@
 
-<script type="text/javascript" src="/JS/modal.js"></script>
+<!-- <script type="text/javascript" src="/JS/modal.js"></script>
 <link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
-<link rel="stylesheet" type="text/css" href="/CSS/style.css"/>
+<link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
 <script type="text/javascript" src="/JS/system.js"></script>  
 <link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
 <div class="config-view">
@@ -184,23 +184,18 @@
             <div class="section-content">
 
                 <div class="grid-2">
-                    <span>Device Log Frequency</span>
-                    <select id="device-logging-frequency">
-                        <option value="15">15 seconds</option>
-                        <option value="30">30 seconds</option>
-                        <option value="60">1 minute</option>
-                        <option value="300">5 minutes</option>
-                        <option value="600">10 minutes</option>
-                        <option value="900">15 minutes</option>
-                        <option value="1800">30 minutes</option>
-                        <option value="3600">1 hour</option>
-                        <option value="7200">2 hours</option>
-                        <option value="14400">4 hours</option>
+                    <span>Log Level</span>
+                    <select id="logging-level">
+                        <option value="0">Error</option>
+                        <option value="1">Warning</option>
+                        <option value="2">Info</option>
+                        <option value="3">Debug</option>
                     </select>                                           
                 </div>   
+
                 <div class="grid-2">
-                    <span>Device Log Retention</span>
-                    <select id="device-logging-retention">
+                    <span>Log Retention</span>
+                    <select id="logging-retention">
                         <option value="1">1 day</option>
                         <option value="2">2 days</option>
                         <option value="3">3 days</option>
@@ -214,9 +209,25 @@
                         <option value="365">1 year</option>
                         <option value="0">Forever</option>
                     </select>                                           
-                </div>                  
+                </div>   
+
+                <div class="grid-2">
+                    <span>Device Log Frequency</span>
+                    <select id="device-logging-frequency">
+                        <option value="15">15 seconds</option>
+                        <option value="30">30 seconds</option>
+                        <option value="60">1 minute</option>
+                        <option value="300">5 minutes</option>
+                        <option value="600">10 minutes</option>
+                        <option value="900">15 minutes</option>
+                        <option value="1800">30 minutes</option>
+                        <option value="3600">1 hour</option>
+                        <option value="7200">2 hours</option>
+                        <option value="14400">4 hours</option>
+                    </select>                                           
+                </div>                                  
                 <div class="row hint">
-                    The following table will project the file fize given the frequency selected.
+                    The following table will project the file size given the frequency selected.
                 </div>
                 <div class="grid-5">
                     <div class="grid-header">Device Count</div>
@@ -225,7 +236,7 @@
                     <div class="grid-header">Monthly Size</div>
                     <div class="grid-header">Yearly Size</div>
                 </div>
-                <div id="device-logging-projection" class="grid-5">                    
+                <div id="device-logging-projection">                    
                 </div>    
             </div>
         </div>
