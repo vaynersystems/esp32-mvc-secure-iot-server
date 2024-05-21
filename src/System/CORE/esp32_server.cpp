@@ -24,7 +24,7 @@ bool esp32_server::start() {
     // check for certificate storage location
     StaticJsonDocument<1024> serverConfig;
     esp32_config::getConfigSection("server", &serverConfig);
-    logger.logInfo(string_format("Setting certificate storage to %s",
+    logger.logDebug(string_format("Setting certificate storage to %s",
         serverConfig["certificates"]["source"].isNull() ? "NVS by default" : serverConfig["certificates"]["source"].as<const char*>()
     ));
     
@@ -131,6 +131,12 @@ void esp32_server::registerNode(HTTPNode *node)
     if(_enableSSL)
         secureServer->registerNode(node);
     unsecureServer->registerNode(node);
+}
+
+SSLCert *esp32_server::getCertificate()
+{
+    //if(_certManager == nullptr) sleep(500);
+    return _certManager->getCert();
 }
 
 bool esp32_server::importCertFromTemporaryStorage()

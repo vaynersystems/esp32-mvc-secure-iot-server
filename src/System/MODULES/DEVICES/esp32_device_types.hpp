@@ -22,16 +22,20 @@ public:
     int id;
     esp32_device_type type;
     string name;
+    string mqttTopic;
     int pin;
     //esp32_device_direction direction;
     bool useTrigger = false;
+    bool mqttPublish = false;
     int triggerDeviceId = -1;
+    int mqttFrequency = 1; //in minutes
     esp32_device_trigger_type triggerType;
     double triggerValue;
     unsigned long triggerThreshold;
     unsigned long duration;
     
     unsigned long _lastStartTime = 0;
+    unsigned long _lastPublishTime = 0;
     //esp32_base_device<uint16_t> deviceInstance;  
 
 protected:

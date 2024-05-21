@@ -27,7 +27,9 @@ class esp32_logging{
 public:
 
     //esp32_logging();
-    void init();
+    void start();
+
+    
     bool logInfo(string message, esp32_log_type logType = syslog);
     bool logInfo(const char* message, esp32_log_type logType = syslog);
     bool logError(string error, esp32_log_type logType = syslog);    
@@ -56,3 +58,4 @@ private:
 };
 
 #endif
+

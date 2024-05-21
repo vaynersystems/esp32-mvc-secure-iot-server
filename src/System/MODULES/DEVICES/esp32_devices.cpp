@@ -60,24 +60,41 @@ void esp32_devices::onLoop()
         esp32_device_type type = _devices[idx].type;
         JsonObject deviceSeriesEntry = seriesEntries.createNestedObject();
         deviceSeriesEntry["id"] = _devices[idx].id;
+        bool timeToPublish = _devices[idx].mqttPublish && millis() - _devices[idx]._lastPublishTime > _devices[idx].mqttFrequency * 60000 ;
         
         switch(type){
             case esp32_device_type::AnalogInput:
             {
                 auto device = esp32_analog_input_device(pin);
-                deviceSeriesEntry["value"] = device.getValue();
+                auto value = device.getValue();
+                deviceSeriesEntry["value"] = value;
+                if(timeToPublish){
+                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                    _devices[idx]._lastPublishTime = millis();
+                }
+                
             }
             break;
             case esp32_device_type::DigitalInput:
             {
                 auto device = esp32_digital_input_device(pin);
-                deviceSeriesEntry["value"] = device.getValue();
+                auto value = device.getValue();
+                deviceSeriesEntry["value"] =value;
+                if(timeToPublish){
+                   mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                    _devices[idx]._lastPublishTime = millis();
+                }
             }
                 
             break;
             case esp32_device_type::Thermometer:{
                 auto device = esp32_thermometer_device(pin);                               
-                deviceSeriesEntry["value"] = device.getValue();       
+                auto value = device.getValue();
+                deviceSeriesEntry["value"] =value;
+                if(timeToPublish){
+                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                    _devices[idx]._lastPublishTime = millis();
+                }       
             }          
             break;
             case esp32_device_type::Switch:
@@ -125,15 +142,6 @@ void esp32_devices::onLoop()
 
                 bool currentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
 
-                // Serial.printf("Source Device Idx: %d, Destination Device Idx: %d\n", sourceDeviceStateIdx, destinationDeviceIdx);
-                // Serial.printf("Device Config:\n  ID: %d\n  Name: %s\n  Pin: %d\n  Trigger ID: %d\n  Trigger Value: %lf\n",
-                //     _devices[idx].id,
-                //     _devices[idx].name.c_str(),
-                //     _devices[idx].pin,
-                //     _devices[idx].triggerDeviceId,
-                //     _devices[idx].triggerValue
-                // );
-
                 //switch should maintain the state it had previously
                 bool shouldBeOn = getDesiredState(
                     seriesEntries[destinationDeviceIdx]["value"].as<bool>(),
@@ -143,13 +151,15 @@ void esp32_devices::onLoop()
                     _devices[idx].triggerThreshold);
 
                 if(!currentState && shouldBeOn)
-                    logger.logInfo(string_format("Turning %s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+                    logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
                 else if(currentState && !shouldBeOn)
-                    logger.logInfo(string_format("Turning %s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+                    logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
 
                 //if desired state is different that current state, change it
                 if(seriesEntries[destinationDeviceIdx]["value"].as<bool>() != shouldBeOn){
-                    device.setValue(shouldBeOn);                     
+                    device.setValue(shouldBeOn);  
+                    if(_devices[idx].mqttPublish)
+                        mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
                 }
             }            
             break;
@@ -177,7 +187,7 @@ void esp32_devices::onLoop()
                     _devices[idx].triggerThreshold
                 );
                 if(!currentState && shouldBeOn)
-                    logger.logInfo(string_format("Turning %s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+                    logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
 
                 if(shouldBeOn){
                     device.setValue(true);
@@ -185,7 +195,7 @@ void esp32_devices::onLoop()
                 }
                 
                 if(device.turnOffIfTime(_devices[idx].duration)) //dont do it here, do it in set loop
-                    logger.logInfo(string_format("Turning %s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+                    logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
             }            
             break;
             //no output actions for input devices
@@ -337,6 +347,14 @@ vector<esp32_device_info> esp32_devices::getDevices()
             deviceConfig.triggerValue = devicesConfig[idx]["trigger"]["value"];
             deviceConfig.triggerThreshold = devicesConfig[idx]["trigger"]["threshold"];
         }
+        if(!devicesConfig[idx]["mqtt"].isNull()){
+            deviceConfig.mqttPublish = !devicesConfig[idx]["mqtt"].isNull() && devicesConfig[idx]["mqtt"]["publish"].as<bool>();
+            if(deviceConfig.mqttPublish){
+                deviceConfig.mqttTopic = devicesConfig[idx]["mqtt"]["topic"].as<const char*>();
+                deviceConfig.mqttFrequency = devicesConfig[idx]["mqtt"]["frequency"].as<int>();
+            }
+                
+        }
 
         deviceConfig.type = typeFromTypeName(devicesConfig[idx]["type"]);       
         if(deviceConfig.type == Relay)
@@ -417,4 +435,5 @@ esp32_device_trigger_type esp32_devices::triggerTypeFromName(const char *trigger
         return  Equals;
     if(strcmp(triggerTypeName,">") == 0)
         return  GreaterThan;
+    return esp32_device_trigger_type::Equals; //default
 }

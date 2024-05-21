@@ -2,9 +2,6 @@
 #define _ESP32_SOCKET_H
 
 #include "../Config.h"
-
-#include "../AUTH/cert.h"
-#include "../AUTH/key.h"
 #include "../AUTH/ArduinoJWT.h"
 #include "../ROUTER/esp32_router.h"
 

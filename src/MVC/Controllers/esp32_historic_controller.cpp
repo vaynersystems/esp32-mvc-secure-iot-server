@@ -27,7 +27,7 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         oss.write(buf,bytesRead);
     }
     response = oss.str();
-    Serial.printf("Found the following log files \n%s\n", response.c_str());
+    //Serial.printf("Found the following log files \n%s\n", response.c_str());
     controllerTemplate.SetTemplateVariable("$_LOGDAYS",response.c_str() );
 
     esp32_base_controller::Index(req,res);      

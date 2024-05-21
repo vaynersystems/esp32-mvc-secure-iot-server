@@ -23,7 +23,7 @@ public:
 
     }
     
-    virtual T getValue(){ return NULL;}
+    virtual T getValue(){ return 0;}
     
     virtual void setValue(T value){};
 

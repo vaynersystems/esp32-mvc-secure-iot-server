@@ -20,10 +20,10 @@ function onLogDateChange(logFile){
         if (request.readyState == request.DONE) {
             hideLoading();
             if (request.status == 401) {
-                alert('error: ' + request.responseText);
+                console('error: ' + request.responseText);
                 return;
             }
-            var response = request.responseText;
+            var response = request.responseText.replace(/(?:\r\n|\r|\n|\t)/g, '');
             if(response.length <= 0 || response[0] !== '[') return;
             var dailyLog = JSON.parse(response);
             //log is in format [{"time": "time of transaction", "series":[{"id":1,"value":79.3},{"id":2,"value":false},{"id":3,"value":false}]},...]
@@ -35,6 +35,10 @@ function onLogDateChange(logFile){
 
                 for(const deviceLogEntry of logEntry.series){                    
                     const device = devices.find(d => d.id == deviceLogEntry.id);
+                    if(device === undefined){
+                        console.log('device with id ' + deviceLogEntry.id + ' not found');
+                        continue;
+                    }
                     
                     const entry = {};
                     entry.x = new Date(entryTime).getTime();

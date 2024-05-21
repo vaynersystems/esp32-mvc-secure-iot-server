@@ -19,8 +19,8 @@ class esp32_wifi
 public:
     esp32_wifi();
     bool start();
-    bool startAP();
-    bool startSTA();
+    // bool startAP();
+    // bool startSTA();
     bool end();
 
 

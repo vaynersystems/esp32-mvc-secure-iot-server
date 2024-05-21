@@ -56,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const logFilesDropDownElement = document.getElementById('log-files');
     if(logFilesDropDownElement === null) return;
     logFilesDropDownElement.innerHTML = '';
-    for(const logfile of logFiles){
+    for(const logfile of logFiles.sort((a,b) => {if(a.name < b.name) return -1; if(b.name < a.name) return 1; return 0;})){
         const opt = document.createElement('option');
         opt.value = logfile.name;
         opt.textContent = logfile.name;

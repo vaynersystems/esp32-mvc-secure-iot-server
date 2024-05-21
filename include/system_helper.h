@@ -10,8 +10,8 @@ static tm getDate(){
 
     time(&now);
     // Set timezone to Eastern Standard Time
-    setenv("Eastern", "EST-5", 1);
-    tzset();
+    // setenv("TZ", "EST+5", 1);
+    // tzset();
     localtime_r(&now, &timeinfo);
     return timeinfo;
 }
@@ -22,8 +22,8 @@ static string getCurrentTime(){
 
     time(&now);
     // Set timezone to Eastern Standard Time
-    setenv("Eastern", "EST-5", 1);
-    tzset();
+    // setenv("TZ", "EST+5", 1);
+    // tzset();
 
     localtime_r(&now, &timeinfo);
 

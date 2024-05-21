@@ -1,5 +1,5 @@
 /**
-
+ 2024 - lvayner - change library to use std::string instead of String, resolve memory leak on decode
  Copyright (c) 2016, Interior Automation Ltd.
  All rights reserved.
 

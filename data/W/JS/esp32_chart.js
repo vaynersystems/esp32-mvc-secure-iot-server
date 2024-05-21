@@ -70,7 +70,7 @@ function createRealtimeChart(chartEmementId, chartDatasets, onRefresh, onTicksFo
                 x: {
                     type: 'realtime',
                     realtime: {
-                        delay: 2500,
+                        delay: 1100,
                         onRefresh: onRefresh
                     }
                 },
