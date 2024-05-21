@@ -1,6 +1,8 @@
 #include "esp32_mqtt_client.hpp"
 #include <string_extensions.h>
 
+
+
 void esp32_mqtt_client::start()
 {
     StaticJsonDocument<2048> systemConfig;
@@ -65,25 +67,7 @@ bool esp32_mqtt_client::connect()
     }
     
     
-    // network.print("Test string");
-    // unsigned long startAttempt = millis();
-    // //retry connect for 10 seconds
-    // //while(!client.connect("ESP32_CLIENT#1", "username", "password") && (millis() - startAttempt < 10000)){
-    // //client.connect("ESP32_CLIENT#1", "username", "password");
-    // lwmqtt_connect_options_t options = lwmqtt_default_connect_options;
-    // options.keep_alive = true;
-    // options.clean_session = true;
-    // options.client_id = lwmqtt_string("ESP32_CLIENT#1");
-    // auto error = lwmqtt_connect(&lwmqtt_client, &options, will, _timeout);
-    // if(error != lwmqtt_err_t::LWMQTT_SUCCESS)
-    // if(!lwmqtt_client.network){
-    //     Serial.printf("Failed to connect to broker %s on port %d, %d\n", _brokerUri.c_str(), _port, error);
-    //     return false;
-    // }
-    // logger.logDebug(string_format("Connecting to MQTT broker %s on port %d: %s",
-    //     _brokerUri.c_str(),
-    //     _port,
-    //     isConnected() ? "Connected" : "Disconnected"));
+  
     return true;
 }
 
