@@ -38,7 +38,7 @@ public:
     HTTPSServer *secureServer;
     HTTPServer *unsecureServer;
     
-    //bool registerNewCert(SSLCert* cert);
+    SSLCert * getCertificate();
     bool importCertFromTemporaryStorage();
     void generateCertificate(const char * deviceName, const char* companyName, const char* validFrom, const char* validTo);
     esp32_middleware* middleware;  

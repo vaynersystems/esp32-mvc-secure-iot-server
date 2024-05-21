@@ -3,8 +3,8 @@
 #include <System/CORE/esp32_fileio.h>
 #include <loopback_stream.h>
 #include <system_helper.h>
-
-void esp32_logging::init()
+#include <regex>
+void esp32_logging::start()
 {
     logTypes[esp32_log_type::syslog] = "SYSLOG";
     logTypes[esp32_log_type::device] = "DEVICE";
@@ -29,6 +29,8 @@ void esp32_logging::init()
     rotateLogs(device);
     rotateLogs(snapshot);    
 }
+
+
 
 bool esp32_logging::logInfo(string message, esp32_log_type logType)
 {
@@ -134,7 +136,7 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
         time_t lastWrite = file.getLastWrite();
         file.close();
         if(now - lastWrite > _retentionDays * 24 * 60 * 60){
-            //Serial.printf("Removing log file %s due to retention policy. It is %d days old.\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24));
+            logInfo(string_format("Removing log file %s due to retention policy. It is %d days old.\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24)));
             SPIFFS.remove(filepath.c_str());
             deleted++;
         } else {
@@ -161,7 +163,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     string filename = getLogFilename(log);  
     struct tm timeinfo = getDate();
     if(filename.length() == 0) return false; 
-
+    string const esacped = regex_replace( message, std::regex( "\"" ), "\\\"" );
 
     bool logFileExists =  SPIFFS.exists(filename.c_str());
   
@@ -174,7 +176,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
             timeinfo.tm_min,
             timeinfo.tm_sec,
             logEntryTypes[entryType].c_str(),
-            message
+            esacped.c_str()
         );        
         logFile.close();
     } else{
@@ -194,7 +196,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
             timeinfo.tm_min,
             timeinfo.tm_sec,
             logEntryTypes[entryType].c_str(),
-            message
+            esacped.c_str()
         ); 
         logFile.close();
     }

@@ -1,12 +1,7 @@
 #include "esp32_config_controller.hpp"
-#include "string_extensions.h"
-#include <WiFi.h>
-#include <System/AUTH/CERT/esp32_cert_base.hpp>
-#include <System/CORE/esp32_server.h>
 
-extern esp32_server server;
-extern const char* PUBLIC_TEMP_PATH;
-extern const char* PRIVATE_TEMP_PATH;
+
+
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
 void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
@@ -167,7 +162,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    Serial.printf("Saving configuration to %s...\n", PATH_SYSTEM_CONFIG);
+    //Serial.printf("Saving configuration to %s...\n", PATH_SYSTEM_CONFIG);
     char * buf = new char[32];
     while(true){
         
@@ -194,7 +189,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
         serializeJson(doc,f);
         f.close();
         res->setStatusCode(200);
-        Serial.printf("Saved configuration to %s\n", PATH_SYSTEM_CONFIG);
+        logger.logInfo(string_format("%s saved configuration to %s", req->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
     } else{
         res->setStatusCode(500);
         // String errorText = "Error saving configuration: ";
@@ -203,7 +198,6 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
         Serial.printf(error.c_str());
         return false;
     }    
-    Serial.printf("Completed SaveConfigData, returning control\n");    
     
     return true;
 }

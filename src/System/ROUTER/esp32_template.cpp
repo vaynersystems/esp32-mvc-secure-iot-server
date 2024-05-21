@@ -33,9 +33,6 @@ void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
 	struct tm timeinfo;
 
 	time(&now);
-	// Set timezone to Eastern Standard Time
-	setenv("Eastern", "EST-5", 1);
-	tzset();
 
 	localtime_r(&now, &timeinfo);
 	strftime(strftime_buf, sizeof(strftime_buf), "%c", &timeinfo);

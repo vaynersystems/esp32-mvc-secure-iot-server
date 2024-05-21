@@ -3,8 +3,7 @@ pendingChanges = false;
 var persistedConfig = '';
 var activeConfig;
 var selectedSection;
-
-
+var devices = new esp32_devices();
 function selectView(section){
     
     if(selectedSection !== undefined)
@@ -168,266 +167,6 @@ function getAvailableWifiNetworks(){
 
 /* END OF WIFI */
 
-/* DEVICES */
-deviceTypes = [
-    {name: 'Thermometer', description: 'Thermometer', Type: 'input'},
-    {name: 'Relay', description: 'Relay', Type: 'output'}
-]
-function loadDevices(devices){
-    const deviceListElement = document.getElementById('device-list');
-    if(deviceListElement === null) return;
-
-    deviceListElement.innerHTML = '';
-    //loadDeviceTypes();
-
-    for(const device of devices){
-        const rowElement = document.createElement('div');
-        const idElement = document.createElement('div');
-        const nameElement = document.createElement('div');
-        const typeElement = document.createElement('div');
-        const pinElement = document.createElement('div');
-        const actionsElement = document.createElement('div');
-        const editButtonElement = document.createElement('button');
-        const deleteButtonElement = document.createElement('button');
-
-        idElement.textContent = device.id;
-        nameElement.textContent = device.name;
-        typeElement.textContent = device.type;
-        pinElement.textContent = device.pin;
-
-        rowElement.setAttribute('device-name', device.name);
-
-        editButtonElement.textContent = 'Edit';
-        deleteButtonElement.textContent = 'Delete';
-        editButtonElement.addEventListener('click', (event ) => { event.stopPropagation(); showDeviceEditor(device); });
-        deleteButtonElement.addEventListener('click', (event) =>  {
-            event.stopPropagation();
-            showModal(
-                'Are you sure you want to delete the <b>' + rowElement.getAttribute('device-name') + '</b> device?',
-                'Confirm Device Removal',
-                [
-                    {text:'No', action: () => {closeModal()}}, 
-                    {text: 'Yes', action: () => 
-                        { 
-                            activeConfig.devices = activeConfig.devices.filter(e => e.id == device.id);
-                            closeModal();
-                            loadDevices(activeConfig.devices);
-                        } 
-                    }
-                ]
-            )
-        });
-        actionsElement.appendChild(editButtonElement);
-        actionsElement.appendChild(deleteButtonElement);
-        
-
-        rowElement.appendChild(idElement);
-        rowElement.appendChild(nameElement);
-        rowElement.appendChild(typeElement);
-        rowElement.appendChild(pinElement);
-        rowElement.appendChild(actionsElement);
-
-        rowElement.setAttribute('data', JSON.stringify(device));
-        rowElement.className = "grid-row grid";
-        rowElement.addEventListener('click', () => showDeviceEditor(JSON.parse(rowElement.getAttribute('data'))))
-        deviceListElement.appendChild(rowElement);
-    }
-}
-
-
-function loadDeviceTypes(){
-    const deviceList = document.getElementById('editor-device-type');
-    if(deviceList === undefined || deviceList === null) return;
-
-    for(var device in deviceTypes){
-        const opt = document.createElement('opt');
-        opt.value = device.name;
-        opt.textContent = device.description;
-    }
-
-}
-
-//Save device edited in the form
-function saveDevice(){
-    const modalElement = document.getElementById("system-modal-content");
-    const triggerSelector = modalElement.querySelector('#editor-device-use-trigger');
-    
-    device = {};
-    device.id = modalElement.querySelector('#editor-device-id').innerHTML;
-    device.name = modalElement.querySelector('#editor-device-name').value;
-    device.type = modalElement.querySelector('#editor-device-type').value;
-    device.pin = modalElement.querySelector('#editor-device-pin').value;
-    device.signal = modalElement.querySelector('#editor-device-signal').value;
-    if(device.type === 'Relay')
-        device.duration = modalElement.querySelector('#editor-device-duration').value;
-    if(triggerSelector.checked){
-    device.trigger = {};    
-        device.trigger.active = triggerSelector.checked;
-        device.trigger.source = modalElement.querySelector('#editor-device-trigger-source-device').value;
-        device.trigger.type = modalElement.querySelector('#editor-device-trigger-type').value;
-        device.trigger.value = modalElement.querySelector('#editor-device-trigger-value').value;
-        device.trigger.threshold = modalElement.querySelector('#editor-device-trigger-threshold').value;
-    }
-    console.log('saving device', device);
-
-    //update in active config. refresh list
-    if(activeConfig.devices === undefined)
-        activeConfig.devices = [];
-
-    const deviceIdx = activeConfig.devices.findIndex(d => d.id == device.id);
-    //var d = activeConfig.devices.find(d => d.id == device.id);
-    if(deviceIdx >= 0) // replace
-        activeConfig.devices.splice(deviceIdx,1,device);
-    else
-        activeConfig.devices.push(device);
-    
-    loadDevices(activeConfig.devices);
-
-    pendingChanges = true;
-
-}
-function showDeviceEditor(device){
-    const deviceEditorSourceElement = document.getElementById('device-editor');
-    if(deviceEditorSourceElement === null) return;
-    const deviceEditorElement = deviceEditorSourceElement.cloneNode(true);
-    deviceEditorElement.setAttribute('modal', deviceEditorElement.id);
-    //deviceEditorElement.innerHTML = deviceEditorSourceElement.innerHTML;
-
-    //let device = activeConfig.devices.find(d => d.id === device.id);
-    if(device === undefined){        
-        const maxId = activeConfig.devices.length > 0 ? Math.max(...activeConfig.devices.map(d => d.id)) : 0;
-        device = {
-            id: maxId+1,
-            name:'New Device',
-            type:'',
-            pin:'',
-            signal:'',
-            trigger: {
-                source: 1,
-                type: '=',
-                value: 150
-            }
-        }
-    }
-
-    const deviceIdElement = deviceEditorElement.querySelector('#editor-device-id');
-    const deviceNameElement = deviceEditorElement.querySelector('#editor-device-name');
-    const deviceTypeElement = deviceEditorElement.querySelector('#editor-device-type');
-    const devicePinElement = deviceEditorElement.querySelector('#editor-device-pin'); 
-    const deviceSignalElement = deviceEditorElement.querySelector('#editor-device-signal'); 
-    const deviceDurationElement = deviceEditorElement.querySelector('#editor-device-duration'); 
-    
-    const deviceTriggerSourceElement = deviceEditorElement.querySelector('#editor-device-trigger-source-device');
-    const deviceTriggerTypeElement = deviceEditorElement.querySelector('#editor-device-trigger-type'); 
-    const deviceTriggerValueElement = deviceEditorElement.querySelector('#editor-device-trigger-value'); 
-    const deviceTriggerThresholdElement = deviceEditorElement.querySelector('#editor-device-trigger-threshold'); 
-    
-    const triggerPanelElement = deviceEditorElement.querySelector('#editor-device-trigger-panel');
-    const triggerContainerElement = deviceEditorElement.querySelector('#editor-device-use-trigger-container');
-    const toggleTriggerElement = deviceEditorElement.querySelector('#editor-device-use-trigger');
-    const deviceSignalContainerElement = deviceEditorElement.querySelector('#editor-device-signal-container');
-    const deviceDurationContainerElement = deviceEditorElement.querySelector('#editor-device-duration-container');
-    if(deviceIdElement !== null) deviceIdElement.innerHTML =  device.id;
-    if(deviceNameElement !== null) deviceNameElement.value = device.name;
-    if(deviceTypeElement !== null) {
-        if(device.type !== undefined) deviceTypeElement.value = device.type;
-        toggleTriggerElement.checked =  device.trigger === undefined ? false : device.trigger.active;
-        // if(device.type.length > 0) deviceTypeElement.value = device.type;
-        isOutputDevice = device.type == 'Relay' || device.type == 'Switch';
-        triggerContainerElement.style.display = isOutputDevice ? 'block' : 'none'; 
-        deviceSignalContainerElement.style.display = isOutputDevice ? '' : 'none'; 
-        deviceDurationContainerElement.style.display = device.type == 'Relay' ? 'block' : 'none';
-        
-        triggerPanelElement.style.display = isOutputDevice && toggleTriggerElement.checked ? 'block' : 'none'; 
-
-        deviceTypeElement.addEventListener('change',(event) => {
-            isOutputDevice = event.target.value == 'Relay' || event.target.value == 'Switch';
-            triggerContainerElement.style.display = isOutputDevice ? '' : 'none'; 
-            deviceSignalContainerElement.style.display = isOutputDevice ? '' : 'none'; 
-            deviceDurationContainerElement.style.display = event.target.value == 'Relay' ? 'block' : 'none';
-            triggerPanelElement.style.display = isOutputDevice && toggleTriggerElement.checked ? 'block' : 'none'; 
-        })
-    }
-    if(devicePinElement !== null) {
-        devicePinElement.setAttribute('value', device.pin);
-        if(device.pin.length > 0) devicePinElement.value = device.pin;
-        //filter out any device pins used by other devices
-        devicePinElement.child
-        for(var child=devicePinElement.firstChild; child!==null; child=child.nextSibling) {
-            if(child.tagName !== undefined && child.tagName.toUpperCase() == 'OPTION'){
-                if(activeConfig.devices.findIndex(d => d.id != device.id && d.pin == child.value) >= 0){
-                    child.disabled = true;
-                    if(child.selected) {
-                        if(child.nextSibling !== null) child.nextSibling.selected = true;
-                        child.selected = false;
-                    }
-                }
-            }
-        }
-        
-    }
-    if(deviceSignalElement !== null) {
-        deviceSignalElement.setAttribute('value', device.signal);
-        if(device.signal !== undefined && device.signal.length > 0) deviceSignalElement.value = device.signal;
-    }
-
-    if(deviceDurationElement !== null && device.type == 'Relay') {
-        //deviceDurationElement.setAttribute('value', device.duration);
-        if(device.duration !== undefined && device.duration.length > 0) deviceDurationElement.value = device.duration;
-    }
-    
-
-    
-    if(toggleTriggerElement !== null)
-        toggleTriggerElement.addEventListener('change', (event) => {
-           
-            if(triggerPanelElement !== null)
-                triggerPanelElement.style.display = event.target.checked ? 'block' : 'none';
-        });
-
-    if(deviceTriggerSourceElement !== null){
-        //load up other devices into drop down from active config
-        deviceTriggerSourceElement.innerHTML = '';
-        if(device.trigger === undefined) device.trigger = {};
-        for(var d of activeConfig.devices)
-        {
-            if(d.id == device.id) continue;
-            const opt = document.createElement('option');
-            opt.value = d.id;
-            opt.textContent = d.name;
-            deviceTriggerSourceElement.appendChild(opt);
-        }
-        deviceTriggerSourceElement.setAttribute('value',device.trigger.source);
-        deviceTriggerSourceElement.value = device.trigger.source;
-    }
-
-    if(deviceTriggerTypeElement !== null){
-        //deviceTriggerTypeElement.setAttribute('value',device.trigger.type);
-        deviceTriggerTypeElement.value = device.trigger.type;
-    }
-
-    if(deviceTriggerValueElement !== null){
-        //deviceTriggerValueElement.setAttribute('value',device.trigger.value);
-        deviceTriggerValueElement.value = device.trigger.value;
-    }
-
-    if(deviceTriggerThresholdElement !== null){
-        //deviceTriggerValueElement.setAttribute('value',device.trigger.value);
-        deviceTriggerThresholdElement.value = device.trigger.threshold;
-    }
-
-    
-    showModalComponent(deviceEditorElement,'Device Editor', 
-        [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Save', action:  () => { saveDevice();closeModal();}}
-        ]
-    );
-}
-
-
-
-/* END OF DEVICES */
 
 function formatByte(value){
     if(value/1024/1024 > 1.05)
@@ -485,187 +224,6 @@ function showLoggingProjections(frequency){
 
 }
 
-var publicCertFile = undefined;
-var privateCertFile = undefined;
-var publicSaved = 0, privateSaved = 0, certificateGenerated=0;
-function showCertificateAction(){
-    
-
-    const selectedAction = document.getElementById('certificate-action').value;
-    if(selectedAction == 'upload'){
-        //clone form to use in modal
-        publicSaved = 0;
-        privateSaved = 0;
-        const certificateUploadSourceElement = document.getElementById('editor-certificate-upload');
-        if(certificateUploadSourceElement === null) return;
-        const certificateUploadElement = certificateUploadSourceElement.cloneNode(true);
-        certificateUploadElement.setAttribute('modal', certificateUploadElement.id);
-
-        //wire up change event for file dialogs
-        const publicCertFileElement = certificateUploadElement.querySelector('#public-cert');
-        const privateCertFileElement = certificateUploadElement.querySelector('#private-cert');
-        if(publicCertFileElement === null || privateCertFileElement === null) return;
-        publicCertFileElement.addEventListener('change', () =>{
-            if(publicCertFileElement.files.length > 0)
-                publicCertFile = publicCertFileElement.files[0];
-        })
-
-        privateCertFileElement.addEventListener('change', () =>{
-            if(privateCertFileElement.files.length > 0)
-                privateCertFile = privateCertFileElement.files[0];
-        })
-        
-        showModalComponent(certificateUploadElement,'Upload a certificate', 
-        [
-            { text:'Cancel',action: () => { publicCertFile = undefined; privateCertFile = undefined; closeModal();}},
-            { text: 'Upload', action:  () => { uploadCertificates(); }}
-        ], '800px');
-        
-
-    }else if(selectedAction == 'generate'){
-        certificateGenerated = 0;
-        const certificateGenerateSourceElement = document.getElementById('editor-certificate-generate');
-        if(certificateGenerateSourceElement === null) return;
-        const certificateGenerateElement = certificateGenerateSourceElement.cloneNode(true);
-        certificateGenerateElement.setAttribute('modal', certificateGenerateElement.id);
-
-        if(publicCertFile === undefined)
-        
-        showModalComponent(certificateGenerateElement,'Generate a new certificate', 
-        [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Generate', action:  () => { generateCertificates();  }}
-        ]);
-    }
-}
-var startTime = undefined;
-function uploadCertificates(){
-    showWait();
-    //call backend to save files in temp path.
-    //set activeConfig's certificate object to target those paths
-    //on form save, if paths exist, backend will move certificates to the configured storage
-    if(publicCertFile === undefined || privateCertFile === undefined) return;
-   
-
-    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
-
-    //send public
-    var publicRequest = new XMLHttpRequest();
-    const urlPublic = base + "/" + 'UploadCertificate?Public';    
-    publicRequest.open("POST", urlPublic, true);
-    publicRequest.onreadystatechange = function () {
-        if (publicRequest.readyState == request.DONE) {
-            
-            if(publicRequest.status == 200){
-                var response = publicRequest.responseText;
-                publicSaved = 1;
-                return;
-            }
-            //hideWait('page');
-            if (publicRequest.status == 401) {
-                showModal('<p class="error">' + publicRequest.statusText + '</p>', 'Unauthorized');                   
-            }
-            publicSaved = -1;                            
-        }
-    }
-    const publicFileData = new FormData();    
-    publicFileData.append("file", publicCertFile, "public.cer");
-    publicRequest.send(publicFileData);
-
-    //send private
-    var privateRequest = new XMLHttpRequest();
-    const urlPrivate = base + "/" + 'UploadCertificate?Private';   
-    privateRequest.open("POST", urlPrivate, true);
-    privateRequest.onreadystatechange = function () {
-        if (privateRequest.readyState == request.DONE) {
-            if(privateRequest.status == 200){
-                privateSaved = 1;
-                return;
-            }
-            //hideWait('page');
-            if (privateRequest.status == 401) {
-                showModal('<p class="error"> UNAUTHORIZED! ' + privateRequest.statusText + '</p>', 'Unauthorized');                                              
-            }
-            privateSaved = -1; 
-        }
-    }
-    const privateFileData = new FormData();
-    privateFileData.append("file", privateCertFile, "private.key");
-    privateRequest.send(privateFileData);
-    startTime = new Date();
-    checkIfUploaded();
-}
-
-//will run for up to one minute
-function checkIfUploaded(){
-    const secondsSinceStarted = (new Date().getTime() - startTime.getTime())/1000;
-    if((publicSaved == 0 || privateSaved == 0) && secondsSinceStarted < 30)
-    {
-        setTimeout(checkIfUploaded, 1000);
-        return;
-    }
-    hideWait();
-    //if uploaded, user is done
-    if(publicSaved > 0 && privateSaved > 0){
-        closeModal();
-        pendingChanges = true;
-        activeConfig.server.certificates.uploaded = true;
-    }
-        
-}
-
-function generateCertificates(){
-    //set activeConfig certificate object to generate info specified
-    //on form save, backend will generate certificate to the configured storage
-    const certForm = document.querySelector('[modal="editor-certificate-generate"]');
-    if(certForm === undefined){
-        alert('Error in system. Form cannot be found. Reload page and try again.');
-        return;
-    }
-
-    const certDeviceNameElement = certForm.querySelector('#device-name');
-    const certCompanyNameElement = certForm.querySelector('#company-name');
-    const certValidFromNameElement = certForm.querySelector('#valid-from');
-    const certValidToNameElement = certForm.querySelector('#valid-to');
-    if(certDeviceNameElement == null || certCompanyNameElement === null || certValidFromNameElement === null || certValidToNameElement === null)
-        return;
-
-    showWait();
-
-    generateRequestData = {};
-    generateRequestData.device = certDeviceNameElement.value;
-    generateRequestData.company = certCompanyNameElement.value;
-    generateRequestData.from = certValidFromNameElement.value.split('-').join('') + '000000';
-    generateRequestData.to = certValidToNameElement.value.split('-').join('') + '000000';  
-    
-    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
-
-    //send public
-    var generateRequest = new XMLHttpRequest();
-    const urlPublic = base + "/" + 'GenerateCertificate';    
-    generateRequest.open("POST", urlPublic, true);
-    generateRequest.onreadystatechange = function () {
-        if (generateRequest.readyState == request.DONE) {
-            hideWait();
-            if(generateRequest.status == 200){
-                var response = generateRequest.responseText;
-                certificateGenerated = 1;
-                activeConfig.server.certificates.uploaded = true;
-                closeModal();
-                return;
-            }
-            //hideWait('page');
-            if (generateRequest.status == 401) {
-                showModal('<p class="error">' + generateRequest.statusText + '</p>', 'Unauthorized');                   
-            }            
-        }
-    }
-    
-    generateRequest.send(JSON.stringify(generateRequestData));
-
-    pendingChanges = true;
-}
-
 
 function loadSettings(){
     
@@ -689,6 +247,10 @@ function loadSettings(){
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
 
+    const mqttHostElement = document.getElementById('mqtt-broker');
+    const mqttPortElement = document.getElementById('mqtt-port');
+    const mqttInsecureElement = document.getElementById('mqtt-insecure');
+
     if(hostNameElement !== null) hostNameElement.value = activeConfig.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
     if(timeZoneElement !== null) timeZoneElement.value = activeConfig.system.ntp.timezone;
@@ -700,6 +262,12 @@ function loadSettings(){
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
     if(loggingLevelElement !== null) loggingLevelElement.value = activeConfig.system.logging.level;
 
+
+    if(mqttHostElement !== null) mqttHostElement.value = activeConfig.system.mqtt.broker;
+    if(mqttPortElement !== null) mqttPortElement.value = activeConfig.system.mqtt.port;
+    if(mqttInsecureElement !== null) mqttInsecureElement.value = activeConfig.system.mqtt.insecure;
+
+
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
     if(disableWifiElement !== null) disableWifiElement.value = activeConfig.server.disableWifiTimer;
@@ -710,7 +278,7 @@ function loadSettings(){
     }
 
     //devices
-    loadDevices(activeConfig.devices);
+    devices.loadDevices(activeConfig.devices);
     pendingChanges = false;
     
 }
@@ -737,6 +305,9 @@ function seveSettingsFromForm(){
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
+    const mqttHostElement = document.getElementById('mqtt-broker');
+    const mqttPortElement = document.getElementById('mqtt-port');
+    const mqttInsecureElement = document.getElementById('mqtt-insecure');
     
     if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
     if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
@@ -745,6 +316,10 @@ function seveSettingsFromForm(){
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
     if(loggingLevelElement !== null) activeConfig.system.logging.level = loggingLevelElement.value;
 
+    if(mqttHostElement !== null) activeConfig.system.mqtt.broker = mqttHostElement.value;
+    if(mqttPortElement !== null) activeConfig.system.mqtt.port = mqttPortElement.value;
+    if(mqttInsecureElement !== null) activeConfig.system.mqtt.insecure = mqttInsecureElement.value;
+    
     const certificateSourceElement = document.querySelector('input[name="certificate-source"]:checked');
 
     //server
@@ -797,7 +372,7 @@ function seveSettingsFromForm(){
 //parse form, collecting all of the input, provide as json to post
 function saveSettings(config){
     //TODO: bind controls to activeConfiguration model, just persist it here   
-
+    showWait('page');
     console.log('calling backend to save settings ', config);
     const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
     const url = base + "/" + 'SaveConfigData';
@@ -821,7 +396,7 @@ function saveSettings(config){
                         text:'Yes', 
                         action: () => {
                             reset(true);closeModal(); 
-                            setTimeout( reload,2000)
+                            setTimeout( reload,5000)
                         }
                     }
 
@@ -831,7 +406,7 @@ function saveSettings(config){
         }
     }
     request.send(JSON.stringify(config));
-    showWait('page');
+   
 }
 
 function reload(){
@@ -939,6 +514,11 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.logging.retention = 7; //default retention to 1 week
         persistedConfig.system.logging.level = 2; //default to logging errors, warnings, and info        
     }
+    if(persistedConfig.system.mqtt === undefined){
+        persistedConfig.system.mqtt = {};
+        persistedConfig.system.mqtt.broker = 'test.mosquitto.org';
+        persistedConfig.system.mqtt.port = 8883;
+    }
     showLoggingProjections(persistedConfig.system.logging.frequency);
 
     if(persistedConfig.server === undefined)
@@ -975,6 +555,9 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('wifi-network-password');
     invalidateOnChange('wifi-network-ap-ip');
     invalidateOnChange('wifi-network-ap-subnet');
+
+    invalidateOnChange('mqtt-broker');
+    invalidateOnChange('mqtt-port');
 
     invalidateOnChange('device-logging-frequency');
     invalidateOnChange('logging-retention');
@@ -1071,5 +654,7 @@ function checkOctects(input) {
 
 //ran when first parsed
 document.addEventListener("DOMContentLoaded", function() {
-    showLoading();
+    showLoading();        
+    esp32_config_init(configurationSting);
+    
 });

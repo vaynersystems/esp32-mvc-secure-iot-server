@@ -60,7 +60,7 @@ void esp32_cert_nvs::loadCertificates()
         errorReadingCert = true;
     }
 
-    logger.logInfo(string_format("Loading certificate from NVS with length of %u and private key length of %u", 
+    logger.logDebug(string_format("Loading certificate from NVS with length of %u and private key length of %u", 
         publicLength, privateLength
     ));
 

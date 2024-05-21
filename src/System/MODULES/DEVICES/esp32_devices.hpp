@@ -11,6 +11,7 @@
 #include "esp32_relay_device.hpp"
 #include <System/CORE/esp32_config.h>
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
+#include "System/MODULES/MQTT/esp32_mqtt_client.hpp"
 
 #include "ArduinoJson.h"
 #include <system_helper.h>
@@ -22,6 +23,7 @@
 using namespace std;
 extern DallasTemperature sensors;
 extern esp32_logging logger;
+extern esp32_mqtt_client mqtt;
 
 class esp32_devices{
 

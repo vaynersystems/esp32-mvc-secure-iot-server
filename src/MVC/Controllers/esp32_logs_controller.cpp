@@ -8,7 +8,7 @@ DerivedController<esp32_logs_controller> esp32_logs_controller::reg("esp32_logs"
 
 void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
-    loopback_stream buffer(512);
+    loopback_stream buffer(2048);
     esp32_fileio::listDir(SPIFFS, &buffer, PATH_LOGGING_ROOT, 1, HTTP_FORMAT::JSON,"!SNAPSHOT_");   
     
     ostringstream oss;
@@ -19,7 +19,7 @@ void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         oss.write(buf,bytesRead);
     }
     response = oss.str();
-    Serial.printf("Found the following log files \n%s\n", response.c_str());
+    //Serial.printf("Found the following log files \n%s\n", response.c_str());
     controllerTemplate.SetTemplateVariable("$_LOGFILES",response.c_str() );
 
     esp32_base_controller::Index(req,res);      

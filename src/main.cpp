@@ -1,8 +1,6 @@
-#include "System/AUTH/cert.h"
-#include "System/AUTH/key.h"
-
 #include "System/CORE/esp32_fileio.h"
 #include "System/CORE/esp32_server.h"
+#include "System/MODULES/MQTT/esp32_mqtt_client.hpp"
 #include "System/CORE/esp32_wifi.h"
 #include "System/AUTH/esp32_authentication.h"
 #include "System/AUTH/esp32_sha256.h"
@@ -11,6 +9,7 @@
 #include "SPI.h"
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
+#include <esp_task_wdt.h>
 // #define LED_PIN 23
 // File myFile;
 // const int CS = 15;
@@ -57,12 +56,15 @@ esp32_wifi wifi;
 esp32_fileio disk;
 esp32_devices deviceManager;
 esp32_logging logger;
+esp32_mqtt_client mqtt;
 DallasTemperature sensors;
 
 TaskHandle_t* serverTaskHandle;
 TaskHandle_t* deviceTaskHandle;
+TaskHandle_t* mqttClientTaskHandle;
 void serverTask(void* params);
 void deviceTask(void* params);
+void mqttClientTask(void* params);
 
 #if CONFIG_FREERTOS_UNICORE
     #define ARDUINO_RUNNING_CORE 0
@@ -71,7 +73,8 @@ void deviceTask(void* params);
 #endif
 extern const int SERVER_STACK_SIZE = 1024*24;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 16;
-const TickType_t xDelay = 600 / portTICK_PERIOD_MS;
+extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 24;
+const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 100 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 unsigned long lastreport = millis();
 String freeBytesHEAPSPretty("");
@@ -82,7 +85,7 @@ void serverTask(void* params) {
     server.start();
     while (true) {
         server.step();
-         //vTaskDelay(xDelay);
+        // vTaskDelay(serverDelay);
     }
 
     #ifdef DEBUG
@@ -111,9 +114,18 @@ void deviceTask(void* params) {
         // #ifdef DEBUG
         // Serial.printf("Device Loop took %lu ms.\n", millis() - deviceLoopTime);
         // #endif
-        vTaskDelay(xDelay);
+        vTaskDelay(deviceDelay);
     }   
 
+}
+
+void mqttClientTask(void * params){
+    //initialize mqtt    
+    mqtt.start();    
+    while(true){
+        mqtt.loop();        
+        vTaskDelay(deviceDelay);
+    }
 }
 
 void setup() {
@@ -123,16 +135,21 @@ void setup() {
     //spiffs
     disk.start();    
    
-    //Connect to wifi
+    // //Connect to wifi
     wifi.start();   
 
-    //start logger
-    logger.init();
+    // //start logger
+    logger.start();
+
+    //mqtt.start();
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
 
     //Create Device Manager
     xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
+
+    //Create MQTT Client
+    //xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
     //pinMode(LED_PIN, OUTPUT);
 
     // if (!SD.begin(CS)) {
@@ -141,10 +158,25 @@ void setup() {
     // }
     // WriteFile("/test.txt", "ElectronicWings.com");
     // ReadFile("/test.txt");
-    
-    logger.logInfo(string_format("System started at %s", getCurrentTime().c_str()).c_str());
-}
 
+    
+    
+    logger.logInfo("System started");
+}
+unsigned long _lastReport = 0;
 void loop() {   
     
+    // if(millis() - _lastReport > 5000){
+    // //     String freeBytesHEAPSPretty = "", freeBytesSTACKPretty = "";
+    // //     auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
+    // //     esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
+    // //     esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
+        
+    // //     Serial.printf("Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
+    //      _lastReport = millis(); 
+    //      mqtt.loop();
+    //  }
+
+    // mqtt.loop();        
+    // delay(deviceDelay);
 }

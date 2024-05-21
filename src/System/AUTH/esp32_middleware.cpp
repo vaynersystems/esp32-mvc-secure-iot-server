@@ -78,7 +78,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                logger.logInfo(string_format("Authentication for: %s : %s\n", info.username.c_str(), info.authenticated ? "VALID" : "INVALID"), auth);
+                logger.logInfo(string_format("Authentication for: %s : %s", info.username.c_str(), info.authenticated ? "VALID" : "INVALID"), auth);
                 
                 
                 // if authentication was successful issue JWT token

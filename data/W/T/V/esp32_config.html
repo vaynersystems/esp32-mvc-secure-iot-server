@@ -3,6 +3,9 @@
 <link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
 <link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
 <script type="text/javascript" src="/JS/system.js"></script>  
+<script type="text/javascript" src="/JS/esp32_devices.js"></script> 
+<script type="text/javascript" src="/JS/esp32_certificates.js"></script> 
+<script type="text/javascript" src="/JS/esp32_config.js"></script>
 <link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
 <div class="config-view">
 
@@ -26,6 +29,7 @@
             <ul>
                 <li id="system">General</li>
                 <li id="logging">Logging</li>
+                <li id="mqtt">MQTT</li>
                 <li id="ntp">NTP</li>
                 <li id="theme">Theme</li>
             </ul>
@@ -240,13 +244,38 @@
                 </div>    
             </div>
         </div>
+
+        <div class="section" name="mqtt">
+            <div class="section-header">MQTT</div>
+            <div class="section-content">
+
+                <div class="grid-2">
+                    <span>Broker</span>
+                    <input type="text" id="mqtt-broker">                                          
+                    
+                </div>   
+
+                <div class="grid-2">
+                    <span>Port</span>
+                    <select id="mqtt-port">
+                        <option value="1883">1883 - Plain Text</option>
+                        <option value="8883">8883 - Encrypted</option>
+                    </select>                                         
+                </div>   
+                <div class="grid-2">
+                    <span>Skip Certificate Validation</span>
+                    <input type="checkbox" id="mqtt-insecure">
+                </div>
+               
+            </div>
+        </div>
         
         <div class="section" name="ntp">
             <div class="section-header">NTP</div>
             <div class="section-content">
                 <div class="grid-2">
                     <span>Device Time</span>
-                    <div name="device-time" id="device-time">$_TIME (GMT)</div>
+                    <div name="device-time" id="device-time">$_TIME</div>
                 </div> 
                 <div class="grid-2">
                     <span>NTP Server</span>
@@ -257,18 +286,18 @@
                     <select name="time-zone" id="time-zone">
                         <option value="-12">(GMT -12:00) Eniwetok, Kwajalein</option>
                         <option value="-11">(GMT -11:00) Midway Island, Samoa</option>
-                        <option value="-10">(GMT -10:00) Hawaii</option>
-                        <option value="-9">(GMT -9:00) Alaska</option>
-                        <option value="-8">(GMT -8:00) Pacific Time (US &amp; Canada)</option>
-                        <option value="-7">(GMT -7:00) Mountain Time (US &amp; Canada)</option>
-                        <option value="-6">(GMT -6:00) Central Time (US &amp; Canada), Mexico City</option>
-                        <option value="-5">(GMT -5:00) Eastern Time (US &amp; Canada), Bogota, Lima</option>
-                        <option value="-4">(GMT -4:00) Atlantic Time (Canada), Caracas, La Paz</option>
-                        <option value="-3.5">(GMT -3:30) Newfoundland</option>
-                        <option value="-3">(GMT -3:00) Brazil, Buenos Aires, Georgetown</option>
-                        <option value="-2">(GMT -2:00) Mid-Atlantic</option>
-                        <option value="-1">(GMT -1:00 hour) Azores, Cape Verde Islands</option>
-                        <option selected="selected" value="0">(GMT) Western Europe Time, London, Lisbon, Casablanca</option>
+                        <option value="HST+10HDT,M3.2.0/2,M11.1.0/2">(GMT -10:00) Hawaii</option>
+                        <option value="AST+9ADT,M3.2.0/2,M11.1.0/2">(GMT -9:00) Alaska</option>
+                        <option value="PST+8PDT,M3.2.0/2,M11.1.0/2">(GMT -8:00) Pacific Daylight Savings Time (US &amp; Canada)</option>
+                        <option value="MST+7MDT,M3.2.0/2,M11.1.0/2">(GMT -7:00) Mountain Daylight Savings Time (US &amp; Canada)</option>
+                        <option value="CST+6CDT,M3.2.0/2,M11.1.0/2">(GMT -6:00) Central Daylight Savings Time (US &amp; Canada)</option>
+                        <option value="EST+5EDT,M3.2.0/2,M11.1.0/2">(GMT -5:00) Eastern Daylight Savings Time (US &amp; Canada)</option>
+                        <option value="GTM+4">(GMT -4:00) Atlantic Time (Canada), Caracas, La Paz</option>
+                        <option value="GTM+3.5">(GMT -3:30) Newfoundland</option>
+                        <option value="GTM+3">(GMT -3:00) Brazil, Buenos Aires, Georgetown</option>
+                        <option value="GTM+2">(GMT -2:00) Mid-Atlantic</option>
+                        <option value="GTM+1">(GMT -1:00 hour) Azores, Cape Verde Islands</option>
+                        <option selected="selected" value="GTM+0">(GMT) Western Europe Time, London, Lisbon, Casablanca</option>
                         <option value="1">(GMT +1:00 hour) Brussels, Copenhagen, Madrid, Paris</option>
                         <option value="2">(GMT +2:00) Kaliningrad, South Africa</option>
                         <option value="3">(GMT +3:00) Baghdad, Riyadh, Moscow, St. Petersburg</option>
@@ -424,6 +453,32 @@
                                 </select>
                             </div>
                         </div>  
+                        <div class="grid-2" id="editor-device-mqtt-publish-container">
+                            <span>MQTT Publish</span>
+                            <input type="checkbox" id="editor-device-mqtt-publish">
+                        </div> 
+
+                        <div id="editor-device-mqtt-panel">
+                        
+                            <div class="grid-2">
+                                <span>Topic</span>
+                                <input type="text" id="editor-device-mqtt-topic">
+                            </div>
+    
+                            <div class="grid-2" id="editor-device-mqtt-frequency-container">
+                                <span>Frequency</span>
+                                <select id="editor-device-mqtt-frequency">
+                                    <option value="1">1 minute</option>
+                                    <option value="2">2 minutes</option>
+                                    <option value="5">5 minutes</option>
+                                    <option value="10">10 minutes</option>
+                                    <option value="30">30 minutes</option>
+                                    <option value="60">1 hour</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        
                         <div class="grid-2"  id="editor-device-signal-container">
                             <span>Device Signal</span>
                             <div>
@@ -438,12 +493,12 @@
                             <div>
                                 <input type="number" id="editor-device-duration" name="editor-device-duration">                               
                             </div>
-                        </div>                  
-                    
+                        </div>   
                         <div class="grid-2" id="editor-device-use-trigger-container">
                             <span>Use Trigger</span>
                             <input type="checkbox" id="editor-device-use-trigger">
                         </div>
+                       
                     </div>
                     <div id="editor-device-trigger-panel">
                         
@@ -554,13 +609,9 @@
     </div>
 </div>
 
-<script type="text/javascript" src="/JS/esp32_config.js"></script>
-<script type="text/javascript">
-    window.onload = function() {
-        //addCss('/CSS/style.css');
-        //addCss('/CSS/config.css'); //can load from cache even on hard reload
-        esp32_config_init('$_CONFIGURATION_DATA');
-    }
+
+<script type="text/javascript">    
+    configurationSting = '$_CONFIGURATION_DATA';    
 </script>
     
 

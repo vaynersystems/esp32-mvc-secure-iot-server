@@ -142,7 +142,7 @@ body{
     flex-grow: 1;
     align-content: flex-start;   
 }
-#editor-device-trigger-panel{
+#editor-device-trigger-panel, #editor-device-mqtt-panel, #editor-device-mqtt-frequency-container{
     display: none;
 }
 #editor-certificate-upload{

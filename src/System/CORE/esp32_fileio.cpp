@@ -63,7 +63,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                     )
                 )
                 {
-                    Serial.printf("Excluding file %s\n", file.name());
+                    //Serial.printf("Excluding file %s\n", file.name());
                     file = root.openNextFile();
                     continue; //doesn't match
                 }
