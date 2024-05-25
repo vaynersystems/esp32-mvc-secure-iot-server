@@ -247,25 +247,59 @@ function loadSettings(){
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
 
+    const mqttEnabledElement = document.getElementById('mqtt-enabled');
     const mqttHostElement = document.getElementById('mqtt-broker');
     const mqttPortElement = document.getElementById('mqtt-port');
     const mqttInsecureElement = document.getElementById('mqtt-insecure');
+    const mqttCertSkipVerificationContainerElement = document.getElementById('skip-cert-verification-container');
+    
 
     if(hostNameElement !== null) hostNameElement.value = activeConfig.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
     if(timeZoneElement !== null) timeZoneElement.value = activeConfig.system.ntp.timezone;
 
     if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
-    if(hostEnableMDNSElement !== null) hostEnableMDNSElement.value = activeConfig.system.enableMDNS;
+    if(hostEnableMDNSElement !== null) hostEnableMDNSElement.checked = activeConfig.system.enableMDNS;
 
     if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
     if(loggingLevelElement !== null) loggingLevelElement.value = activeConfig.system.logging.level;
 
 
+    if(mqttEnabledElement !== null) mqttEnabledElement.value = activeConfig.system.mqtt.enabled;
     if(mqttHostElement !== null) mqttHostElement.value = activeConfig.system.mqtt.broker;
     if(mqttPortElement !== null) mqttPortElement.value = activeConfig.system.mqtt.port;
     if(mqttInsecureElement !== null) mqttInsecureElement.value = activeConfig.system.mqtt.insecure;
+
+    if(mqttEnabledElement !== null){
+        if(activeConfig.system.mqtt.enabled){
+            mqttHostElement.removeAttribute('disabled');
+            mqttPortElement.removeAttribute('disabled');
+            mqttInsecureElement.removeAttribute('disabled');
+        } else{
+            mqttHostElement.setAttribute('disabled','true');
+            mqttPortElement.setAttribute('disabled','true');
+            mqttInsecureElement.setAttribute('disabled','true');
+        }
+        mqttEnabledElement.addEventListener('change', (ev) => {
+            if(ev.target.checked){
+                mqttHostElement.removeAttribute('disabled');
+                mqttPortElement.removeAttribute('disabled');
+                mqttInsecureElement.removeAttribute('disabled');
+            } else{
+                mqttHostElement.setAttribute('disabled','true');
+                mqttPortElement.setAttribute('disabled','true');
+                mqttInsecureElement.setAttribute('disabled','true');
+            }
+        })
+    }
+
+    if(mqttPortElement !== null && mqttCertSkipVerificationContainerElement != null){
+        mqttPortElement.addEventListener('change', (ev) => {
+            mqttCertSkipVerificationContainerElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
+        })
+        mqttCertSkipVerificationContainerElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
+    }
 
 
     //server
@@ -307,7 +341,9 @@ function seveSettingsFromForm(){
     const loggingLevelElement = document.getElementById('logging-level');
     const mqttHostElement = document.getElementById('mqtt-broker');
     const mqttPortElement = document.getElementById('mqtt-port');
-    const mqttInsecureElement = document.getElementById('mqtt-insecure');
+    const mqttInsecureElement = document.getElementById('mqtt-insecure');   
+    const mqttEnabledElement = document.getElementById('mqtt-enabled'); 
+    
     
     if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
     if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
@@ -318,7 +354,8 @@ function seveSettingsFromForm(){
 
     if(mqttHostElement !== null) activeConfig.system.mqtt.broker = mqttHostElement.value;
     if(mqttPortElement !== null) activeConfig.system.mqtt.port = mqttPortElement.value;
-    if(mqttInsecureElement !== null) activeConfig.system.mqtt.insecure = mqttInsecureElement.value;
+    if(mqttInsecureElement !== null) activeConfig.system.mqtt.insecure = mqttInsecureElement.checked;
+    if(mqttEnabledElement !== null) activeConfig.system.mqtt.enabled = mqttEnabledElement.checked;
     
     const certificateSourceElement = document.querySelector('input[name="certificate-source"]:checked');
 
@@ -476,6 +513,8 @@ function esp32_config_init(configDataSting){
         loggingFrequencyElement.addEventListener('change',(event) => showLoggingProjections(loggingFrequencyElement.value));
     }
 
+    
+
     if(configDataSting === "$_CONFIGURATION_DATA")
         persistedConfig = {};
     else 
@@ -516,6 +555,7 @@ function esp32_config_init(configDataSting){
     }
     if(persistedConfig.system.mqtt === undefined){
         persistedConfig.system.mqtt = {};
+        persistedConfig.system.mqtt.enabled = false;
         persistedConfig.system.mqtt.broker = 'test.mosquitto.org';
         persistedConfig.system.mqtt.port = 8883;
     }
@@ -558,6 +598,7 @@ function esp32_config_init(configDataSting){
 
     invalidateOnChange('mqtt-broker');
     invalidateOnChange('mqtt-port');
+    invalidateOnChange('mqtt-insecure');
 
     invalidateOnChange('device-logging-frequency');
     invalidateOnChange('logging-retention');

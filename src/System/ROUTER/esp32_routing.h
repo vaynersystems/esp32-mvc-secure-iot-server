@@ -56,6 +56,7 @@ public:
     /// @brief True if file being retrieved is in Gzip format. False otherwise
     bool isGZ;
     bool isEditorRequest;
+    bool isInternal;
 
     esp32_route_file_info(){
         requestPath = "";
@@ -67,6 +68,12 @@ public:
         isGZ = false;
         isEditorRequest = false;
     }
+};
+
+struct esp32_route_file_info_extended: public esp32_route_file_info{
+    double fileSize;
+    time_t lastWrite;
+    
 };
 
 #endif

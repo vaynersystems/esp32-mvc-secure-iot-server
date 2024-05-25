@@ -250,6 +250,11 @@
             <div class="section-content">
 
                 <div class="grid-2">
+                    <span>Enable MQTT</span>
+                    <input type="checkbox" id="mqtt-enabled">                                          
+                    
+                </div>   
+                <div class="grid-2">
                     <span>Broker</span>
                     <input type="text" id="mqtt-broker">                                          
                     
@@ -262,11 +267,14 @@
                         <option value="8883">8883 - Encrypted</option>
                     </select>                                         
                 </div>   
-                <div class="grid-2">
+                <div class="grid-2" id="skip-cert-verification-container">
                     <span>Skip Certificate Validation</span>
                     <input type="checkbox" id="mqtt-insecure">
                 </div>
-               
+               <div class="hint row">Enabling MQTT slows down device loop and constrains resources. 
+                Encrypted MQTT while using SSL browing portal will crash the device if using the 320KB RAM version.
+                Proceed with caution.
+               </div>
             </div>
         </div>
         

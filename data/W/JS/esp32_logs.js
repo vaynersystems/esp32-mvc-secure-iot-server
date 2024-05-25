@@ -24,7 +24,7 @@ function onLogFileChange(logFile){
             }
             var response = request.responseText.replace(/(?:\r\n|\r|\n|\t)/g, '');
             if(response.length <= 0 || response[0] !== '[') return;
-            var logData = JSON.parse(response);
+            var logData = JSON.parse(decodeUTF8(response).replace("\.(?=\.)",". . "));
             if(grid === undefined){
                 grid = new gridjs.Grid({
                     columns: ['Time', 'Type', 'Message'],

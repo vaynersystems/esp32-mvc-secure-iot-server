@@ -95,7 +95,7 @@ class esp32_base_controller {
             route = esp32_controller_route(reqRoute);
         }
         void SetTemplate(std::string customPath = std::string()) {
-            controllerTemplate.templateContentFilePath = SITE_ROOT;
+            controllerTemplate.templateContentFilePath = PATH_SITE_ROOT;
             controllerTemplate.templateContentFilePath += "/T/V/"; //views folder
             if (customPath.length() > 0) {                
                 controllerTemplate.templateContentFilePath += customPath;
@@ -107,7 +107,7 @@ class esp32_base_controller {
                     controllerTemplate.templateContentFilePath += "_";
                     controllerTemplate.templateContentFilePath += route.action.c_str();
                 }
-                controllerTemplate.templateContentFilePath += ".html";
+                controllerTemplate.templateContentFilePath += ".html";                
             }
         }
 

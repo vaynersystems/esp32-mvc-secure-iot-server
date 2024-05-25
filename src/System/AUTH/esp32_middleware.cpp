@@ -281,8 +281,16 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         
     }
     // Everything else will be allowed, so we call next()
-    if(!authResult.authenticated && denyIfNotPublic(req,res)) return;
-    if(!authResult.authenticated && denyIfNotAuthorized(req,res)) return;
+    if(!authResult.authenticated && denyIfNotPublic(req,res)){ 
+        res->setStatusCode(303);
+        res->setHeader("Location", "/login?to=" + request);
+        res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
+        return;
+    }
+    if(!authResult.authenticated && denyIfNotAuthorized(req,res)){
+        res->setStatusCode(401);
+        return;
+    }
     //Serial.printf("Request for resource %s authorized.\n", req->getRequestString().c_str());
     next();
 }
@@ -293,8 +301,10 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
     if(!server.middleware->isPublicPage(request)){    
                
         Serial.printf("Request for resource %s rejected. Resource is not public.", request.c_str());
-        if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css"))
+        if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css")){
+            res->setStatusCode(401);
             return true;
+        }
         //if not resource file, redirect user, unless already at login page
         if(!iequals(request.c_str(),"/login",strlen("/login"))){
             res->setStatusCode(303);
@@ -302,12 +312,13 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
             res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");
             return true;
         }
+        return true;
     }
     return false;
 }
 
 bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
-    bool isInternalPath = req->getRequestString().substr(0, 5) == INTERNAL_ROOT;
+    bool isInternalPath = req->getRequestString().substr(0, 5) == PATH_INTERNAL_ROOT;
     if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
         Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
         res->setStatusCode(401);
@@ -330,9 +341,18 @@ void esp32_middleware::setAuthHeaders(HTTPRequest* req, const char * user, const
 
 bool esp32_middleware::isPublicPage(string path)
 {
+    if(path.empty() || path.length() > 32) return false;
+    if(_publicPages.size() > 256){
+        //public pages corrupted or missing, reload
+        return false;//initPublicPages();
+    }
+    //Serial.printf("Checking if page %s matches one of %d public pages ... \n", path.c_str(), _publicPages.size());
     for(int i = 0; i < _publicPages.size();i++){
-        //Serial.printf("Checking if request for %s is public page %s\n",path.c_str(), _publicPages[i].c_str());
-        if(iequals(_publicPages[i].c_str(), path.c_str(),_publicPages[i].length()))
+        //bool isGz = path.find_last_of(".gz")  == path.length() - 3;
+        if(_publicPages[i].empty()) continue;
+        //Serial.println(_publicPages[i].c_str());
+        int length = _publicPages[i].length();
+        if(iequals(_publicPages[i].c_str(), /* isGz ? path.substr(0,path.length() - 3).c_str() : */ path.c_str(),length))
             return true; //page is marked as public
     }
     return false;
@@ -340,6 +360,7 @@ bool esp32_middleware::isPublicPage(string path)
 
 int esp32_middleware::initPublicPages()
 {
+    _publicPages.clear();
     int fileCount = 0;
     if(!SPIFFS.exists(PATH_PUBLIC_PAGES)) return 0;
     File publicPagesFile = SPIFFS.open(PATH_PUBLIC_PAGES);

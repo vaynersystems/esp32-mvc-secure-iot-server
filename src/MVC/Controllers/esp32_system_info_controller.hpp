@@ -13,6 +13,6 @@ public:
 
 private:
 	static DerivedController<esp32_system_info_controller> reg; //register the controller
-    void prettyFlashModeString(String &flashMode);
+    void prettyFlashModeString(string &flashMode);
 };
 #endif

@@ -86,20 +86,10 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     if(!logFileExists){ //new log file
         //run cleanup
         rotateLogs(esp32_log_type::snapshot);
-        File snapshotFile = SPIFFS.open(filename.c_str(),"w",true);
-        snapshotFile.printf("[\n\t%s\n]",snapshotString.c_str());        
-        snapshotFile.close();
+        esp32_fileio::UpdateFile(filename.c_str(), string_format("[\n\t%s\n]",snapshotString.c_str()).c_str(),true);
+       
     } else{
-        File snapshotFile = SPIFFS.open(filename.c_str(),"r+w",true);
-        int fileSize = snapshotFile.size();
-        int seekPos = fileSize - 2;
-        bool seekWorked = snapshotFile.seek(seekPos, SeekMode::SeekSet);
-        if(!seekWorked){
-            logError("Failed to seek in snapshot log\n");            
-            return false;
-        }
-        snapshotFile.printf("\n\t,%s\n]", snapshotString.c_str());
-        snapshotFile.close();
+        esp32_fileio::UpdateFile(filename.c_str(), string_format("\n\t,%s\n]",snapshotString.c_str()).c_str(),true, -2);        
     }
     
     return true;
@@ -112,39 +102,46 @@ bool esp32_logging::log(string message, esp32_log_type logType, esp32_log_level 
 
 int esp32_logging::rotateLogs(esp32_log_type logType)
 {
-    if(_retentionDays == 0) return 0; //configured for no rotation 
+    vector<esp32_route_file_info_extended> files;
+    auto logsFound  = esp32_fileio::getFilesExtended(SPIFFS,files ,PATH_LOGGING_ROOT, logTypes[logType]);
+
+    if(logsFound == 0 || _retentionDays == 0) return 0; //configured for no rotation 
     int deleted = 0;
     //tm now = getDate(); 
     time_t now;
     time(&now);// = mktime(&now);
-    loopback_stream buffer(512);
-    esp32_fileio::listDir(SPIFFS,&buffer,PATH_LOGGING_ROOT,1,JSON, logTypes[logType].c_str());
-    StaticJsonDocument<2048> doc;
-
-    //Serial.printf("Rotating logs for type %s\n",logTypes[logType].c_str());
-
-    auto error = deserializeJson(doc, buffer);
-    if(error.code() != ESP_OK){
-        Serial.printf("Error occured listing files: %s\n", error.c_str());
-        return -1;
+    if(logsFound < 0) 
+    {
+        //Serial.printf("Error occured listing files: %d\n", logsFound);
+        return 0;
     }
-    
-    //Serial.printf("Removing logs older than %d days\n", _retentionDays);
-    for(auto log : doc.as<JsonArray>()){
-        string filepath = string_format("%s/%s",PATH_LOGGING_ROOT, log["name"].as<const char *>());
-        File file = SPIFFS.open(filepath.c_str(),"r");
-        time_t lastWrite = file.getLastWrite();
-        file.close();
-        if(now - lastWrite > _retentionDays * 24 * 60 * 60){
-            logInfo(string_format("Removing log file %s due to retention policy. It is %d days old.\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24)));
-            SPIFFS.remove(filepath.c_str());
+    if (logsFound == 0)
+        return deleted;
+
+    for(int idx = 0; idx < files.size();idx++){
+        if(now - files[idx].lastWrite > _retentionDays * 24 * 60 * 60){
+            logInfo(string_format("Removing log file %s due to retention policy. It is %d days old.",
+                files[idx].fileName.c_str(), (now - files[idx].lastWrite)/(60*60*24)));
+            SPIFFS.remove(files[idx].fileName.c_str());
             deleted++;
         } else {
             //Serial.printf("Keeping log file %s since it is %d days old\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24));
         }    
-    }    
+    }
     
     return deleted;
+}
+
+void esp32_logging::removeAllLogs()
+{
+    vector<esp32_route_file_info> files;
+    auto logsFound  = esp32_fileio::getFiles(SPIFFS,files , PATH_LOGGING_ROOT);
+
+    if(logsFound == 0) return;
+    for(int idx = 0; idx < files.size();idx++){
+        SPIFFS.remove(files[idx].fileName.c_str());
+    }
+
 }
 
 string esp32_logging::getLogFilename(esp32_log_type logType)
@@ -153,7 +150,7 @@ string esp32_logging::getLogFilename(esp32_log_type logType)
     
     if(timeinfo.tm_year == 70)
         return ""; // clock not initialized
-    return string_format("%s/%s_%04d-%02d-%02d.log",PATH_LOGGING_ROOT, logTypes[logType].c_str(), timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+    return string_format("%s/%s_%04d-%02d-%02d.log",PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
 
 }
 
@@ -168,22 +165,27 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     bool logFileExists =  SPIFFS.exists(filename.c_str());
   
     if(!logFileExists){ //new log file
-        //run cleanup
-        rotateLogs(log);
+        //Serial.println("Log file not found. Creating");
+        esp32_fileio::CreateFile(filename.c_str());
         File logFile = SPIFFS.open(filename.c_str(),"w",true);
         logFile.printf("[\n\t {\"time\":\"%02d:%02d:%02d\", \"type\": \"%s\", \"message\": \"%s\"}\n]",
             timeinfo.tm_hour,
             timeinfo.tm_min,
             timeinfo.tm_sec,
-            logEntryTypes[entryType].c_str(),
+            logEntryTypes[entryType],
             esacped.c_str()
         );        
         logFile.close();
+        //run cleanup
+        rotateLogs(log);
+        
     } else{
-        File logFile = SPIFFS.open(filename.c_str(),"r+w",true);
+        //Serial.println("Log file found. Opening");
+        File logFile = SPIFFS.open(filename.c_str(),"r+w");
+        if(!logFile) return false;      
         int fileSize = logFile.size();
-        int seekPos = fileSize - 1;
-        //Serial.printf("Seeking from position %d to position %d of %d in daily snapshot file .\n", snapshotFile.position(), seekPos, fileSize);
+        int seekPos = fileSize > 0 ? fileSize - 1 : 0;
+        //Serial.printf("Seeking from position %d to position %d of %d in daily %s file .\n", logFile.position(), seekPos, fileSize, logTypes[log]);
         bool seekWorked = logFile.seek(seekPos, SeekMode::SeekSet);
         if(!seekWorked){
             #ifdef DEBUG
@@ -195,7 +197,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
             timeinfo.tm_hour,
             timeinfo.tm_min,
             timeinfo.tm_sec,
-            logEntryTypes[entryType].c_str(),
+            logEntryTypes[entryType],
             esacped.c_str()
         ); 
         logFile.close();
