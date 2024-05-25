@@ -37,16 +37,24 @@ SPIFFS_Info esp32_fileio::getMemoryInfo(){
 /// @param levels number of levels to traverse
 /// @param format text or json format
 /// @param searchString substring to match. leading ! will exclude search results matching @ref `searchString`
-void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format, const char* searchString) {
+int esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format, const char* searchString) {
+    int filesfound = 0;
+    if(!fs.exists(dirname)) return -1;
+
+    File root = fs.open(dirname);
+    if (!root) {
+        writeTo->println("- failed to open directory");
+        return -1;
+    }
+    if (!root.isDirectory()) {
+        writeTo->println(" - not a directory");
+        root.close();
+        return -2;
+    }
+
     if (format == HTTP_FORMAT::JSON) {
-        bool first = true;
-        File root = fs.open(dirname);
-        if (!root) {
-            return;
-        }
-        if (!root.isDirectory()) {
-            return;
-        }
+        bool first = true;        
+        
         writeTo->print("[");
         File file = root.openNextFile();
         while (file) {
@@ -77,6 +85,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                 time_t lastWrite = file.getLastWrite();
                 strftime(buff, 20, "%Y-%m-%d %H:%M:%S", localtime(&lastWrite));
                 writeTo->printf("{\"type\": \"file\", \"name\":\"%s\", \"size\": %d, \"last_modified\":\"%s\"}", file.name(), file.size(), buff);
+                filesfound++;
             }
             file = root.openNextFile();
             //esp_task_wdt_reset();
@@ -87,16 +96,6 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
     {
         size_t totalSize = 0;
         writeTo->printf("Listing directory: %s\r\n", dirname);
-
-        File root = fs.open(dirname);
-        if (!root) {
-            writeTo->println("- failed to open directory");
-            return;
-        }
-        if (!root.isDirectory()) {
-            writeTo->println(" - not a directory");
-            return;
-        }
 
         File file = root.openNextFile();
         uint8_t fileLenMax = 31;
@@ -116,6 +115,7 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
                 writeTo->print("SIZE: ");
                 writeTo->println(file.size());
                 totalSize += file.size();
+                filesfound++;
             }
             file = root.openNextFile();
             //esp_task_wdt_reset();
@@ -126,6 +126,8 @@ void esp32_fileio::listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint
         writeTo->printf("Total of %s bytes\n", sizeStr);
     }
 
+    root.close();
+    return filesfound;
     
 }
 /// @brief Support whildcard search.
@@ -242,6 +244,10 @@ bool esp32_fileio::CreateFile(const char * filename){
         Serial.printf("File %s already exists!", name.c_str());
         return false;
     }
+    //check if directory exists
+    auto dirPath = name.substr(0,name.find_last_of('/')).c_str();
+    if(SPIFFS.exists(dirPath))
+        SPIFFS.mkdir(dirPath);
     File f = SPIFFS.open(name.c_str(),"w");
     f.close();
     return true;
@@ -265,6 +271,7 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
         Serial.printf("File %s not found \n", name.c_str());
         if(!createIfNotFound)
             return -1;
+        CreateFile(filename);
     }
     File file = SPIFFS.open(name.c_str(), "w");
     byte* buf = new byte[512]; //must be at least 72 chars to detect boundary

@@ -47,7 +47,7 @@ class esp32_fileio
 {
 public:
     bool start();
-	static void listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format = HTTP_FORMAT::TEXT, const char* searchString = "");
+	static int listDir(fs::FS& fs, Print* writeTo, const char* dirname, uint8_t levels, HTTP_FORMAT format = HTTP_FORMAT::TEXT, const char* searchString = "");
     static void buildOrderedFileList(fs::FS& fs, const char* dirname, const char * searchString, uint8_t levels, list<SPIFFS_FileInfo> &list);
     static SPIFFS_Info getMemoryInfo();
     //output data
