@@ -8,7 +8,10 @@ void esp32_mqtt_client::start()
     StaticJsonDocument<2048> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);
     if(systemConfig["mqtt"].isNull()) return; //no init, not configured
+    if(systemConfig["mqtt"]["enabled"].isNull() || !systemConfig["mqtt"]["enabled"].as<bool>() == true)
+        return; //not configured
 
+    _enabled = systemConfig["mqtt"]["enabled"].as<bool>();
     _insecureMode = systemConfig["mqtt"]["insecure"].isNull() || systemConfig["mqtt"]["insecure"].as<bool>();
 
     if(_insecureMode)
@@ -41,49 +44,72 @@ void esp32_mqtt_client::start()
     }
 
     client.setKeepAlive(60);
-
     
     client.setServer(_brokerUri.c_str(),_port);
     //client.setServer("test.mosquitto.org",8883);    
-    _started = true;
-    logger.logDebug("MQTT Client started.");
-    Serial.println("MQTT Client started. Connecting..");
+    _started = true; 
     //client.begin(_brokerUri.c_str(), network);
-    connect();
-   Serial.println("MQTT Client initialization completed");
+    
+    _publishList.clear();
+    #ifdef DEBUG
+    Serial.println("MQTT Client initialization completed");
+    #endif
 }
 
 bool esp32_mqtt_client::connect()
 {
-    if(!_started) start();
+    if(!_started) {
+        //start();
+        Serial.println("Failed to connect. MQTT Client is not started.");
+        
+    }
     if(_port == 8883){
         if(networkSecure.connected()) networkSecure.stop();
             networkSecure.connect(_brokerUri.c_str(),_port);
     } else{
         if(networkInsecure.connected()) networkInsecure.stop();
-        Serial.printf("Connecting to INSECURE network %s on port %d\n", _brokerUri.c_str(),_port);
-            if(networkInsecure.connect(_brokerUri.c_str(),_port))
-                Serial.println("MQTT Connected!");
+        #ifdef DEBUG
+        Serial.printf("[MQTT] Connecting to INSECURE network %s on port %d\n", _brokerUri.c_str(),_port);
+        #endif
+            //if(networkInsecure.connect(_brokerUri.c_str(),_port))
+                //Serial.println("MQTT Connected!");
     }
+    client.connect(_brokerUri.c_str());
     
     
   
     return true;
 }
 
+/// @brief Durable delivery. Message will wait in queue until it is confirmed as delivered to host
 void esp32_mqtt_client::loop(){
+    if(_publishList.empty())
+        return;
     //if there is anything to piublish, do so
      if(!isConnected())
         connect();
-    //Serial.printf("Processing %d publications\n", _publishList.size());
-    int qos = 0;
-    for(int idx=0; idx< _publishList.size(); idx++){
-        //Serial.printf("Publishing to topic %s %s", _publishList[idx].first, _publishList[idx].second);
-        client.publish(_publishList[idx].first,_publishList[idx].second);
-        int writeError = client.getWriteError();
-        logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result %d", _publishList[idx].first, _publishList[idx].second ? "suceeded" : "failed", writeError));
+    Serial.printf("Processing %d publications\n", _publishList.size());
+    //int qos = 0;
+    auto it = _publishList.end();
+    do{
+        it--;
+        bool result = client.publish((*it).first.c_str(),(*it).second.c_str());
+        Serial.printf("Publishing to topic %s %s. Result: %s\n", (*it).first.c_str(),(*it).second.c_str(), result ? "sucessfull" : "failed");
+        //logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", (*it).first.c_str(), (*it).second.c_str(), result ? "suceeded" : "failed"));
+        if(!result) return; // stop processing
+        //_publishList.pop_back();
 
-    }
+        //print address of itterator and begining
+        //Serial.printf("Itterator: 0x%08X\t Beginning: 0x%08X\n", &(*it),  &(*_publishList.begin()));
+    } while(it != _publishList.begin());
+    // for(int idx=_publishList.size(); idx > 0; --idx){
+    //     Serial.printf("Publishing to topic %s %s", _publishList[idx].first.c_str(), _publishList[idx].second.c_str());
+    //     
+    //     int writeError = client.getWriteError();
+    //     logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", _publishList[idx].first.c_str(), _publishList[idx].second.c_str(), result ? "suceeded" : "failed"));
+    //     if(!result) return; // stop processing
+    //     _publishList.pop_back();
+    // }
     _publishList.clear();
     client.loop();
 }
@@ -107,7 +133,9 @@ void esp32_mqtt_client::subscribe(const char *topic, void (*callback)(char* topi
 
 bool esp32_mqtt_client::publish(const char *topic, const char* data)
 {
-    _publishList.push_back(pair<const char *,const char *>(topic, data));
+    if(!_enabled) return false;
+    _publishList.push_back(pair<string, string>(topic + '\0', data + '\0')); //ask my why
+    Serial.printf("Added message %s to topic %s\n", data, topic);
    
 //   // prepare message
 //   lwmqtt_message_t message = lwmqtt_default_message;

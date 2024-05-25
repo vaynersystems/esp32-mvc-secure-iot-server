@@ -77,59 +77,18 @@ public:
     static void handleControllerRequest(HTTPRequest* req, HTTPResponse* res, esp32_controller_route route);
     static string handleServiceRequest(esp32_service_route route);
 
-protected:
-	static DerivedController<esp32_base_controller>* controllerFactory;
-    static DerivedService<esp32_base_service>* serviceFactory;
-    static bool parseFileRequest(HTTPRequest* req, esp32_route_file_info& fileRequestInfo){
-        String fileName = String(fileRequestInfo.requestPath.c_str());
+    static inline bool getFileInfo(HTTPRequest* req, esp32_route_file_info& fileRequestInfo){
+        string fileName = string(fileRequestInfo.requestPath.c_str());
 
-        bool internalFile = fileName.startsWith(INTERNAL_ROOT) || fileName.startsWith(PATH_LOGGING_ROOT);
         bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";
-        bool isEditorRequest = String(req->getHeader("Refer").c_str()).endsWith("edit.html");
-        if(internalFile && !isAdminUser){
+        bool isEditorRequest = strstr(req->getHeader("Refer").c_str(), "edit.html") != nullptr;
+        auto info = esp32_fileio::getFileInfo(SPIFFS,fileName.c_str());
+        fileRequestInfo = info;
+
+        if(info.isInternal && !isAdminUser){
             return false;
-        }
-                
-        if (!fileName.startsWith(SITE_ROOT) && !internalFile)
-            fileName = SITE_ROOT + fileName;
-        fileName = urlDecode(fileName.c_str()).c_str();
+        }               
         
-        //first we need to trim off any request parameters
-        int endIdx = fileName.indexOf("?");
-        if (endIdx > 0) {
-            if (fileName.substring(endIdx + 1).compareTo("download=true") == 0)
-                fileRequestInfo.isDownload = true;
-            fileName = fileName.substring(0, endIdx);
-        }
-
-        fileRequestInfo.fileName = fileName.c_str();
-        fileRequestInfo.filePath = fileName.c_str();
-
-        //check if file requested is in gzip format
-        if(fileName.endsWith(".gz")){
-            fileRequestInfo.fileName = fileName.substring(fileName.lastIndexOf('.') + 1).c_str();
-            fileRequestInfo.isGZ = true;
-        }
-
-        fileRequestInfo.fileExtension = 
-            fileName.lastIndexOf('.') > 0 ?
-                fileName.substring(fileName.lastIndexOf('.') + 1).c_str() : "";
-
-        String zipFileName = fileRequestInfo.isGZ ? fileName : fileName + ".gz";
-
-        if(SPIFFS.exists(zipFileName.c_str())){
-            //zip file found
-            fileRequestInfo.exists = true;
-            fileRequestInfo.filePath = zipFileName.c_str();
-            fileRequestInfo.isGZ = true;
-        } else if(!fileRequestInfo.isGZ && SPIFFS.exists(fileName.c_str())){
-            //regular file found
-            fileRequestInfo.exists = true;
-            fileRequestInfo.isGZ = false;            
-        } else{
-            //file not found
-            fileRequestInfo.exists = false;
-        }
 #ifdef DEBUG
         Serial.printf("[3.2] Request for file %s from path %s with extension %s in %s format%s %s.\n", 
             fileRequestInfo.fileName.c_str() , 
@@ -143,6 +102,11 @@ protected:
         fileRequestInfo.isEditorRequest = isEditorRequest;
         return fileRequestInfo.fileExtension.length() > 0 && fileRequestInfo.exists;
     }
+
+protected:
+	static DerivedController<esp32_base_controller>* controllerFactory;
+    static DerivedService<esp32_base_service>* serviceFactory;
+    
 private:
 	static bool GetControllerRoute(HTTPRequest* request, esp32_controller_route& routeObj);
 

@@ -41,53 +41,65 @@ void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSC
 
 void esp32_router::RegisterHandlers(fs::FS &fs, const char *dirname, uint8_t levels)
 {
-    File root = fs.open(dirname);
-    if (!root || !root.isDirectory())
-    {
-        return;
-    }
-
-    File file = root.openNextFile();
-    while (file)
-    {
-        if (file.isDirectory())
+    vector<esp32_route_file_info> files = vector<esp32_route_file_info>();
+    esp32_fileio::getFiles(fs, files, dirname);
+    //all files will have preceeding dirname of site root. remove it in registering
+    for(int idx = 0; idx < files.size();idx++){
+        RegisterHandler(files[idx].filePath.substr(2).c_str(),HTTPMETHOD_GET, &handleFile);
+        if(files[idx].isGZ)
         {
-            if (levels)
-            { // print out directory contents to serial
-                esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
-            }
+            string fileGz = files[idx].fileName.substr(2) + ".gz";
+            RegisterHandler(fileGz.c_str(),HTTPMETHOD_GET, &handleFile);
         }
-        else
-        { // Register file handler as filename
-
-            String mappingPath = String(file.name());
-            mappingPath.remove(0, sizeof(SITE_ROOT) - 1);
-
-            RegisterHandler(mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
-
-            int startIdx = mappingPath.lastIndexOf('/');
-            if (startIdx > 0)
-            {
-                String filePath = mappingPath.substring(startIdx);
-                if (filePath.length() > 0)
-                    RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleFile);
-            }
-
-            // if gz file, register handler without gz
-            if (String(file.name()).endsWith(".gz"))
-            {
-                String nonGZName = String(file.name());
-                nonGZName.remove(nonGZName.length() - 3);
-
-                RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
-
-                nonGZName.remove(0, sizeof(SITE_ROOT) - 1);
-                // Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
-                RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
-            }
-        }
-        file = root.openNextFile();
     }
+
+    // File root = fs.open(dirname);
+    // if (!root || !root.isDirectory())
+    // {
+    //     return;
+    // }
+
+    // File file = root.openNextFile();
+    // while (file)
+    // {
+    //     if (file.isDirectory())
+    //     {
+    //         if (levels)
+    //         { // print out directory contents to serial
+    //             esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
+    //         }
+    //     }
+    //     else
+    //     { // Register file handler as filename
+
+    //         String mappingPath = String(file.name());
+    //         mappingPath.remove(0, sizeof(PATH_SITE_ROOT) - 1);
+
+    //         RegisterHandler(mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
+
+    //         int startIdx = mappingPath.lastIndexOf('/');
+    //         if (startIdx > 0)
+    //         {
+    //             String filePath = mappingPath.substring(startIdx);
+    //             if (filePath.length() > 0)
+    //                 RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleFile);
+    //         }
+
+    //         // if gz file, register handler without gz
+    //         if (String(file.name()).endsWith(".gz"))
+    //         {
+    //             String nonGZName = String(file.name());
+    //             nonGZName.remove(nonGZName.length() - 3);
+
+    //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
+
+    //             nonGZName.remove(0, sizeof(PATH_SITE_ROOT) - 1);
+    //             // Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
+    //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
+    //         }
+    //     }
+    //     file = root.openNextFile();
+    // }
 }
 
 void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction *handler)
@@ -241,8 +253,8 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest *req, HTTPResponse *res, S
     int idx = line.indexOf(searchString);
     if (idx >= 0)
     {
-        if (!fileName.startsWith(SITE_ROOT))
-            fileName = SITE_ROOT + fileName;
+        if (!fileName.startsWith(PATH_SITE_ROOT))
+            fileName = PATH_SITE_ROOT + fileName;
 
         // Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
@@ -565,7 +577,7 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
     esp32_route_file_info fileInfo = esp32_route_file_info();
     fileInfo.requestPath = req->getRequestString().c_str();
 
-    if (!parseFileRequest(req, fileInfo))
+    if (!getFileInfo(req, fileInfo))
     {
         handle404(req, res);
         return;

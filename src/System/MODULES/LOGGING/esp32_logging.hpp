@@ -45,6 +45,8 @@ public:
     int rotateLogs(esp32_log_type logType);
     //static size_t size();
 
+    void removeAllLogs();
+
 private:
     string getLogFilename(esp32_log_type logType);
     
@@ -52,8 +54,8 @@ private:
     bool _useDate = true;
     int _retentionDays = 365;
     esp32_log_level _loggingLevel;
-    std::map<esp32_log_type, string> logTypes;
-    std::map<esp32_log_level, string> logEntryTypes;
+    std::map<esp32_log_type, const char *> logTypes;
+    std::map<esp32_log_level, const char *> logEntryTypes;
 
 };
 

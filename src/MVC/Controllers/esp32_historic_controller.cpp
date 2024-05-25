@@ -10,23 +10,23 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     //this page will render charts for devices.
     // set device config to template variable
-    StaticJsonDocument<2048> doc;
+    StaticJsonDocument<1024> doc;
     esp32_config::getConfigSection("devices",&doc);
     string deviceString = "";
     serializeJson(doc, deviceString);
     controllerTemplate.SetTemplateVariable("$_DEVICES",deviceString );
 
-    loopback_stream buffer(512);
-    esp32_fileio::listDir(SPIFFS, &buffer, PATH_LOGGING_ROOT, 1, HTTP_FORMAT::JSON,"SNAPSHOT_");   
-    
-    ostringstream oss;
+    vector<esp32_route_file_info> files;
+    esp32_fileio::getFiles(SPIFFS,files,PATH_LOGGING_ROOT, "SNAPSHOT_");
+   
     string response;
-    char buf[512];
-    while(buffer.available()){
-        int bytesRead = buffer.readBytes(buf,512);
-        oss.write(buf,bytesRead);
+    
+    response = "[";
+    for(int idx = 0; idx < files.size(); idx++){
+        if(idx > 0) response += ",";
+        response += string_format("{\"name\": \"%s\"}",files[idx].fileName.substr(files[idx].fileName.find_last_of('/') + 1).c_str()).c_str();
     }
-    response = oss.str();
+    response += "]";
     //Serial.printf("Found the following log files \n%s\n", response.c_str());
     controllerTemplate.SetTemplateVariable("$_LOGDAYS",response.c_str() );
 

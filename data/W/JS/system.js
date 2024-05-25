@@ -42,6 +42,30 @@ function addCss(fileName) {
   
     
 }  
+
+function decodeUTF8(data) {
+    if (typeof data === "string") {
+      const utf8 = new Uint8Array(
+        Array.prototype.map.call(data, (c) => c.charCodeAt(0))
+      );
+      return new TextDecoder("utf-8").decode(utf8);
+    }
+  
+    if (Array.isArray(data)) {
+      return data.map(decodeUTF8);
+    }
+  
+    if (typeof data === "object") {
+      const obj = {};
+      Object.entries(data).forEach(([key, value]) => {
+        obj[key] = decodeUTF8(value);
+      });
+      return obj;
+    }
+  
+    return data;
+}
+  
   
 
 

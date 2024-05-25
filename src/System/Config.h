@@ -1,8 +1,8 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.10"
-#define SITE_ROOT "/W"
-#define INTERNAL_ROOT "/INT"
+#define FIRMWARE_VERSION "0.20"
+#define PATH_SITE_ROOT "/W"
+#define PATH_INTERNAL_ROOT "/INT"
 #define PATH_LOGGING_ROOT "/LOG"
 #define TEMPLE_VAR_COUNT 50
 

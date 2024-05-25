@@ -4,9 +4,7 @@ BaseControllerFactory::map_type* BaseControllerFactory::controllerMap = NULL;
 
 inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* res) {  
     //serve get request using template engine
-    string path = SITE_ROOT;
-    path += "/T/_template.html";
-    File f = SPIFFS.open(path.c_str());
+    File f = SPIFFS.open(string_format("%s%s", PATH_SITE_ROOT, "/T/_template.html").c_str());
     res->setStatusCode(200);
     res->setStatusText("OK");
     res->setHeader("Content-Type", "text/html");

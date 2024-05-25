@@ -77,8 +77,8 @@ extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 24;
 const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 100 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 unsigned long lastreport = millis();
-String freeBytesHEAPSPretty("");
-String freeBytesSTACKPretty("");
+string freeBytesHEAPSPretty("");
+string freeBytesSTACKPretty("");
 #endif
 //for starting and looping server task
 void serverTask(void* params) {
@@ -94,7 +94,7 @@ void serverTask(void* params) {
         esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
         esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
         
-        Serial.printf("Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
+        Serial.printf("[SERVER] Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
         lastreport = millis(); 
     }
     #endif
@@ -149,14 +149,14 @@ void setup() {
     xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
 
     //Create MQTT Client
-    //xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
+    xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
     //pinMode(LED_PIN, OUTPUT);
 
     // if (!SD.begin(CS)) {
     //     Serial.println("initialization failed!");
     //     return;
     // }
-    // WriteFile("/test.txt", "ElectronicWings.com");
+    // WriteFile("/test.txt", "github.com");
     // ReadFile("/test.txt");
 
     
@@ -164,19 +164,19 @@ void setup() {
     logger.logInfo("System started");
 }
 unsigned long _lastReport = 0;
+string freeBytesHEAPPretty = "", freeBytesSTACKmPretty = "";
 void loop() {   
     
-    // if(millis() - _lastReport > 5000){
-    // //     String freeBytesHEAPSPretty = "", freeBytesSTACKPretty = "";
-    // //     auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
-    // //     esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
-    // //     esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
+    if(millis() - _lastReport > 5000){        
         
-    // //     Serial.printf("Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
-    //      _lastReport = millis(); 
-    //      mqtt.loop();
-    //  }
-
-    // mqtt.loop();        
-    // delay(deviceDelay);
+        auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
+        esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPPretty);
+        esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKmPretty);
+        
+        Serial.printf("[MAIN] Free heap: %s\t  loop stack: %s\n",
+            freeBytesHEAPPretty.c_str(), 
+            freeBytesSTACKmPretty.c_str()
+        );
+         _lastReport = millis(); 
+    }
 }

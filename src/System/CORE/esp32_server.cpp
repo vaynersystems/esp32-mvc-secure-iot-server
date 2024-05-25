@@ -53,7 +53,7 @@ bool esp32_server::start() {
     middleware->middlewareSetTokenizer((char*)_certManager->getCert()->getPKData());
     //load exclusions list
     middleware->initPublicPages();
-    _router->RegisterHandlers(SPIFFS, SITE_ROOT, 3);
+    _router->RegisterHandlers(SPIFFS, PATH_SITE_ROOT, 3);
     _router->RegisterHandler( "/", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
     _router->RegisterHandler( "/list", HTTPMETHOD_GET, &esp32_router::handleFileList);

@@ -60,7 +60,7 @@ void esp32_devices::onLoop()
         esp32_device_type type = _devices[idx].type;
         JsonObject deviceSeriesEntry = seriesEntries.createNestedObject();
         deviceSeriesEntry["id"] = _devices[idx].id;
-        bool timeToPublish = _devices[idx].mqttPublish && millis() - _devices[idx]._lastPublishTime > _devices[idx].mqttFrequency * 60000 ;
+        bool timeToPublish = mqtt.enabled() && _devices[idx].mqttPublish && millis() - _devices[idx]._lastPublishTime > _devices[idx].mqttFrequency * 60000 ;
         
         switch(type){
             case esp32_device_type::AnalogInput:
@@ -69,7 +69,7 @@ void esp32_devices::onLoop()
                 auto value = device.getValue();
                 deviceSeriesEntry["value"] = value;
                 if(timeToPublish){
-                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<string>().c_str());
                     _devices[idx]._lastPublishTime = millis();
                 }
                 
@@ -81,7 +81,7 @@ void esp32_devices::onLoop()
                 auto value = device.getValue();
                 deviceSeriesEntry["value"] =value;
                 if(timeToPublish){
-                   mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                   mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<string>().c_str());
                     _devices[idx]._lastPublishTime = millis();
                 }
             }
@@ -92,7 +92,7 @@ void esp32_devices::onLoop()
                 auto value = device.getValue();
                 deviceSeriesEntry["value"] =value;
                 if(timeToPublish){
-                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<const char*>());
+                    mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<string>().c_str());
                     _devices[idx]._lastPublishTime = millis();
                 }       
             }          
@@ -158,7 +158,7 @@ void esp32_devices::onLoop()
                 //if desired state is different that current state, change it
                 if(seriesEntries[destinationDeviceIdx]["value"].as<bool>() != shouldBeOn){
                     device.setValue(shouldBeOn);  
-                    if(_devices[idx].mqttPublish)
+                   if(_devices[idx].mqttPublish && mqtt.enabled())
                         mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
                 }
             }            

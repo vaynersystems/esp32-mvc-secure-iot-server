@@ -13,7 +13,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     nvs_stats_t stats;
     nvs_get_stats(NULL, &stats);    
 
-    String bootSizePretty("0"), part1SizePretty("0"); 
+    string bootSizePretty("0"), part1SizePretty("0"); 
     
     int partitions = esp_ota_get_app_partition_count();
     const esp_partition_t *boot_partition = esp_ota_get_boot_partition();
@@ -27,7 +27,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$_PARTITION_BOOT_SPACE",  bootSizePretty.c_str());    
     controllerTemplate.SetTemplateVariable("$_PARTITION_1_SPACE", part1SizePretty.c_str());
 
-    String flashSizePretty(""), sketchSizePretty(""), flashMode; 
+    string flashSizePretty(""), sketchSizePretty(""), flashMode; 
     esp32_fileio::PrettyFormat((size_t)ESP.getFlashChipSize(), &flashSizePretty);
     esp32_fileio::PrettyFormat((size_t)ESP.getSketchSize(), &sketchSizePretty);
     prettyFlashModeString(flashMode);
@@ -41,11 +41,13 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$_FLASH_SPEED",     to_string(ESP.getFlashChipSpeed()));
     controllerTemplate.SetTemplateVariable("$_SDK_VERSION",     ESP.getSdkVersion());
     controllerTemplate.SetTemplateVariable("$_SKETCH_SIZE",     sketchSizePretty.c_str()) ;
+    controllerTemplate.SetTemplateVariable("$_FIRMWARE_VERSION",FIRMWARE_VERSION) ;
+    
     
 
 
 
-    String freeBytesSPIFFSPretty(""), totalBytesSPIFFSPretty(""), usedBytesSPIFFSPretty("");
+    string freeBytesSPIFFSPretty(""), totalBytesSPIFFSPretty(""), usedBytesSPIFFSPretty("");
     esp32_fileio::PrettyFormat(spiffs_mem.freeBytes, &freeBytesSPIFFSPretty);
     esp32_fileio::PrettyFormat(spiffs_mem.usedBytes, &usedBytesSPIFFSPretty);
     esp32_fileio::PrettyFormat(spiffs_mem.totalBytes, &totalBytesSPIFFSPretty);
@@ -57,7 +59,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_AVAILABLE", spiffs_mem.totalBytes > 0 ? "block" : "none");
     
     /* HEAP */
-    String freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");
+    string freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");
 	esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
 	esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize(), &totalBytesHEAPPretty);
     esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize() - esp_get_free_heap_size(), &usedBytesHEAPPretty);
@@ -69,7 +71,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_AVAILABLE", ESP.getHeapSize() > 0 ? "block" : "none");
 
     /* PSRAM */
-    String freeBytesPSRAMPretty(""), usedBytesPSRAMPretty("") , totalBytesPSRAMPretty("");
+    string freeBytesPSRAMPretty(""), usedBytesPSRAMPretty("") , totalBytesPSRAMPretty("");
 	esp32_fileio::PrettyFormat(ESP.getFreePsram(), &freeBytesPSRAMPretty);
 	esp32_fileio::PrettyFormat(ESP.getPsramSize(), &totalBytesPSRAMPretty);
     esp32_fileio::PrettyFormat(ESP.getPsramSize() - ESP.getFreePsram(), &usedBytesPSRAMPretty);
@@ -81,7 +83,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_AVAILABLE", ESP.getPsramSize() > 0 ? "block" : "none");
 
     /* SKETCH */
-    String freeBytesSKETCHPretty(""), usedBytesSKETCHPretty("") , totalBytesSKETCHPretty("");
+    string freeBytesSKETCHPretty(""), usedBytesSKETCHPretty("") , totalBytesSKETCHPretty("");
 	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace(), &freeBytesSKETCHPretty);
 	esp32_fileio::PrettyFormat(ESP.getSketchSize() + ESP.getFreeSketchSpace(), &totalBytesSKETCHPretty);
     esp32_fileio::PrettyFormat(ESP.getSketchSize(), &usedBytesSKETCHPretty);
@@ -101,7 +103,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     //Print debug message
     //controllerTemplate.PrintDebugMessage(req,res);
     auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL);     
-    String freeBytesSTACKPretty(""), usedBytesSTACKPretty("") , totalBytesSTACKPretty("");
+    string freeBytesSTACKPretty(""), usedBytesSTACKPretty("") , totalBytesSTACKPretty("");
 	esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
 	esp32_fileio::PrettyFormat(SERVER_STACK_SIZE - stackFreeBytes, &usedBytesSTACKPretty);
     esp32_fileio::PrettyFormat(SERVER_STACK_SIZE, &totalBytesSTACKPretty);
@@ -119,7 +121,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     esp32_base_controller::Index(req,res);      
 }
 
-void esp32_system_info_controller::prettyFlashModeString(String &flashMode){
+void esp32_system_info_controller::prettyFlashModeString(string &flashMode){
     switch (ESP.getFlashChipMode())
     {
     case 0:
