@@ -1,12 +1,12 @@
-<script type="text/javascript" src="/JS/C/moment.js"></script>
-<script type="text/javascript" src="/JS/C/chart.js"></script>
-<script type="text/javascript" src="/JS/C/luxon.js"></script>
-<script type="text/javascript" src="/JS/C/chart.luxon.js"></script>
-<script type="text/javascript" src="/JS/C/chart.zoom.js"></script>
-<script type="text/javascript" src="/JS/C/chart.stream.js"></script>
-<script type="text/javascript" src="/JS/esp32_chart.js"></script>
-<script type="text/javascript" src="/JS/esp32_socket.js"></script>
-<script type="text/javascript" src="/JS/esp32_system_info.js"></script>
+<script type="text/javascript" src="/W/JS/C/moment.js"></script>
+<script type="text/javascript" src="/W/JS/C/chart.js"></script>
+<script type="text/javascript" src="/W/JS/C/luxon.js"></script>
+<script type="text/javascript" src="/W/JS/C/chart.luxon.js"></script>
+<script type="text/javascript" src="/W/JS/C/chart.zoom.js"></script>
+<script type="text/javascript" src="/W/JS/C/chart.stream.js"></script>
+<script type="text/javascript" src="/W/JS/esp32_chart.js"></script>
+<script type="text/javascript" src="/W/JS/esp32_socket.js"></script>
+<script type="text/javascript" src="/W/JS/esp32_system_info.js"></script>
 
 <style type="text/css">    
     .row{
@@ -178,6 +178,18 @@
                     <div>Used: $SPIFFS_MEMORY_USED</div>
                     <div>Free: $SPIFFS_MEMORY_FREE</div>
                     <div>Total: $SPIFFS_MEMORY_TOTAL</div>
+                </div>
+            </div>
+            <div class="detail wide conditional" style="--available: $SD_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>SD</div>
+                    <div>$SD_MEMORY_PERCENT_USED%</div>
+                </div>
+                <div class="bar" style="height:28px; --percent: $SD_MEMORY_PERCENT_USED;"></div>    
+                <div class="row">
+                    <div>Used: $SD_MEMORY_USED</div>
+                    <div>Free: $SD_MEMORY_FREE</div>
+                    <div>Total: $SD_MEMORY_TOTAL</div>
                 </div>
             </div>
             <div class="detail wide conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">

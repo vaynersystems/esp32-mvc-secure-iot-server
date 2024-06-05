@@ -60,6 +60,7 @@ class esp32_mqtt_client{
         bool _insecureMode;
         bool _started = false;
         bool _enabled = false;
+        bool _subscribeEnabled = false;
         string _brokerUri;
         string _hostname;
         int _port;

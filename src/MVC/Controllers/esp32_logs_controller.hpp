@@ -4,7 +4,9 @@
 #include <HTTPResponse.hpp>
 #include "System/CORE/esp32_base_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
+#include "esp32_filesystem.hpp"
 
+extern esp32_file_system filesystem;
 using namespace httpsserver;
 class esp32_logs_controller : public esp32_base_controller {
 public:

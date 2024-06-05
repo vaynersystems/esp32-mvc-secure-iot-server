@@ -1,6 +1,6 @@
 #include "esp32_dashboard_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
-#include "string_extensions.h"
+#include "string_helper.h"
 #include <nvs.h>
 #include <esp_ota_ops.h>
 #include <System/CORE/esp32_config.h>

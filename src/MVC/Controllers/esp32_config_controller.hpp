@@ -4,7 +4,7 @@
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 
-#include "string_extensions.h"
+#include "string_helper.h"
 #include "System/CORE/esp32_base_controller.hpp"
 #include <System/AUTH/CERT/esp32_cert_base.hpp>
 #include <System/CORE/esp32_server.h>

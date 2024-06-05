@@ -1,6 +1,6 @@
 #include "esp32_cert_base.hpp"
 #include <string>
-#include <string_extensions.h>
+#include "string_helper.h"
 
 void esp32_cert_base::generateCert(const char *deviceName, const char *companyName, const char *validFrom, const char *validTo)
 {  

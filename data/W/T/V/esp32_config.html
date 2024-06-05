@@ -1,12 +1,12 @@
 
-<!-- <script type="text/javascript" src="/JS/modal.js"></script>
+<!-- <script type="text/javascript" src="/W/JS/modal.js"></script>
 <link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
 <link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
-<script type="text/javascript" src="/JS/system.js"></script>  
-<script type="text/javascript" src="/JS/esp32_devices.js"></script> 
-<script type="text/javascript" src="/JS/esp32_certificates.js"></script> 
-<script type="text/javascript" src="/JS/esp32_config.js"></script>
-<link rel="stylesheet" type="text/css" href="/CSS/config.css"/>
+<script type="text/javascript" src="/W/JS/system.js"></script>  
+<script type="text/javascript" src="/W/JS/esp32_devices.js"></script> 
+<script type="text/javascript" src="/W/JS/esp32_certificates.js"></script> 
+<script type="text/javascript" src="/W/JS/esp32_config.js"></script>
+<link rel="stylesheet" type="text/css" href="/W/CSS/config.css"/>
 <div class="config-view">
 
     <div class="config-menu">
@@ -188,12 +188,21 @@
             <div class="section-content">
 
                 <div class="grid-2">
+                    <span>Log Location</span>
+                    <select id="logging-location">
+                        <option value="0">SPIFFS</option>
+                        <option value="1">SD</option>
+                    </select>                                           
+                </div>   
+
+                <div class="grid-2">
                     <span>Log Level</span>
                     <select id="logging-level">
-                        <option value="0">Error</option>
-                        <option value="1">Warning</option>
-                        <option value="2">Info</option>
-                        <option value="3">Debug</option>
+                        <option value="1">Disabled</option>
+                        <option value="2">Error</option>
+                        <option value="3">Warning</option>
+                        <option value="4">Info</option>
+                        <option value="5">Debug</option>                        
                     </select>                                           
                 </div>   
 
@@ -250,31 +259,37 @@
             <div class="section-content">
 
                 <div class="grid-2">
-                    <span>Enable MQTT</span>
+                    <span>Enable MQTT Publish</span>
                     <input type="checkbox" id="mqtt-enabled">                                          
                     
                 </div>   
-                <div class="grid-2">
-                    <span>Broker</span>
-                    <input type="text" id="mqtt-broker">                                          
-                    
-                </div>   
+                <div class="column" id="mqtt-publish-section">
+                    <div class="grid-2">
+                        <span>Broker</span>
+                        <input type="text" id="mqtt-broker">                                          
+                        
+                    </div>   
 
-                <div class="grid-2">
-                    <span>Port</span>
-                    <select id="mqtt-port">
-                        <option value="1883">1883 - Plain Text</option>
-                        <option value="8883">8883 - Encrypted</option>
-                    </select>                                         
-                </div>   
-                <div class="grid-2" id="skip-cert-verification-container">
-                    <span>Skip Certificate Validation</span>
-                    <input type="checkbox" id="mqtt-insecure">
+                    <div class="grid-2">
+                        <span>Port</span>
+                        <select id="mqtt-port">
+                            <option value="1883">1883 - Plain Text</option>
+                            <option value="8883">8883 - Encrypted</option>
+                        </select>                                         
+                    </div>   
+                    <div class="grid-2" id="skip-cert-verification-container">
+                        <span>Skip Certificate Validation</span>
+                        <input type="checkbox" id="mqtt-insecure">
+                    </div>
+                    <div class="hint row" id="mqtt-constraints-warning">Enabling MQTT slows down device loop and constrains resources. 
+                        Encrypted MQTT while using SSL browing portal will crash the device if using the 320KB RAM version.
+                        Proceed with caution.
+                    </div>
                 </div>
-               <div class="hint row">Enabling MQTT slows down device loop and constrains resources. 
-                Encrypted MQTT while using SSL browing portal will crash the device if using the 320KB RAM version.
-                Proceed with caution.
-               </div>
+                <div class="grid-2">
+                    <span>Enable MQTT Subscribe</span>
+                    <input type="checkbox" id="mqtt-subscribe-enabled">                                          
+                </div>             
             </div>
         </div>
         
@@ -350,6 +365,17 @@
                         <option  value="10">10 minutes</option>
                         <option  value="30">30 minutes</option>
                         <option  value="60">1 hour</option>                        
+                        <option  value="never">Never</option>       
+                    </select>                       
+                </div> 
+                <div class="grid-2">
+                    <span>Restart Device After</span>
+                    <select name="restart-after" id="restart-after">
+                        <option value="12">12 hours</option>
+                        <option  value="24">1 day</option>
+                        <option  value="168">1 week</option>
+                        <option  value="720">1 month</option>                        
+                        <option  value="8760">1 year</option>                        
                         <option  value="never">Never</option>       
                     </select>                       
                 </div> 
@@ -456,8 +482,10 @@
                                     <option value="25">D25</option>
                                     <option value="26">D26</option>
                                     <option value="27">D27</option>
-                                    <option value="32">D32</option>
-                                    <option value="33">D33</option>                            
+                                    <option value="32">D32 (analog)</option>
+                                    <option value="33">D33 (analog)</option>
+                                    <option value="33">D34 (analog)</option>
+                                    <option value="33">D35 (analog)</option>
                                 </select>
                             </div>
                         </div>  
@@ -619,7 +647,7 @@
 
 
 <script type="text/javascript">    
-    configurationSting = '$_CONFIGURATION_DATA';    
+    configurationSting = `$_CONFIGURATION_DATA`;    
 </script>
     
 

@@ -8,14 +8,22 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     title = "Module Configuration Page";
 
-    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
-    StaticJsonDocument<2048> configDoc;
-    auto error = deserializeJson(configDoc, f);
-    string configData;
-    serializeJson(configDoc, configData);
+    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r+w");
+    if(!f){
+        Serial.printf("Failed to open config file on spiffs\n");
+        return;
+    }
+    char buff[64];
+    string configData= "";
+    int bytesRead = 0;
+    do{
+        bytesRead = f.readBytes(buff,sizeof(buff));
+        configData.append(buff,bytesRead);
+    } while(bytesRead > 0);
 
+    
     controllerTemplate.SetTemplateVariable("$_CONFIGURATION_DATA", configData.c_str());
-    controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", PATH_SYSTEM_CONFIG);
+    //controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", PATH_SYSTEM_CONFIG);
     
     esp32_base_controller::Index(req,res);    
 }
@@ -86,11 +94,11 @@ bool esp32_config_controller::HasAction(const char * action){
 //custom action to get wifi list, or other list
 void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* res) {
      int n = WiFi.scanNetworks();
-     StaticJsonDocument<1024> doc;
-     JsonArray networks = doc.to<JsonArray>();
+     string outputstring;   
 
+    outputstring = "[";
      for (int i = 0; i < n; ++i) {
-        auto network = networks.createNestedObject();
+        //auto network = networks.createNestedObject();
         string encryption;
         switch (WiFi.encryptionType(i))
         {
@@ -124,13 +132,20 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* r
             default:
                 encryption = "unknown";
         }
-        network["ssid"]= WiFi.SSID(i);
-        network["rssi"]= WiFi.RSSI(i);
-        network["channel"]= WiFi.channel(i);
-        network["encryption"]= encryption;   
+        outputstring += string_format("%s { \"ssid\": \"%s\",  \"rssi\": \"%d\",  \"channel\": \"%d\",  \"encryption\": \"%s\"}",
+            i == 0 ? "" : ",",
+            WiFi.SSID(i).c_str(),
+            WiFi.RSSI(i),
+            WiFi.channel(i),
+            encryption.c_str()
+        );
+        // network["ssid"]= WiFi.SSID(i);
+        // network["rssi"]= WiFi.RSSI(i);
+        // network["channel"]= WiFi.channel(i);`
+        // network["encryption"]= encryption;   
     }
-    String outputstring;
-    serializeJson(doc,outputstring);   
+    outputstring += "]";
+    //serializeJson(doc,outputstring);   
     res->print(outputstring.c_str());    
     res->setStatusCode(200);
 }
@@ -162,7 +177,6 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    //Serial.printf("Saving configuration to %s...\n", PATH_SYSTEM_CONFIG);
     char * buf = new char[32];
     while(true){
         

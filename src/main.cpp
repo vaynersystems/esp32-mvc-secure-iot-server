@@ -5,51 +5,9 @@
 #include "System/AUTH/esp32_authentication.h"
 #include "System/AUTH/esp32_sha256.h"
 
-#include "SD.h"
-#include "SPI.h"
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
 #include <esp_task_wdt.h>
-// #define LED_PIN 23
-// File myFile;
-// const int CS = 15;
-
-// void WriteFile(const char * path, const char * message){
-//   // open the file. note that only one file can be open at a time,
-//   // so you have to close this one before opening another.
-//   myFile = SD.open(path, FILE_WRITE);
-//   // if the file opened okay, write to it:
-//   if (myFile) {
-//     Serial.printf("Writing to %s ", path);
-//     myFile.println(message);
-//     myFile.close(); // close the file:
-//     Serial.println("completed.");
-//   } 
-//   // if the file didn't open, print an error:
-//   else {
-//     Serial.println("error opening file ");
-//     Serial.println(path);
-//   }
-// }
-
-
-// void ReadFile(const char * path){
-//   // open the file for reading:
-//   myFile = SD.open(path);
-//   if (myFile) {
-//      Serial.printf("Reading file from %s\n", path);
-//      // read from the file until there's nothing else in it:
-//     while (myFile.available()) {
-//       Serial.write(myFile.read());
-//     }
-//     myFile.close(); // close the file:
-//   } 
-//   else {
-//     // if the file didn't open, print an error:
-//     Serial.println("error opening test.txt");
-//   }
-// }
-
 
 esp32_server server;
 esp32_wifi wifi;
@@ -62,21 +20,24 @@ DallasTemperature sensors;
 TaskHandle_t* serverTaskHandle;
 TaskHandle_t* deviceTaskHandle;
 TaskHandle_t* mqttClientTaskHandle;
+
 void serverTask(void* params);
 void deviceTask(void* params);
 void mqttClientTask(void* params);
+void onShutdown();
 
 #if CONFIG_FREERTOS_UNICORE
     #define ARDUINO_RUNNING_CORE 0
 #else
     #define ARDUINO_RUNNING_CORE 1
 #endif
-extern const int SERVER_STACK_SIZE = 1024*24;
-extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 16;
-extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 24;
+#define REPORT_FREQUENCY 5000000
+extern const int SERVER_STACK_SIZE = 1024*24; //number of words
+extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; //number of words
+extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36; //number of words
 const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 100 / portTICK_PERIOD_MS;
 #ifdef DEBUG
-unsigned long lastreport = millis();
+int64_t lastreportServer = 0;
 string freeBytesHEAPSPretty("");
 string freeBytesSTACKPretty("");
 #endif
@@ -85,19 +46,23 @@ void serverTask(void* params) {
     server.start();
     while (true) {
         server.step();
-        // vTaskDelay(serverDelay);
+        //vTaskDelay(serverDelay);
+        #ifdef DEBUG
+        if(esp_timer_get_time() - lastreportServer > REPORT_FREQUENCY){
+            auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
+            esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
+            esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
+            
+            Serial.printf("[SERVER] Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
+            lastreportServer = esp_timer_get_time(); 
+        }
+        #endif
     }
 
-    #ifdef DEBUG
-    if(millis() - lastreport > 1000){
-        auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
-        esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
-        esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
-        
-        Serial.printf("[SERVER] Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
-        lastreport = millis(); 
-    }
-    #endif
+    //#ifdef DEBUG
+    Serial.printf(PROGMEM("[SERVER] Shutting down\n"));
+    //#endif
+    vTaskDelete( NULL );
 }
 
 unsigned long deviceLoopTime = 0;
@@ -116,7 +81,7 @@ void deviceTask(void* params) {
         // #endif
         vTaskDelay(deviceDelay);
     }   
-
+    vTaskDelete( NULL );
 }
 
 void mqttClientTask(void * params){
@@ -126,6 +91,11 @@ void mqttClientTask(void * params){
         mqtt.loop();        
         vTaskDelay(deviceDelay);
     }
+    vTaskDelete( NULL );
+}
+
+void onShutdown(){
+    logger.logInfo("Shutting down controller");
 }
 
 void setup() {
@@ -150,12 +120,10 @@ void setup() {
 
     //Create MQTT Client
     xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
-    //pinMode(LED_PIN, OUTPUT);
-
-    // if (!SD.begin(CS)) {
-    //     Serial.println("initialization failed!");
-    //     return;
-    // }
+    
+    esp_register_shutdown_handler(onShutdown);
+    
+    
     // WriteFile("/test.txt", "github.com");
     // ReadFile("/test.txt");
 
@@ -163,20 +131,20 @@ void setup() {
     
     logger.logInfo("System started");
 }
-unsigned long _lastReport = 0;
+int64_t lastReportMain = 0;
 string freeBytesHEAPPretty = "", freeBytesSTACKmPretty = "";
 void loop() {   
     
-    if(millis() - _lastReport > 5000){        
+    if(esp_timer_get_time() - lastReportMain > REPORT_FREQUENCY){        
         
         auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
         esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPPretty);
         esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKmPretty);
         
-        Serial.printf("[MAIN] Free heap: %s\t  loop stack: %s\n",
+        Serial.printf("[MAIN] Free heap: %s\t stack: %s\n",
             freeBytesHEAPPretty.c_str(), 
             freeBytesSTACKmPretty.c_str()
         );
-         _lastReport = millis(); 
+        lastReportMain = esp_timer_get_time(); 
     }
 }

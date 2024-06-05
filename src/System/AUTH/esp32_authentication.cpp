@@ -22,6 +22,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         Serial.println("Authorization file does not exist..");
         if(strlen(password) == 64) //ecoded password, must reject
             return info;
+        if(strlen(username) < 3 || strlen(username) > 32) return info;
         Serial.println("Creating"); 
         byte encryptedPass[SHA256_SIZE];
         char* requestPassEncrypted = new char[SHA256_SIZE*2 + 1];
@@ -107,6 +108,8 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     newUser["role"] = role;
     newUser["enabled"] = enabled;
     newUser["created"] =   getCurrentTime();
+
+    //TODO: password complexity and validation
     
     
     authFile = SPIFFS.open(PATH_AUTH_FILE, "w");

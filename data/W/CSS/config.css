@@ -9,7 +9,7 @@ body{
     border-style: none;        
     flex-grow: 1;
     flex-shrink: 1;
-    overflow: scroll;
+    overflow: auto;
 }
 .config-menu{
     display: flex;
@@ -22,7 +22,7 @@ body{
     color: var(--primary-color);
     font-size: 20px;
     border-radius: 10px 0px 0px 10px;
-    overflow: scroll;
+    overflow: auto;
     margin-right: 11px;
 }
 .menu-item{
@@ -67,7 +67,7 @@ body{
     overflow-x: scroll;
 }
 .section-content{
-    overflow-y: scroll;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
 }

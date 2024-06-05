@@ -1,7 +1,7 @@
 #include "esp32_template.h"
 #include <iterator>
 #include "WiFi.h"
-#include <string_extensions.h>
+#include "string_helper.h"
 
 //TODO: rework to "Set Model Variable". Need to be able to specify model path
 void esp32_template::SetTemplateVariable(std::string name, std::string value)
@@ -53,7 +53,9 @@ bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
     unsigned long timer = millis();
 	//update globals
 	SetGlobalVariables(req,res);
-    //Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
+    #ifdef DEBUG
+    Serial.printf("Rendering template %s for request %s\n", templateContentFilePath.c_str(), req->getRequestString().c_str());
+    #endif
 	//open file
 	
     //try gz
@@ -64,24 +66,31 @@ bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
     //     res->printf("Template %s not found! \n", templateContentFilePath.c_str());            
     //     return false;
     // }
-	
+	size_t lastPos = 0;
 	File templateFile = SPIFFS.open(templateContentFilePath.c_str());
+    //Serial.printf("Opened file %s\n", templateContentFilePath.c_str());
 	if (templateFile.size() > 0) {
-		while (templateFile.available()) {
+        
+        // Serial.printf("Reading %d bytes from %s\n", templateFile.size(), templateFile.path());
+		while (templateFile.position() < templateFile.size()) {
 			//have data to read
-
+            if(lastPos == templateFile.position() && lastPos > 0){ //move forward one
+                Serial.printf("Failed to seek at position %d. Quitting abnornally\n", lastPos);
+                break;
+            }
+            //Serial.printf("Reading at position %d\n", templateFile.position());
+            lastPos =   templateFile.position();       
 			//for each line, seach for each template variable.
 			// if found, replace just the template variable part of the string
 			String line = templateFile.readStringUntil('\n');
 			std::map<std::string, std::string>::iterator itr = templateVars.begin();
 			for (std::pair<std::string, std::string> element : templateVars) {
 				int idxStart = line.indexOf(element.first.c_str()); //check for variable
-				if (idxStart < 0) continue; //not found; check for next variable
-
+				if (idxStart < 0) continue; //not found; check for next variable                
 				//if found
 				line.replace(element.first.c_str(), element.second.c_str());
 			}
-			res->println(line.c_str());            
+			res->println(line.c_str());               
 		}
 	}
 	templateFile.close();
@@ -105,6 +114,7 @@ std::pair<std::string, std::string> esp32_template::GetTemplateVariable(std::str
 		//if found
 		return element;
 	}
+    return std::pair<string,string>();
 }
 
 void esp32_template::PrintDebugMessage(HTTPRequest* req, HTTPResponse* res)

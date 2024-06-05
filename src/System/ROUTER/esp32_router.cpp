@@ -39,68 +39,69 @@ void esp32_router::RegisterHandler(String nodeMapPath, HTTPMETHOD method, HTTPSC
     RegisterHandler(nodeMapPath, methodName, handler);
 }
 
-void esp32_router::RegisterHandlers(fs::FS &fs, const char *dirname, uint8_t levels)
-{
-    vector<esp32_route_file_info> files = vector<esp32_route_file_info>();
-    esp32_fileio::getFiles(fs, files, dirname);
-    //all files will have preceeding dirname of site root. remove it in registering
-    for(int idx = 0; idx < files.size();idx++){
-        RegisterHandler(files[idx].filePath.substr(2).c_str(),HTTPMETHOD_GET, &handleFile);
-        if(files[idx].isGZ)
-        {
-            string fileGz = files[idx].fileName.substr(2) + ".gz";
-            RegisterHandler(fileGz.c_str(),HTTPMETHOD_GET, &handleFile);
-        }
-    }
+// void esp32_router::RegisterHandlers(fs::FS &fs, const char *dirname, uint8_t levels)
+// {
+//     vector<esp32_route_file_info> files = vector<esp32_route_file_info>();
+    
+//     esp32_fileio::getFiles(fs, files, dirname);
+//     //all files will have preceeding dirname of site root. remove it in registering
+//     for(int idx = 0; idx < files.size();idx++){
+//         RegisterHandler(files[idx].filePath.substr(2).c_str(),HTTPMETHOD_GET, &handleFile);
+//         if(files[idx].isGZ)
+//         {
+//             string fileGz = files[idx].fileName.substr(2) + ".gz";
+//             RegisterHandler(fileGz.c_str(),HTTPMETHOD_GET, &handleFile);
+//         }
+//     }
 
-    // File root = fs.open(dirname);
-    // if (!root || !root.isDirectory())
-    // {
-    //     return;
-    // }
+//     // File root = fs.open(dirname);
+//     // if (!root || !root.isDirectory())
+//     // {
+//     //     return;
+//     // }
 
-    // File file = root.openNextFile();
-    // while (file)
-    // {
-    //     if (file.isDirectory())
-    //     {
-    //         if (levels)
-    //         { // print out directory contents to serial
-    //             esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
-    //         }
-    //     }
-    //     else
-    //     { // Register file handler as filename
+//     // File file = root.openNextFile();
+//     // while (file)
+//     // {
+//     //     if (file.isDirectory())
+//     //     {
+//     //         if (levels)
+//     //         { // print out directory contents to serial
+//     //             esp32_fileio::listDir(fs, &Serial, file.name(), levels - 1);
+//     //         }
+//     //     }
+//     //     else
+//     //     { // Register file handler as filename
 
-    //         String mappingPath = String(file.name());
-    //         mappingPath.remove(0, sizeof(PATH_SITE_ROOT) - 1);
+//     //         String mappingPath = String(file.name());
+//     //         mappingPath.remove(0, sizeof(PATH_SITE_ROOT) - 1);
 
-    //         RegisterHandler(mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
+//     //         RegisterHandler(mappingPath.c_str(), HTTPMETHOD_GET, &handleFile);
 
-    //         int startIdx = mappingPath.lastIndexOf('/');
-    //         if (startIdx > 0)
-    //         {
-    //             String filePath = mappingPath.substring(startIdx);
-    //             if (filePath.length() > 0)
-    //                 RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleFile);
-    //         }
+//     //         int startIdx = mappingPath.lastIndexOf('/');
+//     //         if (startIdx > 0)
+//     //         {
+//     //             String filePath = mappingPath.substring(startIdx);
+//     //             if (filePath.length() > 0)
+//     //                 RegisterHandler(filePath.c_str(), HTTPMETHOD_GET, &handleFile);
+//     //         }
 
-    //         // if gz file, register handler without gz
-    //         if (String(file.name()).endsWith(".gz"))
-    //         {
-    //             String nonGZName = String(file.name());
-    //             nonGZName.remove(nonGZName.length() - 3);
+//     //         // if gz file, register handler without gz
+//     //         if (String(file.name()).endsWith(".gz"))
+//     //         {
+//     //             String nonGZName = String(file.name());
+//     //             nonGZName.remove(nonGZName.length() - 3);
 
-    //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
+//     //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
 
-    //             nonGZName.remove(0, sizeof(PATH_SITE_ROOT) - 1);
-    //             // Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
-    //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
-    //         }
-    //     }
-    //     file = root.openNextFile();
-    // }
-}
+//     //             nonGZName.remove(0, sizeof(PATH_SITE_ROOT) - 1);
+//     //             // Serial.printf(" Resistering GZ Handler[%s , %s]\n", file.name(), nonGZName.c_str());
+//     //             RegisterHandler(nonGZName.c_str(), HTTPMETHOD_GET, &handleFile);
+//     //         }
+//     //     }
+//     //     file = root.openNextFile();
+//     // }
+// }
 
 void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallbackFunction *handler)
 {
@@ -118,10 +119,15 @@ void esp32_router::handleCORS(HTTPRequest *req, HTTPResponse *res)
 
 void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
 {
-    string dir, path, filter;
+    string dir, path, filter, driveStr;
     req->getParams()->getQueryParameter("dir", dir);
     req->getParams()->getQueryParameter("path", path);
     req->getParams()->getQueryParameter("filter", filter);
+    req->getParams()->getQueryParameter("drive", driveStr);
+    if(!is_number(driveStr)){
+        driveStr="0"; //default to drive 0
+    }
+    auto drive = filesystem.getDisk(atoi(driveStr.c_str()));
 
     res->setHeader("Content-Type", "application/json");
     if (path.length() > 0)
@@ -130,11 +136,8 @@ void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
         if (path.length() > 1 && path[path.length() - 1] == '/')
             path = path.substr(0, path.length() - 1);
 
-        list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
-
-        // Serial.printf("Searching for files only in path %s\n", path.c_str());
-        esp32_fileio::buildOrderedFileList(SPIFFS, path.c_str(), filter.c_str(), 3, files);
-        esp32_fileio::printFileSearchOrdered(res, &files, filter);
+        drive->list(path.c_str(), res, JSON,filter.c_str());       
+        
     }
     else
     {
@@ -145,10 +148,7 @@ void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
             Serial.printf("Empty path, starting from %s\n", dir.c_str());
         }
 
-        list<SPIFFS_FileInfo> files = list<SPIFFS_FileInfo>();
-        esp32_fileio::buildOrderedFileList(SPIFFS, dir.c_str(), filter.c_str(), 3, files);
-        esp32_fileio::printFileSearchOrdered(res, &files, filter);
-        // esp32_fileio::printDirOrdered(res, &files);
+        drive->list(dir.c_str(), res, JSON, filter.c_str());    
     }
 }
 
@@ -398,6 +398,10 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res){
 }
 void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const char * overwriteFilePath)
 {
+    string drive="";
+    //req->getParams()->getQueryParameter("drive",drive);
+    
+    //auto fs = strcmp(drive.c_str(),"1") == 0 ? (FS)SPIFFS : (FS)SD;
     if (req->getMethod() == "DELETE")
     {
 
@@ -481,6 +485,7 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         while (parser->nextField())
         {
             string name = parser->getFieldName();
+            string mimeType = parser->getFieldMimeType();
             // Serial.printf("Parsing field %s\n", name.c_str());
             char buf[512];
             if (name == "filename")
@@ -488,14 +493,13 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
 
                 size_t readLength = parser->read((byte *)buf, 512);
                 filename = string("/") + string(buf, readLength);
+                Serial.println("Read filename");
+                if(drive.length() > 0) break;
                 
             }
             else if (name == "data" || name == "file")
             {
                 filename = parser->getFieldFilename();
-                // size_t readLength = parser->read((byte*)buf, 512);
-                // string filePath = string(buf, readLength);
-                // check if it comes from
                 int startIdx = filename.find_first_of("?");
                 if (startIdx < 0) // no filename yet
                 {
@@ -507,9 +511,6 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                     filename = filename.substr(startIdx);
                 }
 
-                // Serial.printf("Uploading %s\n", filename.c_str());
-                // Serial.printf("Parsing substring from idx %d\n", ++startIdx);
-
                 if (filename == "")
                 {
                     res->println("<p>Error: form contained content before filename.</p>");
@@ -519,38 +520,67 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 {
                     //if want to overwrite filename, do it here
                     if(overwriteFilePath != NULL)
-                        filename = overwriteFilePath;
-                    unsigned long startWrite = millis();
-                    Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
-                    size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
-                    savedFile = bytes > 0;
-                    res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
-                    Serial.printf(" done in %u ms", millis() - startWrite);
+                        filename = overwriteFilePath;                    
                 }
+                break;
+            }else if(name == "drive"){
+                while (!parser->endOfField())
+                {
+                    memset(buf, 0, sizeof(buf));
+                    size_t readLength = parser->read((byte*)buf, 512);
+                    drive.append((const char *)buf);
+                }
+                Serial.println("Read drive");
+                if(filename.length() > 0) break;
+                
             }
             else if (name == "path")
-            {
-                byte buf[512];
+            {                
                 // adding
                 while (!parser->endOfField())
                 {
                     memset(buf, 0, sizeof(buf));
-                    size_t readLength = parser->read(buf, 512);
+                    size_t readLength = parser->read((byte*)buf, 512);
                     filename.append((const char *)buf);
-                }
-                Serial.printf("File to create: %s\n", filename.c_str());
-                savedFile = esp32_fileio::CreateFile(filename.c_str());
+                }  
+                if(drive.length() > 0) break;
+                Serial.println("Read path");           
             }
             else
             {
                 res->printf("<p>Unexpected field %s</p>", name.c_str());
             }
         }
+        //prefix drive if speificed
+        if(drive.length() > 0){
+            
+            auto fs = filesystem.getDisk(atoi(drive.c_str()));
+            filename = string_format("/%s%s",fs->label(),filename.c_str());              
+            Serial.printf("Drive parameter: %s, Filename: %s\n", drive.c_str(),filename.c_str());
+        }
+
+        unsigned long startWrite = millis();
+        if(req->getMethod() == "PUT")
+            savedFile = esp32_fileio::CreateFile(filename.c_str());
+
+        if(req->getMethod() == "POST")
+        {
+            
+            Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
+            size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
+            savedFile = bytes > 0;
+            res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
+            
+        }
+        Serial.printf(" done in %u ms", millis() - startWrite);
+
         if (!savedFile)
         {
             res->println("<p>No file to save...</p>");
         }
         res->println("</body></html>");
+
+        
         // Serial.printf("Uploading file %s completed successfully!\n", name.c_str());
     }
 }
@@ -574,20 +604,34 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
 
 void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 {
-    esp32_route_file_info fileInfo = esp32_route_file_info();
-    fileInfo.requestPath = req->getRequestString().c_str();
+    bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";    
+    //hydrate to check if path is internal, user authorized, and file exists.
+    Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
+    auto routeInfo = esp32_route_file_info<esp32_file_info_extended>(req);
+    
+    if(routeInfo.isInternal && !isAdminUser){
+        res->setStatusCode(401);
+        return;
+    }   
 
-    if (!getFileInfo(req, fileInfo))
+    if(!routeInfo.exists())
     {
         handle404(req, res);
         return;
     }   
     
-    esp32_fileio::writeFileToResponse(fileInfo, res);
+    esp32_fileio::writeFileToResponse(req->getRequestString().c_str(), res);
 }
 
 
+#if ENABLE_EDITOR   	
+void esp32_router::handleEditor(HTTPRequest *req, HTTPResponse *res)
+{
+    auto routeInfo = esp32_route_file_info<esp32_file_info_extended>("/W/edit.html");
+    esp32_fileio::writeFileToResponse(routeInfo, res);
 
+}
+#endif
 void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
 {
     req->discardRequestBody();
@@ -615,11 +659,6 @@ void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, 
     if (!controllerObj->HasAction(route.action.c_str()))
     {
         esp32_router::handle404(req, res);
-        // vector<string> actions;
-        // controllerObj->GetActions(&actions);
-        // Serial.printf("[ESP ROUTER] Action not found for controller %s and action %s\n", route.controller.c_str(), route.action.c_str());
-        // for(int i = 0; i < actions.size(); i++)
-        //     Serial.printf("[ESP ROUTER] Action found %s\n", actions[i].c_str());
     }
     else
     {

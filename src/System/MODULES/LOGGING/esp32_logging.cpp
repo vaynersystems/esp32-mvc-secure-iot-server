@@ -1,9 +1,10 @@
 #include "esp32_logging.hpp"
-#include <string_extensions.h>
+#include "string_helper.h"
 #include <System/CORE/esp32_fileio.h>
 #include <loopback_stream.h>
 #include <system_helper.h>
 #include <regex>
+extern esp32_file_system filesystem;
 void esp32_logging::start()
 {
     logTypes[esp32_log_type::syslog] = "SYSLOG";
@@ -14,7 +15,8 @@ void esp32_logging::start()
     logEntryTypes[warning] = "WARNING";
     logEntryTypes[error] = "ERROR";
     logEntryTypes[debug] = "DEBUG";
-    StaticJsonDocument<2048> systemConfig;
+
+    StaticJsonDocument<1024> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);   
     if(!systemConfig["logging"].isNull()){
         if(!systemConfig["logging"]["retention"].isNull() )
@@ -22,6 +24,18 @@ void esp32_logging::start()
         
         if(!systemConfig["logging"]["level"].isNull() )
             _loggingLevel = systemConfig["logging"]["level"].as<esp32_log_level>();
+
+        if(!systemConfig["logging"]["location"].isNull() ){
+            _location = systemConfig["logging"]["location"].as<esp32_drive_type>();
+            #ifdef DEBUG
+            if(_location == dt_SD){
+                Serial.println("Setting SD as log location");
+            } else{                
+                Serial.println("Setting SPIFFS as log location");
+            }
+            #endif
+        }
+            
         
     }
 
@@ -77,13 +91,18 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     if(snapshot.isNull() || snapshot.size() == 0) return false;
     string snapshotString = "";
     serializeJson(snapshot, snapshotString);
+    //auto logLocation = fs();
 
     string filename = getLogFilename(esp32_log_type::snapshot);  
     if(filename.length() == 0) return false; 
     
-    bool logFileExists =  SPIFFS.exists(filename.c_str());
+    auto fileInfo = esp32_file_info_extended(filename.c_str());
+
+    Serial.printf("Setting snapshot logfile location to %s\n", fileInfo.fullyQualifiedPath().c_str());
+    
+    Serial.printf("Log %s %s\n", filename.c_str(), fileInfo.exists() ? "found" : "not found");
   
-    if(!logFileExists){ //new log file
+    if(! fileInfo.exists()){ //new log file
         //run cleanup
         rotateLogs(esp32_log_type::snapshot);
         esp32_fileio::UpdateFile(filename.c_str(), string_format("[\n\t%s\n]",snapshotString.c_str()).c_str(),true);
@@ -102,9 +121,10 @@ bool esp32_logging::log(string message, esp32_log_type logType, esp32_log_level 
 
 int esp32_logging::rotateLogs(esp32_log_type logType)
 {
-    vector<esp32_route_file_info_extended> files;
-    auto logsFound  = esp32_fileio::getFilesExtended(SPIFFS,files ,PATH_LOGGING_ROOT, logTypes[logType]);
-
+    vector<esp32_file_info_extended> files;
+    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!   
+    auto logsFound = drive->search(files,PATH_LOGGING_ROOT, logTypes[logType]);
+    
     if(logsFound == 0 || _retentionDays == 0) return 0; //configured for no rotation 
     int deleted = 0;
     //tm now = getDate(); 
@@ -119,10 +139,10 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
         return deleted;
 
     for(int idx = 0; idx < files.size();idx++){
-        if(now - files[idx].lastWrite > _retentionDays * 24 * 60 * 60){
+        if(now - files[idx].lastWrite() > _retentionDays * 24 * 60 * 60){
             logInfo(string_format("Removing log file %s due to retention policy. It is %d days old.",
-                files[idx].fileName.c_str(), (now - files[idx].lastWrite)/(60*60*24)));
-            SPIFFS.remove(files[idx].fileName.c_str());
+                files[idx].name().c_str(), (now - files[idx].lastWrite())/(60*60*24)));
+            drive->remove(files[idx].fullyQualifiedPath().c_str());
             deleted++;
         } else {
             //Serial.printf("Keeping log file %s since it is %d days old\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24));
@@ -134,12 +154,13 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
 
 void esp32_logging::removeAllLogs()
 {
-    vector<esp32_route_file_info> files;
-    auto logsFound  = esp32_fileio::getFiles(SPIFFS,files , PATH_LOGGING_ROOT);
+    vector<esp32_file_info> files;
+    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+    auto logsFound = drive->search(files,PATH_LOGGING_ROOT);
 
     if(logsFound == 0) return;
     for(int idx = 0; idx < files.size();idx++){
-        SPIFFS.remove(files[idx].fileName.c_str());
+        drive->remove(files[idx].fullyQualifiedPath().c_str());
     }
 
 }
@@ -147,27 +168,38 @@ void esp32_logging::removeAllLogs()
 string esp32_logging::getLogFilename(esp32_log_type logType)
 {
     struct tm timeinfo = getDate();
-    
+    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+   
     if(timeinfo.tm_year == 70)
         return ""; // clock not initialized
-    return string_format("%s/%s_%04d-%02d-%02d.log",PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+    return string_format("/%s%s/%s_%04d-%02d-%02d.log",
+        //_location == drive_SPIFFS ? "/spiffs" : "/sd",
+        drive->label(), PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
 
 }
 
 bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level entryType)
 {
     if(_loggingLevel < entryType) return false;
+    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+   
+   // auto logLocation = fs();
+
+    //auto logLocation = _location == drive_SPIFFS ? (FS)SPIFFS : (FS)SD;
     string filename = getLogFilename(log);  
     struct tm timeinfo = getDate();
     if(filename.length() == 0) return false; 
+    //Serial.printf("Setting logfile location to %s\n", filename.c_str());
+    
     string const esacped = regex_replace( message, std::regex( "\"" ), "\\\"" );
 
-    bool logFileExists =  SPIFFS.exists(filename.c_str());
+    bool logFileExists =  drive->exists(filename.c_str());
+    //Serial.printf("Log %s %s\n", filename.c_str(), logFileExists ? "found" : "not found");
   
     if(!logFileExists){ //new log file
         //Serial.println("Log file not found. Creating");
-        esp32_fileio::CreateFile(filename.c_str());
-        File logFile = SPIFFS.open(filename.c_str(),"w",true);
+        //esp32_fileio::CreateFile(filename.c_str());
+        File logFile = drive->open(filename.c_str(),"w",true);
         logFile.printf("[\n\t {\"time\":\"%02d:%02d:%02d\", \"type\": \"%s\", \"message\": \"%s\"}\n]",
             timeinfo.tm_hour,
             timeinfo.tm_min,
@@ -181,7 +213,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
         
     } else{
         //Serial.println("Log file found. Opening");
-        File logFile = SPIFFS.open(filename.c_str(),"r+w");
+        File logFile = drive->open(filename.c_str(),"r+w");
         if(!logFile) return false;      
         int fileSize = logFile.size();
         int seekPos = fileSize > 0 ? fileSize - 1 : 0;

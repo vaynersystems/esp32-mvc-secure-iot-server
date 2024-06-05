@@ -424,7 +424,7 @@ There are three parts in our changes to the template
  The CSS in this html file can be moved into the `/W/CSS` folder.
  It can be referenced using
  ```html
- <script type="text/javascript" src="/CSS/name_of_file.cs">
+ <script type="text/javascript" src="/W/CSS/name_of_file.cs">
  ```
 
  #### Pass data to controller from view

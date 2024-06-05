@@ -3,7 +3,7 @@
 #include "esp32_cert_base.hpp"
 #include <SSLCert.hpp>
 #include "SPIFFS.h"
-#include "string_extensions.h"
+#include "string_helper.h"
 
 class esp32_cert_spiffs : public esp32_cert_base{
 

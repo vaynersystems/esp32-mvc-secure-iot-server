@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <sstream>
 #include <vector>
-#ifndef _ESP32_STRING_EXTENSIONS_H
-#define _ESP32_STRING_EXTENSIONS_H
+#ifndef _STRING_HELPER_H_
+#define _STRING_HELPER_H_
 
 using namespace std;
 
@@ -42,8 +42,7 @@ static int compare(const char* s1, const char* s2, size_t n) {
 
 static bool iequals(const char* s1, const char* s2, size_t n) {
     while( n-- != 0 ) {
-        if( toupper(*s1) < toupper(*s2) || toupper(*s1) > toupper(*s2) ) return false;
-        if( toupper(*s1) > toupper(*s2) ) return 1;
+        if( toupper(*s1) < toupper(*s2) || toupper(*s1) > toupper(*s2) ) return false;        
         ++s1; ++s2;
     }
     return true;
@@ -91,5 +90,12 @@ static vector<string> explode( const string &str, const string &delimiter, bool 
     }
     arr.push_back(  str.substr(k, i-k) );
     return arr;
+}
+
+static bool is_number(const std::string& s)
+{
+    std::string::const_iterator it = s.begin();
+    while (it != s.end() && std::isdigit(*it)) ++it;
+    return !s.empty() && it == s.end();
 }
 #endif

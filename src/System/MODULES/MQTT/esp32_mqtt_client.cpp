@@ -1,5 +1,5 @@
 #include "esp32_mqtt_client.hpp"
-#include <string_extensions.h>
+#include "string_helper.h"
 
 
 
@@ -12,6 +12,7 @@ void esp32_mqtt_client::start()
         return; //not configured
 
     _enabled = systemConfig["mqtt"]["enabled"].as<bool>();
+    _subscribeEnabled = systemConfig["mqtt"]["subscribeEnabled"].as<bool>();
     _insecureMode = systemConfig["mqtt"]["insecure"].isNull() || systemConfig["mqtt"]["insecure"].as<bool>();
 
     if(_insecureMode)
@@ -20,7 +21,6 @@ void esp32_mqtt_client::start()
     _brokerUri = systemConfig["mqtt"]["broker"].isNull() ? "test.mosquitto.org" :  systemConfig["mqtt"]["broker"].as<const char*>();
     _port = systemConfig["mqtt"]["port"].isNull() ? 8883 : systemConfig["mqtt"]["port"].as<int>();
     _hostname = systemConfig["hostname"].as<const char *>();
-
     
     Serial.printf("Setting MQTT broker to %s on port %d.\n", _brokerUri.c_str(), _port);
     if(_port == 8883){ //load certs for encrypted traffic
@@ -94,7 +94,9 @@ void esp32_mqtt_client::loop(){
     do{
         it--;
         bool result = client.publish((*it).first.c_str(),(*it).second.c_str());
+        #ifdef DEBUG
         Serial.printf("Publishing to topic %s %s. Result: %s\n", (*it).first.c_str(),(*it).second.c_str(), result ? "sucessfull" : "failed");
+        #endif
         //logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", (*it).first.c_str(), (*it).second.c_str(), result ? "suceeded" : "failed"));
         if(!result) return; // stop processing
         //_publishList.pop_back();
@@ -102,16 +104,11 @@ void esp32_mqtt_client::loop(){
         //print address of itterator and begining
         //Serial.printf("Itterator: 0x%08X\t Beginning: 0x%08X\n", &(*it),  &(*_publishList.begin()));
     } while(it != _publishList.begin());
-    // for(int idx=_publishList.size(); idx > 0; --idx){
-    //     Serial.printf("Publishing to topic %s %s", _publishList[idx].first.c_str(), _publishList[idx].second.c_str());
-    //     
-    //     int writeError = client.getWriteError();
-    //     logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", _publishList[idx].first.c_str(), _publishList[idx].second.c_str(), result ? "suceeded" : "failed"));
-    //     if(!result) return; // stop processing
-    //     _publishList.pop_back();
-    // }
     _publishList.clear();
-    client.loop();
+    //TODO: figure out why this prevents server from responding to requests.
+    //  possibly timers are being reallocated
+    if(_subscribeEnabled)
+        client.loop();
 }
 
 

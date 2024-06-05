@@ -4,8 +4,9 @@
 #include <HTTPResponse.hpp>
 #include "System/CORE/esp32_base_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
-
+#include "esp32_filesystem.hpp"
 using namespace httpsserver;
+extern esp32_file_system filesystem;
 class esp32_historic_controller : public esp32_base_controller {
 public:
 	void Index(HTTPRequest* req, HTTPResponse* res);
