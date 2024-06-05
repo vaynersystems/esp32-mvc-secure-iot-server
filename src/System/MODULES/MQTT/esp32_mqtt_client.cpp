@@ -12,6 +12,7 @@ void esp32_mqtt_client::start()
         return; //not configured
 
     _enabled = systemConfig["mqtt"]["enabled"].as<bool>();
+    if(!_enabled) return; //do not initialize if disabled
     _subscribeEnabled = systemConfig["mqtt"]["subscribeEnabled"].as<bool>();
     _insecureMode = systemConfig["mqtt"]["insecure"].isNull() || systemConfig["mqtt"]["insecure"].as<bool>();
 

@@ -26,19 +26,23 @@ bool esp32_fileio::start(){
     } else{
         filesystem.addDisk(SD, "sd",dt_SD);
     }
+    #ifdef DEBUG
     Serial.printf("Loaded %d drives.\n",  filesystem.driveCount());
 
     for(int idx = 0; idx <  filesystem.driveCount(); idx++){
         auto drive = filesystem.getDisk(idx);
         
         auto info = drive->info();
-        Serial.printf("Drive #%d %s. Type: %s. Size: %d bytes. Used: %d bytes.\n",
-            drive->index(), drive->label(), infoTypes[info.type()], info.size(), info.used()
+        string driveSize, usedSize;
+        PrettyFormat(info.size(), &driveSize);
+        PrettyFormat(info.used(), &usedSize);
+        Serial.printf("Drive #%d %s. Type: %s. Size: %s bytes. Used: %s.\n",
+            drive->index(), drive->label(), infoTypes[info.type()], driveSize.c_str(), usedSize.c_str()
         );
         //drive->list();
     }
-
-    return true;
+    #endif
+    return filesystem.driveCount() > 0;
 }
 
 

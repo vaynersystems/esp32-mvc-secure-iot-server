@@ -98,9 +98,9 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     
     auto fileInfo = esp32_file_info_extended(filename.c_str());
 
-    Serial.printf("Setting snapshot logfile location to %s\n", fileInfo.fullyQualifiedPath().c_str());
+    //Serial.printf("Setting snapshot logfile location to %s\n", fileInfo.fullyQualifiedPath().c_str());
     
-    Serial.printf("Log %s %s\n", filename.c_str(), fileInfo.exists() ? "found" : "not found");
+    //Serial.printf("Log %s %s\n", filename.c_str(), fileInfo.exists() ? "found" : "not found");
   
     if(! fileInfo.exists()){ //new log file
         //run cleanup

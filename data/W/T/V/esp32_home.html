@@ -1,7 +1,54 @@
 <h2>Welcome, $_USERNAME</h2>
 
-<div id="controller-list"></div>
-<script src="/W/JS/esp32_home.js" type="text/javascript" charset="utf-8"></script>
-<script type="text/javascript" defer>
-    setControllers('$_Controllers');
-</script>
+<div class="home-container">
+    <div class="box">
+        <div class="header">Devices</div>
+        <div class="column sub-header">
+            <a href="/esp32_dashboard">Dashboard</a>
+            <a href="/esp32_historic">History</a>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="header">Site Management</div>
+        <div class="column sub-header">
+            <a href="/esp32_users">User Management</a>
+            <a href="/esp32_config">Configuration</a>
+            <a href="/esp32_system_info">Live Monitoring</a>
+            <a href="/esp32_logs">Logs</a>
+        </div>
+    </div>
+
+    <div class="box">
+        <div class="header">Tools</div>
+        <div class="column sub-header">
+            <a href="/edit" target="_blank">Editor</a>
+        </div>
+    </div>
+</div>
+
+<style>
+    .home-container{
+        display: flex;
+        width: 100%;
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+    .box{
+        margin:20px;
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        justify-content: space-between;
+        max-width: 600px;
+        min-width: 250px;
+        border: solid 1px rgb(185, 188, 219);
+    }
+    .box>.column{
+        padding:20px;
+        flex-grow: 1;
+    }
+    .header{
+        color: var(--primary-color) !important;
+    }
+</style>

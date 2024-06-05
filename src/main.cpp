@@ -102,7 +102,7 @@ void setup() {
     
     //debug logging
     Serial.begin(115200);
-    //spiffs
+    //esp32 filesystem manager
     disk.start();    
    
     // //Connect to wifi
