@@ -176,9 +176,12 @@ function formatByte(value){
     return value + ' B';
 }
 function getProjectionColor(bytes){
-    if(bytes > 1024*1024)
+    const loggingStorageElement = document.getElementById('logging-location');
+    var orangeThreshold = loggingStorageElement.value == 0 ? 1024*256 : 1024*1024*256; // 256KB for SPIFFS, 256MB for SD
+    var redThreshold = loggingStorageElement.value == 0 ? 1024*1024 : 1024*1024*1024;// 1MB for SPIFFS, 1GB for SD
+    if(bytes > redThreshold)
         return 'red';
-    if(bytes > 1024*64)
+    if(bytes > orangeThreshold)
         return 'orange';
 
         return 'green';
@@ -188,14 +191,16 @@ function getProjectionColor(bytes){
 function showLoggingProjections(frequency){
     const envelope = 35;
     const messageLength = 32;
-
+    
     const projectionContainerElement = document.getElementById('device-logging-projection');
+
+    
     
     if(projectionContainerElement === null) return;
     projectionContainerElement.innerHTML = '';
     for(var deviceCount = 1; deviceCount < 8; deviceCount++){
         const entriesPerDay = ((24*3600)/frequency) * deviceCount;
-        const bytesPerDay = entriesPerDay * 32 + 35;
+        const bytesPerDay = entriesPerDay * messageLength + envelope;
         const projectionRowElement = document.createElement('div');
         const deviceCell = document.createElement('div');
         const dailyCell = document.createElement('div');
@@ -238,6 +243,8 @@ function loadSettings(){
     const hostNameElement = document.getElementById('host-name');
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    const mqttConstraintsElement = document.getElementById('mqtt-constraints-warning');
+    const mqttPublishSectionElement = document.getElementById('mqtt-publish-section');
     
     
     const ntpServerElement = document.getElementById('ntp-host-name');
@@ -246,6 +253,7 @@ function loadSettings(){
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
+    const loggingLocationElement = document.getElementById('logging-location');
 
     const mqttEnabledElement = document.getElementById('mqtt-enabled');
     const mqttHostElement = document.getElementById('mqtt-broker');
@@ -264,6 +272,8 @@ function loadSettings(){
     if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
     if(loggingLevelElement !== null) loggingLevelElement.value = activeConfig.system.logging.level;
+    if(loggingLocationElement !== null) loggingLocationElement.value = activeConfig.system.logging.location;
+    
 
 
     if(mqttEnabledElement !== null) mqttEnabledElement.value = activeConfig.system.mqtt.enabled;
@@ -272,24 +282,35 @@ function loadSettings(){
     if(mqttInsecureElement !== null) mqttInsecureElement.value = activeConfig.system.mqtt.insecure;
 
     if(mqttEnabledElement !== null){
+        mqttEnabledElement.checked = activeConfig.system.mqtt.enabled;
         if(activeConfig.system.mqtt.enabled){
+            
             mqttHostElement.removeAttribute('disabled');
             mqttPortElement.removeAttribute('disabled');
             mqttInsecureElement.removeAttribute('disabled');
+            mqttPublishSectionElement.style.display = 'flex';
+            mqttConstraintsElement.style.display = 'grid';
         } else{
             mqttHostElement.setAttribute('disabled','true');
             mqttPortElement.setAttribute('disabled','true');
             mqttInsecureElement.setAttribute('disabled','true');
+            mqttPublishSectionElement.style.display = 'none';            
+            mqttConstraintsElement.style.display = 'none';
         }
         mqttEnabledElement.addEventListener('change', (ev) => {
             if(ev.target.checked){
                 mqttHostElement.removeAttribute('disabled');
                 mqttPortElement.removeAttribute('disabled');
                 mqttInsecureElement.removeAttribute('disabled');
+                mqttConstraintsElement.style.display = 'grid';
+                mqttPublishSectionElement.style.display = 'flex';
+                
             } else{
                 mqttHostElement.setAttribute('disabled','true');
                 mqttPortElement.setAttribute('disabled','true');
                 mqttInsecureElement.setAttribute('disabled','true');
+                mqttPublishSectionElement.style.display = 'none';
+                mqttConstraintsElement.style.display = 'none';
             }
         })
     }
@@ -297,14 +318,19 @@ function loadSettings(){
     if(mqttPortElement !== null && mqttCertSkipVerificationContainerElement != null){
         mqttPortElement.addEventListener('change', (ev) => {
             mqttCertSkipVerificationContainerElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
+            mqttConstraintsElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
         })
         mqttCertSkipVerificationContainerElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
+        mqttConstraintsElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
     }
 
 
     //server
     const disableWifiElement = document.getElementById('disable-wifi-timer');
     if(disableWifiElement !== null) disableWifiElement.value = activeConfig.server.disableWifiTimer;
+
+    const restartAfterElement = document.getElementById('restart-after');
+    if(restartAfterElement !== null) restartAfterElement.value = activeConfig.server.restartAfter;
 
     const certificateSourceElements = document.getElementsByName('certificate-source');
     for(var child of certificateSourceElements){
@@ -317,6 +343,7 @@ function loadSettings(){
     
 }
 function seveSettingsFromForm(){
+    showLoading();
     var config = persistedConfig;
     //devices
     config.devices = activeConfig.devices;
@@ -336,13 +363,16 @@ function seveSettingsFromForm(){
     config.system.ntp.timezone = document.getElementById('time-zone').value;
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+   
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
+    const loggingLocationElement = document.getElementById('logging-location');
     const mqttHostElement = document.getElementById('mqtt-broker');
     const mqttPortElement = document.getElementById('mqtt-port');
     const mqttInsecureElement = document.getElementById('mqtt-insecure');   
     const mqttEnabledElement = document.getElementById('mqtt-enabled'); 
+    const mqttSubscribeEnabledElement = document.getElementById('mqtt-subscribe-enabled');
     
     
     if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
@@ -351,11 +381,13 @@ function seveSettingsFromForm(){
     if(loggingFrequencyElement !== null) activeConfig.system.logging.frequency = loggingFrequencyElement.value;
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
     if(loggingLevelElement !== null) activeConfig.system.logging.level = loggingLevelElement.value;
+    if(loggingLocationElement !== null) activeConfig.system.logging.location = loggingLocationElement.value;
 
     if(mqttHostElement !== null) activeConfig.system.mqtt.broker = mqttHostElement.value;
     if(mqttPortElement !== null) activeConfig.system.mqtt.port = mqttPortElement.value;
     if(mqttInsecureElement !== null) activeConfig.system.mqtt.insecure = mqttInsecureElement.checked;
     if(mqttEnabledElement !== null) activeConfig.system.mqtt.enabled = mqttEnabledElement.checked;
+    if(mqttSubscribeEnabledElement !== null) activeConfig.system.mqtt.subscribeEnabled = mqttSubscribeEnabledElement.checked;
     
     const certificateSourceElement = document.querySelector('input[name="certificate-source"]:checked');
 
@@ -363,6 +395,7 @@ function seveSettingsFromForm(){
     if(config.server === undefined)
         config.server = {};
     config.server.disableWifiTimer = document.getElementById('disable-wifi-timer').value;
+    config.server.restartAfter = document.getElementById('restart-after').value;
 
     if(config.server.certificates === undefined)
         config.server.certificates = {};
@@ -409,7 +442,7 @@ function seveSettingsFromForm(){
 //parse form, collecting all of the input, provide as json to post
 function saveSettings(config){
     //TODO: bind controls to activeConfiguration model, just persist it here   
-    showWait('page');
+    //showWait('page');
     console.log('calling backend to save settings ', config);
     const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
     const url = base + "/" + 'SaveConfigData';
@@ -417,8 +450,8 @@ function saveSettings(config){
     request.setRequestHeader("Content-type", "application/json");
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
-
-            hideWait('page');
+            hideLoading();
+            //hideWait('page');
             if (request.status == 401) {
                 showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
                 return;
@@ -596,6 +629,8 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('wifi-network-ap-ip');
     invalidateOnChange('wifi-network-ap-subnet');
 
+    invalidateOnChange('mqtt-enabled');
+    invalidateOnChange('mqtt-subscribe-enabled');
     invalidateOnChange('mqtt-broker');
     invalidateOnChange('mqtt-port');
     invalidateOnChange('mqtt-insecure');
@@ -609,6 +644,8 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('system-theme');
 
     invalidateOnChange('disable-wifi-timer');
+    invalidateOnChange('restart-after');
+    
     invalidateOnChange('certificate-source');
 
     invalidateOnChange('source-nvs');

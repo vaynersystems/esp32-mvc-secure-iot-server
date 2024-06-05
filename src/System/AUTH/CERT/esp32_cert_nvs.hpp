@@ -5,7 +5,7 @@
 #include "nvs.h"
 #include <string.h>
 #include <SPIFFS.h>
-#include "string_extensions.h"
+#include "string_helper.h"
 
 class esp32_cert_nvs : public esp32_cert_base{
 

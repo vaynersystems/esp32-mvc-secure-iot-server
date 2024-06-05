@@ -4,8 +4,10 @@
 #include <map>
 #include "ArduinoJson.h"
 #include <SPIFFS.h>
+#include <SD.h>
 #include <System/Config.h>
 #include <System/CORE/esp32_config.h>
+#include "esp32_filesystem.hpp"
 
 using namespace std;
 enum esp32_log_type{
@@ -47,15 +49,24 @@ public:
 
     void removeAllLogs();
 
+    esp32_drive_type location(){
+        return _location;
+    };
+
 private:
     string getLogFilename(esp32_log_type logType);
+
+    
     
     const char * _logPrefix = "SYSLOG";
     bool _useDate = true;
     int _retentionDays = 365;
     esp32_log_level _loggingLevel;
+    esp32_drive_type _location;
     std::map<esp32_log_type, const char *> logTypes;
     std::map<esp32_log_level, const char *> logEntryTypes;
+
+    //FS &_fs = SPIFFS;
 
 };
 

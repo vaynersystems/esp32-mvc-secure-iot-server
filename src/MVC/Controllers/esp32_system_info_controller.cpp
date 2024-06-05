@@ -1,15 +1,21 @@
 #include "esp32_system_info_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
-#include "string_extensions.h"
+#include "string_helper.h"
 #include <nvs.h>
 #include <esp_ota_ops.h>
+#include <SD.h>
 
 extern const int SERVER_STACK_SIZE;
 DerivedController<esp32_system_info_controller> esp32_system_info_controller::reg("esp32_system_info");
 
 void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
-    auto spiffs_mem = esp32_fileio::getMemoryInfo();
+    //auto spiffs_mem = esp32_fileio::getMemoryInfo(SPIFFS);
+    auto spiffs_info = filesystem.getDisk("spiffs")->info();
+    auto disk = filesystem.getDisk("sd");
+    esp32_drive_info sd_info;
+    if(disk != NULL)
+        sd_info = disk->info();
     nvs_stats_t stats;
     nvs_get_stats(NULL, &stats);    
 
@@ -48,15 +54,27 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 
 
     string freeBytesSPIFFSPretty(""), totalBytesSPIFFSPretty(""), usedBytesSPIFFSPretty("");
-    esp32_fileio::PrettyFormat(spiffs_mem.freeBytes, &freeBytesSPIFFSPretty);
-    esp32_fileio::PrettyFormat(spiffs_mem.usedBytes, &usedBytesSPIFFSPretty);
-    esp32_fileio::PrettyFormat(spiffs_mem.totalBytes, &totalBytesSPIFFSPretty);
+    esp32_fileio::PrettyFormat(spiffs_info.size() - spiffs_info.used(), &freeBytesSPIFFSPretty);
+    esp32_fileio::PrettyFormat(spiffs_info.used(), &usedBytesSPIFFSPretty);
+    esp32_fileio::PrettyFormat(spiffs_info.size(), &totalBytesSPIFFSPretty);
 
     controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_FREE", freeBytesSPIFFSPretty.c_str());
     controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_USED", usedBytesSPIFFSPretty.c_str());
     controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_TOTAL", totalBytesSPIFFSPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)spiffs_mem.usedBytes/(float)spiffs_mem.totalBytes)*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_AVAILABLE", spiffs_mem.totalBytes > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)spiffs_info.used()/(float)spiffs_info.size())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_AVAILABLE", spiffs_info.size() > 0 ? "block" : "none");
+
+    /* SD */
+    string freeBytesSDPretty(""), totalBytesSDPretty(""), usedBytesSDPretty("");
+    esp32_fileio::PrettyFormat(sd_info.size() - sd_info.used(), &freeBytesSDPretty);
+    esp32_fileio::PrettyFormat(sd_info.used(), &usedBytesSDPretty);
+    esp32_fileio::PrettyFormat(sd_info.size(), &totalBytesSDPretty);
+
+    controllerTemplate.SetTemplateVariable("$SD_MEMORY_FREE", freeBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable("$SD_MEMORY_USED", usedBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable("$SD_MEMORY_TOTAL", totalBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable("$SD_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)sd_info.used()/(float)sd_info.size())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable("$SD_MEMORY_AVAILABLE", sd_info.size() > 0 ? "block" : "none");
     
     /* HEAP */
     string freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");

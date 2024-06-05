@@ -1,5 +1,5 @@
 #include "esp32_wifi.h"
-#include "string_extensions.h"
+#include "string_helper.h"
 
 // extern esp32_wifi wifi;
 // void IRAM_ATTR diableWifi(){
@@ -161,4 +161,5 @@ bool esp32_wifi::end(){
     MDNS.end();
     // timerDetachInterrupt(timerWifiDisable);
     // timerEnd(timerWifiDisable);
+    return !WiFi.isConnected();
 }

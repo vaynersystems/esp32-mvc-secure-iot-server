@@ -1,16 +1,19 @@
 #pragma once
 
 #define FIRMWARE_VERSION "0.20"
-#define PATH_SITE_ROOT "/W"
-#define PATH_INTERNAL_ROOT "/INT"
+#define SYSTEM_DRIVE "" //"/spiffs"
+#define PATH_SITE_ROOT SYSTEM_DRIVE "/W"
+#define PATH_INTERNAL_ROOT SYSTEM_DRIVE "/INT"
 #define PATH_LOGGING_ROOT "/LOG"
+#define PATH_TEMP_ROOT "/TMP"
 #define TEMPLE_VAR_COUNT 50
+#define ENABLE_EDITOR 1
 
 #define SOCKET_MAX 5 //we should only have one client connected to a socket since the scope of the socket is user-browser
-//#define DEBUG
-#define PATH_AUTH_FILE "/INT/authorized.dat"
-#define PATH_SYSTEM_CONFIG "/INT/system_config.json"
-#define PATH_PUBLIC_PAGES "/INT/public_pages.txt"
+#define DEBUG
+#define PATH_AUTH_FILE SYSTEM_DRIVE "/INT/authorized.dat"
+#define PATH_SYSTEM_CONFIG SYSTEM_DRIVE "/INT/system_config.json"
+#define PATH_PUBLIC_PAGES SYSTEM_DRIVE "/INT/public_pages.txt"
 
 
 

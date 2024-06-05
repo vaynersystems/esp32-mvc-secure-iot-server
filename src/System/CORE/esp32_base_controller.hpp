@@ -11,7 +11,7 @@
 #include <ArduinoJson.h>
 #include "../ROUTER/esp32_routing.h"
 
-#include "string_extensions.h"
+#include "string_helper.h"
 
 #include <algorithm>
 using namespace httpsserver;
@@ -107,7 +107,8 @@ class esp32_base_controller {
                     controllerTemplate.templateContentFilePath += "_";
                     controllerTemplate.templateContentFilePath += route.action.c_str();
                 }
-                controllerTemplate.templateContentFilePath += ".html";                
+                controllerTemplate.templateContentFilePath += ".html";        
+                Serial.printf("Set template content path to        %s\n", controllerTemplate.templateContentFilePath.c_str());
             }
         }
 

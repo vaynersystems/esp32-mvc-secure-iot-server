@@ -2,7 +2,7 @@
 #include "esp32_middleware.h"
 #include "esp32_authentication.h"
 #include "../CORE/esp32_server.h"
-#include <string_extensions.h>
+#include "string_helper.h"
 #include <esp_task_wdt.h>
 #include <BLEEddystoneTLM.h>
 extern esp32_server server;
@@ -251,7 +251,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //authResult.authenticated = true; //IF YOU WANT TO BYPAS VERIFIACTION OF USER
             #ifdef DEBUG
             Serial.printf(
-                "**Authorization** Result\n", 
+                "**Authorization** Result %s\n", 
                 authResult.authenticated ? "Authenticated" : "Unauthorized"
             ); 
             if(authResult.authenticated)
@@ -281,7 +281,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         
     }
     // Everything else will be allowed, so we call next()
-    if(!authResult.authenticated && denyIfNotPublic(req,res)){ 
+    if(!authResult.authenticated && denyIfNotPublic(req,res) && !iequals(request.c_str(),"/login",strlen("/login"))){ 
         res->setStatusCode(303);
         res->setHeader("Location", "/login?to=" + request);
         res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");

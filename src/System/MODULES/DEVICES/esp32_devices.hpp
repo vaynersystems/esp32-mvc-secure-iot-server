@@ -15,7 +15,7 @@
 
 #include "ArduinoJson.h"
 #include <system_helper.h>
-#include <string_extensions.h>
+#include "string_helper.h"
 
 #include <OneWire.h>
 #include <DallasTemperature.h>

@@ -51,8 +51,8 @@ private:
     esp32_router* _router;
     //esp32_cert_nvs* _certManager;
     esp32_cert_base* _certManager;
-   
-    hw_timer_t* timer = NULL;
+    uint64_t _restartMicros = 0;
+//    hw_timer_t* timer = NULL;
     bool _enableSSL;
 };
 #endif

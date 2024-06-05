@@ -38,6 +38,8 @@ bool esp32_server::start() {
     //initialize certificates
     _certManager->loadCertificates();   
 
+    _restartMicros = serverConfig["restartAfter"].isNull() ? 0 : serverConfig["restartAfter"].as<int>() * 1000000 * 3600; // to seconds, then to hours
+
     if(_enableSSL){       
         secureServer = new HTTPSServer(_certManager->getCert());        
         secureServer->addMiddleware(middleware->middlewareAuthentication);
@@ -53,7 +55,7 @@ bool esp32_server::start() {
     middleware->middlewareSetTokenizer((char*)_certManager->getCert()->getPKData());
     //load exclusions list
     middleware->initPublicPages();
-    _router->RegisterHandlers(SPIFFS, PATH_SITE_ROOT, 3);
+    //_router->RegisterHandlers(SPIFFS, PATH_SITE_ROOT, 3);
     _router->RegisterHandler( "/", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
     _router->RegisterHandler( "/list", HTTPMETHOD_GET, &esp32_router::handleFileList);
@@ -61,6 +63,7 @@ bool esp32_server::start() {
     
     //edit page handler.
     //TODO: add system config variable to control if handlers are registered
+    _router->RegisterHandler( "/edit", HTTPMETHOD_GET, &esp32_router::handleEditor);
     _router->RegisterHandler( "/edit", HTTPMETHOD_PUT, &esp32_router::handleFileUpload);
     _router->RegisterHandler( "/edit", HTTPMETHOD_POST, &esp32_router::handleFileUpload);
     _router->RegisterHandler( "/edit", HTTPMETHOD_DELETE, &esp32_router::handleFileUpload);
@@ -120,10 +123,10 @@ void esp32_server::step()
 {
     if(_enableSSL)
         secureServer->loop();
-    unsecureServer->loop();
+    unsecureServer->loop();  
 
-    //TODO: process any encryption/decryption requests
-    
+    if(_restartMicros > 0 && esp_timer_get_time() > _restartMicros)  
+        esp_restart();
 }
 
 void esp32_server::registerNode(HTTPNode *node)

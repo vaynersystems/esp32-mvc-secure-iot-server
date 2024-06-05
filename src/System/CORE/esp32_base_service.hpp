@@ -7,7 +7,7 @@
 #include "../Config.h"
 #include <ArduinoJson.h>
 
-#include "string_extensions.h"
+#include "string_helper.h"
 #include "../ROUTER/esp32_routing.h"
 
 #include <algorithm>

@@ -47,7 +47,7 @@ void esp32_devices::onLoop()
     auto seriesEntry = _scratchpad.to<JsonObject>();
     
     tm now = getDate();
-    auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", now.tm_mon, now.tm_mday, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec);
+    auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", now.tm_mon + 1, now.tm_mday, now.tm_year + 1900, now.tm_hour, now.tm_min, now.tm_sec);
     seriesEntry["time"] = date;
     auto seriesEntries = seriesEntry["series"].to<JsonArray>();
     // get all devices. For each device, read value, store in object
