@@ -43,7 +43,7 @@ private:
     virtual JsonVariant LoadUsers();
     virtual JsonVariant LoadUserData(const char* username);
     virtual bool SaveExistingUserData(const char* username,const char* role, bool enabled);
-    virtual bool DeleteUser(const char* username);
+    virtual bool DeleteUser(const char* username);    
 
     //virtual ChangePasswordResult SaveUserPassword(const char* username, const char* oldPassword, const char* newPassword);
 };

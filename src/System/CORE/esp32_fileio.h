@@ -2,7 +2,7 @@
 #define _ESP32_FILEIO_H
 #include "FS.h"
 #include "SPIFFS.h"
-#include "SD.h"
+//#include "SD.h"
 
 #include <list>
 

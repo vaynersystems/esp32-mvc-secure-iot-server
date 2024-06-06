@@ -5,6 +5,6 @@
 DerivedController<_footer_controller> _footer_controller::reg("_footer");
 
 void _footer_controller::Index(HTTPRequest* req, HTTPResponse* res) {
-    controllerTemplate.SetTemplateVariable("$footer_year", "2024");        
+    controllerTemplate.SetTemplateVariable(F("$footer_year"), "2024");        
 }
 

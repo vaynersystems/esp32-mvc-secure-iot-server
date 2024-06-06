@@ -31,10 +31,11 @@ void onShutdown();
 #else
     #define ARDUINO_RUNNING_CORE 1
 #endif
-#define REPORT_FREQUENCY 5000000
-extern const int SERVER_STACK_SIZE = 1024*24; //number of words
-extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; //number of words
-extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36; //number of words
+#define REPORT_FREQUENCY 5000000 // 5 seconds
+// DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
+extern const int SERVER_STACK_SIZE = 1024*24; 
+extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
+extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
 const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 100 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 int64_t lastreportServer = 0;
@@ -122,13 +123,7 @@ void setup() {
     xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
     
     esp_register_shutdown_handler(onShutdown);
-    
-    
-    // WriteFile("/test.txt", "github.com");
-    // ReadFile("/test.txt");
-
-    
-    
+   
     logger.logInfo("System started");
 }
 int64_t lastReportMain = 0;

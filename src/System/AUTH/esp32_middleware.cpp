@@ -227,17 +227,17 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     jwtDecodedString.reserve(jwtToken.length() * 4);    
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
-    logger.log(
-        string_format(
-            "**Authorization**\\t Decoded: %s\\nJWT Encoded: %s\\nJWT Decoded: %s\\n", decodeResult ? "Yes" : "No",
-            jwtToken.c_str(),
-            jwtDecodedString.c_str()
-        ),
-        auth, 
-        debug
+    string message = string_format(
+        "**Authorization**\\t Decoded: %s\\nJWT Encoded: %s\\nJWT Decoded: %s\\n", decodeResult ? "Yes" : "No",
+        jwtToken.c_str(),
+        jwtDecodedString.c_str()
     );
+    logger.log(message, auth, debug);
+    #ifdef DEBUG
+    Serial.println(message.c_str());
+    #endif
     if (decodeResult) {        
-        DynamicJsonDocument doc(jwtDecodedString.length() * 2);
+        DynamicJsonDocument doc(jwtDecodedString.length() * 2 + 25);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
@@ -267,17 +267,19 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
                       
             }
         }
-        else    
-            logger.log(
-                string_format(
+        else 
+        {
+            auto message = string_format(
                     "ERROR [%i] OCCURED DESERIALIZING JWT TOKEN: %s   Details: %s",
                     err.code(),
                     jwtDecodedString.c_str(),
                     err.c_str()
-                ),
-                auth, 
-                error
-            );        
+            );
+            logger.log( message, auth, error);
+            #ifdef DEBUG
+            Serial.println(message.c_str());
+            #endif  
+        }     
         
     }
     // Everything else will be allowed, so we call next()
@@ -299,8 +301,10 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
     //bool exclusion = false;
     string request = req->getRequestString();
     if(!server.middleware->isPublicPage(request)){    
-               
+
+        #ifdef DEBUG
         Serial.printf("Request for resource %s rejected. Resource is not public.", request.c_str());
+        #endif
         if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css")){
             res->setStatusCode(401);
             return true;
@@ -320,7 +324,9 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
 bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
     bool isInternalPath = req->getRequestString().substr(0, 5) == PATH_INTERNAL_ROOT;
     if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
+        #ifdef DEBUG
         Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
+        #endif
         res->setStatusCode(401);
         res->setHeader("Location", req->getHeader("Origin"));
         res->setHeader("WWW-Authenticate", "Basic realm=\"Internal\"");

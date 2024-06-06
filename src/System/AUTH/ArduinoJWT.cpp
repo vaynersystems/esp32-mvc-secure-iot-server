@@ -27,11 +27,12 @@
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  **/
-
+//#define DEBUG
 #include <Arduino.h>
 #include "ArduinoJWT.h"
 #include "base64.hpp"
 #include "esp32_sha256.h"
+#include "string_helper.h"
 
 // The standard JWT header already base64 encoded. Equates to {"alg": "HS256", "typ": "JWT"}
 const PROGMEM char* jwtHeader = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9";
@@ -64,18 +65,22 @@ int ArduinoJWT::getJWTPayloadLength(string& jwt) {
 }
 
 int ArduinoJWT::getJWTPayloadLength(const char* jwt) {
-  char jwtCopy[strlen(jwt)];
-  memcpy((char*)jwtCopy, jwt, strlen(jwt));
-    // Get all three jwt parts
-  const char* sep = ".";
-  char* token;
-  token = strtok(jwtCopy, sep);
-  token = strtok(NULL, sep);
-  if(token == NULL) {
-    return -1;
-  } else {
-    return decode_base64_length((unsigned char*)token) + 1;
-  }
+    auto tokens = explode(jwt,".");
+    //Serial.printf("Found %d tokens in JWT payload\n", tokens.size());
+    if(tokens.size() < 3) return -1;
+    return decode_base64_length((unsigned char*)tokens[1].c_str()) + 1;
+//   char jwtCopy[strlen(jwt)];
+//   memcpy((char*)jwtCopy, jwt, strlen(jwt));
+//     // Get all three jwt parts
+//   const char* sep = ".";
+//   char* token;
+//   token = strtok(jwtCopy, sep);
+//   token = strtok(NULL, sep);
+//   if(token == NULL) {
+//     return -1;
+//   } else {
+//     return decode_base64_length((unsigned char*)token) + 1;
+//   }
 }
 
 string ArduinoJWT::encodeJWT(string& payload) {
@@ -146,27 +151,33 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
 }
 
 bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
-  // Get all three jwt parts
-  const char* sep = ".";
-  char* encodedHeader = strtok((char*)jwt, sep);
-  char* encodedPayload = strtok(NULL, sep);
-  char* encodedSignature = strtok(NULL, sep);
+    // Get all three jwt parts
+    auto tokens = explode(jwt,".");    
+    if(tokens.size() < 3) {
+        #ifdef DEBUG
+        Serial.printf("Missing critical section of token {Header:Payload:Signature}, {%s,\t%s,\t%s}\n", tokens[0].c_str(), tokens[1].c_str(), tokens[2].c_str());
+        #endif
+        payload = NULL;
+        return false;
+    }
+//   const char* sep = ".";
+//   char* encodedHeader = strtok((char*)jwt, sep);
+//   char* encodedPayload = strtok(NULL, sep);
+//   char* encodedSignature = strtok(NULL, sep);
 
   // Check all three jwt parts exist
-  if(encodedHeader == NULL || encodedPayload == NULL || encodedSignature == NULL)
-  {
-#ifdef DEBUG
-      Serial.printf("Missing critical section of token {Header:Payload:Signature}, {%s,\t%s,\t%s}\n", encodedHeader, encodedPayload, encodedSignature);
-#endif
-    payload = NULL;
-    return false;
-  }
+//   if(encodedHeader == NULL || encodedPayload == NULL || encodedSignature == NULL)
+//   {
+
+//     payload = NULL;
+//     return false;
+//   }
 
   // Build the signature
   Sha256.initHmac((const unsigned char*)_psk.c_str(), _psk.length());
-  Sha256.print(encodedHeader);
+  Sha256.print(tokens[0].c_str());
   Sha256.print(".");
-  Sha256.print(encodedPayload);
+  Sha256.print(tokens[1].c_str());
 
   // Encode the signature as base64
   unsigned char base64Signature[encode_base64_length(32)];
@@ -179,14 +190,14 @@ bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
   *(ptr) = 0;
 
   // Do the signatures match?
-  if(strcmp((char*)encodedSignature, (char*)base64Signature) == 0) {
+  if(strcmp((char*)tokens[2].c_str(), (char*)base64Signature) == 0) {
     // Decode the payload
-    decode_base64((unsigned char*)encodedPayload, (unsigned char*)payload);
+    decode_base64((unsigned char*)tokens[1].c_str(), (unsigned char*)payload);
     payload[payloadLength - 1] = 0;
     return true;
   } else {
 #ifdef DEBUG
-      Serial.printf("Failed to validate JWT Signature \n\Actual\n\t[%s] \n\Expected\n\t[%s]\n", (unsigned char*)encodedSignature, (unsigned char*)base64Signature);
+      Serial.printf("Failed to validate JWT Signature \n\Actual\n\t[%s] \n\Expected\n\t[%s]\n", tokens[2].c_str(), (unsigned char*)base64Signature);
 #endif
     payload = NULL;
     return false;

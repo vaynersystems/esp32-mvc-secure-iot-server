@@ -30,7 +30,7 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 
     //     ctrString += "]";
     
-    // controllerTemplate.SetTemplateVariable("$_Controllers", ctrString.c_str());
+    // controllerTemplate.SetTemplateVariable(F("$_Controllers", ctrString.c_str());
     
     esp32_base_controller::Index(req,res);    
 }

@@ -16,7 +16,7 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     esp32_config::getConfigSection("devices",&doc);
     string deviceString = "";
     serializeJson(doc, deviceString);
-    controllerTemplate.SetTemplateVariable("$_DEVICES",deviceString );
+    controllerTemplate.SetTemplateVariable(F("$_DEVICES"),deviceString.c_str() );
     esp32_base_controller::Index(req,res);      
 }
 

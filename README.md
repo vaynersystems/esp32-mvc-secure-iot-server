@@ -326,7 +326,7 @@ void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
     string outputString;
     serializeJson(doc, outputString);
     //set to template variable
-    controllerTemplate.SetTemplateVariable("$_TASKS", outputString.c_str());
+    controllerTemplate.SetTemplateVariable(F("$_TASKS"), outputString.c_str());
     
 }
 ```

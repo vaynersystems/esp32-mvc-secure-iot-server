@@ -19,11 +19,15 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     // Check if the file exists
     if (!SPIFFS.exists(filename.c_str()))
     {     
+        #ifdef DEBUG
         Serial.println("Authorization file does not exist..");
+        #endif
         if(strlen(password) == 64) //ecoded password, must reject
             return info;
         if(strlen(username) < 3 || strlen(username) > 32) return info;
+        #ifdef DEBUG
         Serial.println("Creating"); 
+        #endif
         byte encryptedPass[SHA256_SIZE];
         char* requestPassEncrypted = new char[SHA256_SIZE*2 + 1];
         requestPassEncrypted[SHA256_SIZE*2] = '\0'; //null terminate
@@ -67,8 +71,10 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         DeserializationError error = deserializeJson(d,file);        
         file.close();
         if (error) {
+            #ifdef DEBUG
             Serial.print("deserializeJson() failed: ");
             Serial.println(error.c_str());
+            #endif
             return info;
         }
         auto existingUser = findUser(d.as<JsonArray>(),username);
@@ -90,7 +96,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     authFile.close();
 
     if(error){
-        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
+        //if("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
         //SPIFFS.remove(PATH_AUTH_FILE);
     }else {
         JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
@@ -140,8 +146,8 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
     file.close();
 
     if (error) {
-        Serial.print("deserializeJson() failed: ");
-        Serial.println(error.c_str());
+        // Serial.print("deserializeJson() failed: ");
+        // Serial.println(error.c_str());
         return ChangePasswordResult::AuthSystemError;
     }
 
@@ -195,7 +201,7 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
     authFile.close();
  
     if(error){
-        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
+        //Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
         //SPIFFS.remove(PATH_AUTH_FILE);
         return false;
     }

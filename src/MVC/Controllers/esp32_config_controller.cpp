@@ -22,15 +22,14 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     } while(bytesRead > 0);
 
     
-    controllerTemplate.SetTemplateVariable("$_CONFIGURATION_DATA", configData.c_str());
-    //controllerTemplate.SetTemplateVariable("$_CONFIG_FILE", PATH_SYSTEM_CONFIG);
+    controllerTemplate.SetTemplateVariable(F("$_CONFIGURATION_DATA"), configData.c_str());
+    //controllerTemplate.SetTemplateVariable(F("$_CONFIG_FILE"), PATH_SYSTEM_CONFIG);
     
     esp32_base_controller::Index(req,res);    
 }
 
 void esp32_config_controller::Post(HTTPRequest* req, HTTPResponse* res) {
-    SaveConfigData(req,res);
-    Serial.println("Completed POST method");
+    SaveConfigData(req,res);   
 }
 
 /// @brief Overwrite Action since we have custom action implemented
@@ -209,7 +208,9 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
         res->setStatusText(error.c_str());
+        #ifdef DEBUG
         Serial.printf(error.c_str());
+        #endif
         return false;
     }    
     
@@ -224,8 +225,8 @@ void esp32_config_controller::ResetDevice(HTTPRequest* req, HTTPResponse* res){
 
 void esp32_config_controller::UploadCertificate(HTTPRequest *req, HTTPResponse *res)
 {
-    Serial.printf("Uploading with action %s and parameter %s\n",
-        route.action.c_str(), route.params.c_str());
+    // Serial.printf("Uploading with action %s and parameter %s\n",
+    //     route.action.c_str(), route.params.c_str());
     //req has post of file.
     if(strcmp(route.params.c_str(), "Public") == 0){
         esp32_router::handleFileUpload(req,res, PUBLIC_TEMP_PATH);
@@ -241,7 +242,9 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
     
     DynamicJsonDocument doc(length * 2);
     string content;
+    #ifdef DEBUG
     Serial.printf("Generating certificate...\n");
+    #endif
     char * buf = new char[32];
     while(true){
         
@@ -265,10 +268,11 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
         companyName = doc["company"].as<const char*>();
         validFrom = doc["from"].as<const char*>();
         validTo = doc["to"].as<const char*>();
-
+        #ifdef DEBUG
         Serial.printf(".. parsed \n\tdevice: %s\n\t company %s\n\t valid-from: %s\n\t valid-to: %s\n",
             deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str()
         );
+        #endif
 
         if(deviceName.length() > 0 && deviceName.length() < 32 &&
             companyName.length() > 0 && companyName.length() < 32 && 
@@ -276,6 +280,6 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
             server.generateCertificate(deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str());
         
     } else {
-        Serial.printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
+        res->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
     }
 }

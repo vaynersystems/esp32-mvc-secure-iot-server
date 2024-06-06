@@ -30,24 +30,24 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     }   
     
    
-    controllerTemplate.SetTemplateVariable("$_PARTITION_BOOT_SPACE",  bootSizePretty.c_str());    
-    controllerTemplate.SetTemplateVariable("$_PARTITION_1_SPACE", part1SizePretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$_PARTITION_BOOT_SPACE"),  bootSizePretty.c_str());    
+    controllerTemplate.SetTemplateVariable(F("$_PARTITION_1_SPACE"), part1SizePretty.c_str());
 
     string flashSizePretty(""), sketchSizePretty(""), flashMode; 
     esp32_fileio::PrettyFormat((size_t)ESP.getFlashChipSize(), &flashSizePretty);
     esp32_fileio::PrettyFormat((size_t)ESP.getSketchSize(), &sketchSizePretty);
     prettyFlashModeString(flashMode);
 
-    controllerTemplate.SetTemplateVariable("$_CHIP_CORES",      to_string(ESP.getChipCores()));
-    controllerTemplate.SetTemplateVariable("$_CHIP_MODEL",      ESP.getChipModel());
-    controllerTemplate.SetTemplateVariable("$_CHIP_REVISION",   to_string(ESP.getChipRevision()));
-    controllerTemplate.SetTemplateVariable("$_CPU_FREQUENCY",   to_string(ESP.getCpuFreqMHz()));
-    controllerTemplate.SetTemplateVariable("$_FLASH_MODE",      flashMode.c_str());
-    controllerTemplate.SetTemplateVariable("$_FLASH_SIZE",      flashSizePretty.c_str());
-    controllerTemplate.SetTemplateVariable("$_FLASH_SPEED",     to_string(ESP.getFlashChipSpeed()));
-    controllerTemplate.SetTemplateVariable("$_SDK_VERSION",     ESP.getSdkVersion());
-    controllerTemplate.SetTemplateVariable("$_SKETCH_SIZE",     sketchSizePretty.c_str()) ;
-    controllerTemplate.SetTemplateVariable("$_FIRMWARE_VERSION",FIRMWARE_VERSION) ;
+    controllerTemplate.SetTemplateVariable(F("$_CHIP_CORES"),      to_string(ESP.getChipCores()).c_str());
+    controllerTemplate.SetTemplateVariable(F("$_CHIP_MODEL"),      ESP.getChipModel());
+    controllerTemplate.SetTemplateVariable(F("$_CHIP_REVISION"),   to_string(ESP.getChipRevision()).c_str());
+    controllerTemplate.SetTemplateVariable(F("$_CPU_FREQUENCY"),   to_string(ESP.getCpuFreqMHz()).c_str());
+    controllerTemplate.SetTemplateVariable(F("$_FLASH_MODE"),      flashMode.c_str());
+    controllerTemplate.SetTemplateVariable(F("$_FLASH_SIZE"),      flashSizePretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$_FLASH_SPEED"),     to_string(ESP.getFlashChipSpeed()).c_str());
+    controllerTemplate.SetTemplateVariable(F("$_SDK_VERSION"),     ESP.getSdkVersion());
+    controllerTemplate.SetTemplateVariable(F("$_SKETCH_SIZE"),     sketchSizePretty.c_str()) ;
+    controllerTemplate.SetTemplateVariable(F("$_FIRMWARE_VERSION"),FIRMWARE_VERSION) ;
     
     
 
@@ -58,11 +58,11 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     esp32_fileio::PrettyFormat(spiffs_info.used(), &usedBytesSPIFFSPretty);
     esp32_fileio::PrettyFormat(spiffs_info.size(), &totalBytesSPIFFSPretty);
 
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_FREE", freeBytesSPIFFSPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_USED", usedBytesSPIFFSPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_TOTAL", totalBytesSPIFFSPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)spiffs_info.used()/(float)spiffs_info.size())*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$SPIFFS_MEMORY_AVAILABLE", spiffs_info.size() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$SPIFFS_MEMORY_FREE"), freeBytesSPIFFSPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SPIFFS_MEMORY_USED"), usedBytesSPIFFSPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SPIFFS_MEMORY_TOTAL"), totalBytesSPIFFSPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SPIFFS_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)spiffs_info.used()/(float)spiffs_info.size())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$SPIFFS_MEMORY_AVAILABLE"), spiffs_info.size() > 0 ? "block" : "none");
 
     /* SD */
     string freeBytesSDPretty(""), totalBytesSDPretty(""), usedBytesSDPretty("");
@@ -70,11 +70,11 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     esp32_fileio::PrettyFormat(sd_info.used(), &usedBytesSDPretty);
     esp32_fileio::PrettyFormat(sd_info.size(), &totalBytesSDPretty);
 
-    controllerTemplate.SetTemplateVariable("$SD_MEMORY_FREE", freeBytesSDPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SD_MEMORY_USED", usedBytesSDPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SD_MEMORY_TOTAL", totalBytesSDPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SD_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)sd_info.used()/(float)sd_info.size())*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$SD_MEMORY_AVAILABLE", sd_info.size() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_FREE"), freeBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_USED"), usedBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_TOTAL"), totalBytesSDPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)sd_info.used()/(float)sd_info.size())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_AVAILABLE"), sd_info.size() > 0 ? "block" : "none");
     
     /* HEAP */
     string freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");
@@ -82,11 +82,11 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 	esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize(), &totalBytesHEAPPretty);
     esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize() - esp_get_free_heap_size(), &usedBytesHEAPPretty);
 
-    controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_FREE", freeBytesHEAPSPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_USED", usedBytesHEAPPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_TOTAL", totalBytesHEAPPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)(ESP.getHeapSize() - esp_get_free_heap_size())/(float)ESP.getHeapSize())*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$HEAP_MEMORY_AVAILABLE", ESP.getHeapSize() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_FREE"), freeBytesHEAPSPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_USED"), usedBytesHEAPPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_TOTAL"), totalBytesHEAPPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)(ESP.getHeapSize() - esp_get_free_heap_size())/(float)ESP.getHeapSize())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_AVAILABLE"), ESP.getHeapSize() > 0 ? "block" : "none");
 
     /* PSRAM */
     string freeBytesPSRAMPretty(""), usedBytesPSRAMPretty("") , totalBytesPSRAMPretty("");
@@ -94,11 +94,11 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 	esp32_fileio::PrettyFormat(ESP.getPsramSize(), &totalBytesPSRAMPretty);
     esp32_fileio::PrettyFormat(ESP.getPsramSize() - ESP.getFreePsram(), &usedBytesPSRAMPretty);
 
-    controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_FREE", freeBytesPSRAMPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_USED", usedBytesPSRAMPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_TOTAL", totalBytesPSRAMPretty.c_str());    
-    controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)(ESP.getPsramSize() - ESP.getFreePsram())/(float)ESP.getPsramSize())*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$PSRAM_MEMORY_AVAILABLE", ESP.getPsramSize() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_FREE"), freeBytesPSRAMPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_USED"), usedBytesPSRAMPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_TOTAL"), totalBytesPSRAMPretty.c_str());    
+    controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)(ESP.getPsramSize() - ESP.getFreePsram())/(float)ESP.getPsramSize())*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_AVAILABLE"), ESP.getPsramSize() > 0 ? "block" : "none");
 
     /* SKETCH */
     string freeBytesSKETCHPretty(""), usedBytesSKETCHPretty("") , totalBytesSKETCHPretty("");
@@ -106,18 +106,18 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 	esp32_fileio::PrettyFormat(ESP.getSketchSize() + ESP.getFreeSketchSpace(), &totalBytesSKETCHPretty);
     esp32_fileio::PrettyFormat(ESP.getSketchSize(), &usedBytesSKETCHPretty);
 
-    controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_FREE", freeBytesSKETCHPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_USED", usedBytesSKETCHPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_TOTAL", totalBytesSKETCHPretty.c_str());    
-    controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_PERCENT_USED", to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(ESP.getSketchSize() + ESP.getFreeSketchSpace()))*100),1).c_str());
-    controllerTemplate.SetTemplateVariable("$SKETCH_MEMORY_AVAILABLE", ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_FREE"), freeBytesSKETCHPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_USED"), usedBytesSKETCHPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_TOTAL"), totalBytesSKETCHPretty.c_str());    
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(ESP.getSketchSize() + ESP.getFreeSketchSpace()))*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_AVAILABLE"), ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
     
 
-    controllerTemplate.SetTemplateVariable("$NVS_FREE_ENTRIES", (to_string_with_precision(stats.free_entries,0)).c_str());
-    controllerTemplate.SetTemplateVariable("$NVS_USED_ENTRIES", (to_string_with_precision(stats.used_entries,0)).c_str());
-    controllerTemplate.SetTemplateVariable("$NVS_TOTAL_ENTRIES", (to_string_with_precision(stats.total_entries,0)).c_str());
-    controllerTemplate.SetTemplateVariable("$NVS_PERCENT_USED", (to_string_with_precision(round(((float)stats.used_entries/(float)stats.total_entries)*100),1).c_str()));
-	controllerTemplate.SetTemplateVariable("$NVS_MEMORY_AVAILABLE", ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$NVS_FREE_ENTRIES"), (to_string_with_precision(stats.free_entries,0)).c_str());
+    controllerTemplate.SetTemplateVariable(F("$NVS_USED_ENTRIES"), (to_string_with_precision(stats.used_entries,0)).c_str());
+    controllerTemplate.SetTemplateVariable(F("$NVS_TOTAL_ENTRIES"), (to_string_with_precision(stats.total_entries,0)).c_str());
+    controllerTemplate.SetTemplateVariable(F("$NVS_PERCENT_USED"), (to_string_with_precision(round(((float)stats.used_entries/(float)stats.total_entries)*100),1).c_str()));
+	controllerTemplate.SetTemplateVariable(F("$NVS_MEMORY_AVAILABLE"), ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
     //Print debug message
     //controllerTemplate.PrintDebugMessage(req,res);
     auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL);     
@@ -125,10 +125,10 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 	esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
 	esp32_fileio::PrettyFormat(SERVER_STACK_SIZE - stackFreeBytes, &usedBytesSTACKPretty);
     esp32_fileio::PrettyFormat(SERVER_STACK_SIZE, &totalBytesSTACKPretty);
-    controllerTemplate.SetTemplateVariable("$STACK_FREE", freeBytesSTACKPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$STACK_USED", usedBytesSTACKPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$STACK_TOTAL", totalBytesSTACKPretty.c_str());
-    controllerTemplate.SetTemplateVariable("$STACK_PERCENT_USED", (to_string_with_precision(round(((float)(SERVER_STACK_SIZE - stackFreeBytes)/(float)SERVER_STACK_SIZE)*100),1).c_str()));    
+    controllerTemplate.SetTemplateVariable(F("$STACK_FREE"), freeBytesSTACKPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$STACK_USED"), usedBytesSTACKPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$STACK_TOTAL"), totalBytesSTACKPretty.c_str());
+    controllerTemplate.SetTemplateVariable(F("$STACK_PERCENT_USED"), (to_string_with_precision(round(((float)(SERVER_STACK_SIZE - stackFreeBytes)/(float)SERVER_STACK_SIZE)*100),1).c_str()));    
 
     // char * varName = new char[20];
     // for(int i = 1; i < 100; i++){
