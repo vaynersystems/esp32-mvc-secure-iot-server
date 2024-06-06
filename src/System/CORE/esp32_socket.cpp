@@ -8,7 +8,9 @@ WebsocketHandler* esp32_socket::createSocket(){
         if (activeClients[i] == nullptr) {
             esp32_socket * handler = new esp32_socket(i+1);
             activeClients[i] = handler;
+            #ifdef DEBUG
             Serial.printf("Creating new socket for client id %d\n", i+1);  
+            #endif
             return handler;
         break;
         }

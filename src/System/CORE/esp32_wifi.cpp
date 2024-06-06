@@ -46,7 +46,9 @@ bool esp32_wifi::start(){
     }
     
     if(trySTA){
-        Serial.printf("Connecting in STA mode to network %S with password %s\n", network.c_str(), password.c_str());        
+        #ifdef DEBUG
+        Serial.printf("Connecting in STA mode to network %Sn", network.c_str());        
+        #endif
         bool isDHCP =  wifiConfig["dhcp"].as<bool>();
         
         
@@ -95,11 +97,15 @@ bool esp32_wifi::start(){
 
         IPAddress ipAddress, subnetAddress;
         if(!ipAddress.fromString(ip.c_str()) ){
+            #ifdef DEBUG
             Serial.println("Failed to parse ip address from config file");
+            #endif
             customIP = false;
         }
         if(!subnetAddress.fromString(subnet.c_str()) ){
+            #ifdef DEBUG
             Serial.println("Failed to parse subnet address from config file");
+            #endif
             customIP = false;
         }       
 
@@ -107,23 +113,31 @@ bool esp32_wifi::start(){
             WiFi.config(ipAddress, ipAddress,subnetAddress, addr, addr);
         if( apPassword.length() <=8 )  {
             apPassword = apName.c_str(); //if no password, password matches wifi name
+            #ifdef DEBUG
             Serial.printf("Setting password to %s\n", apPassword.c_str());
+            #endif
         }
             WiFi.setMinSecurity(wifi_auth_mode_t::WIFI_AUTH_WEP);
 
         WiFi.softAP(apName.c_str(), apPassword.c_str(), 7, 0, 3);
+        #ifdef DEBUG
         Serial.println("Started Wifi in AP mode");
+        #endif
     }
 
     if(hostname.length() > 0){
+        #ifdef DEBUG
         Serial.printf("Setting hostname to %s\n", hostname.c_str());
+        #endif
         WiFi.setHostname(hostname.c_str());
         if(enableMDNS)
             MDNS.begin(hostname.c_str());        
     }
     
+    #ifdef DEBUG
     Serial.print("Connected. IP=");
     Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.broadcastIP() :  WiFi.localIP());
+    #endif
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
@@ -153,7 +167,9 @@ bool esp32_wifi::start(){
 }
 
 bool esp32_wifi::end(){
+    #ifdef DEBUG
     Serial.println("Disabling Wifi...");
+    #endif
     if(WiFi.getMode() == WiFiMode_t::WIFI_MODE_STA)
         WiFi.disconnect(true,true);
     else if(WiFi.getMode() == WiFiMode_t::WIFI_MODE_AP)

@@ -177,6 +177,7 @@ function formatByte(value){
 }
 function getProjectionColor(bytes){
     const loggingStorageElement = document.getElementById('logging-location');
+    
     var orangeThreshold = loggingStorageElement.value == 0 ? 1024*256 : 1024*1024*256; // 256KB for SPIFFS, 256MB for SD
     var redThreshold = loggingStorageElement.value == 0 ? 1024*1024 : 1024*1024*1024;// 1MB for SPIFFS, 1GB for SD
     if(bytes > redThreshold)
@@ -188,7 +189,10 @@ function getProjectionColor(bytes){
 }
 
 /* Logging  */
-function showLoggingProjections(frequency){
+function showLoggingProjections(){
+    const loggingFrequencyElement = document.getElementById('device-logging-frequency');
+    const frequency = loggingFrequencyElement === null ? 300 : loggingFrequencyElement.value;
+
     const envelope = 35;
     const messageLength = 32;
     
@@ -214,7 +218,7 @@ function showLoggingProjections(frequency){
         weeklyCell.style.color = getProjectionColor(bytesPerDay * 7);
         monthlyCell.textContent = formatByte(bytesPerDay * 30);
         monthlyCell.style.color = getProjectionColor(bytesPerDay * 30);
-        yearlyCell.textContent = formatByte(bytesPerDay * 365);
+        yearlyCell.textContent = (bytesPerDay * 365);
         yearlyCell.style.color = getProjectionColor(bytesPerDay * 365);
         projectionRowElement.className = "grid-row grid-5";
 
@@ -543,8 +547,11 @@ function esp32_config_init(configDataSting){
     }
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     if(loggingFrequencyElement !== null){
-        loggingFrequencyElement.addEventListener('change',(event) => showLoggingProjections(loggingFrequencyElement.value));
+        loggingFrequencyElement.addEventListener('change',(event) => showLoggingProjections());
     }
+    const loggingLocationElement = document.getElementById('logging-location');
+    if(loggingLocationElement !== null)
+        loggingLocationElement.addEventListener('change', ()=> showLoggingProjections());
 
     
 
@@ -585,6 +592,7 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.logging.frequency = 5 * 60; //default to logging every 5 minutes
         persistedConfig.system.logging.retention = 7; //default retention to 1 week
         persistedConfig.system.logging.level = 2; //default to logging errors, warnings, and info        
+        persistedConfig.system.logging.location = 0;
     }
     if(persistedConfig.system.mqtt === undefined){
         persistedConfig.system.mqtt = {};
@@ -592,7 +600,6 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.mqtt.broker = 'test.mosquitto.org';
         persistedConfig.system.mqtt.port = 8883;
     }
-    showLoggingProjections(persistedConfig.system.logging.frequency);
 
     if(persistedConfig.server === undefined)
         persistedConfig.server = {};
@@ -651,9 +658,10 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('source-nvs');
     invalidateOnChange('source-spiffs');
     
-    pendingChanges = false;
-    
+    pendingChanges = false;    
     checkPendingChanges();
+
+    showLoggingProjections();
     
 }
 
@@ -703,6 +711,7 @@ function setTheme(theme){
 }
 
 function checkPendingChanges(){
+    // pendingChanges = (JSON.stringify( persistedConfig) != JSON.stringify(activeConfig))
     const pendingElement = document.getElementById('pending-changes');
     const saveButtonElement = document.getElementById('save-button');
     if(pendingElement === null) return;

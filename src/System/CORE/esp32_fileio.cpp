@@ -12,17 +12,22 @@ const char* infoTypes[] = {"SPIFFS","SD"};
 bool esp32_fileio::start(){
     int retries = 0;
     if (!SPIFFS.begin(true)) {
+        #ifdef DEBUG
         Serial.println("SPIFFS Mount Failed");
+        #endif
         return false;
     }
     else filesystem.addDisk(SPIFFS,"spiffs");
-
+    // IMPORTANT: SD requires about 35k of RAM. Consider configuration parameter to enable/disable SD.
+    // commenting out the below code would remove this usage.
     bool sdConnected = false;
     while(retries++ < 3 && !sdConnected)
         sdConnected = SD.begin(CS);
         //return;
     if(!sdConnected) {
+        #ifdef DEBUG
         Serial.println("SD Initialization failed!");
+        #endif
     } else{
         filesystem.addDisk(SD, "sd",dt_SD);
     }
@@ -52,12 +57,16 @@ bool esp32_fileio::CreateFile( const char * filename){
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(drive->exists(routeInfo.fullyQualifiedPath().c_str()))
     {
+        #ifdef DEBUG
         Serial.printf("File %s already exists on volume %s!\n", routeInfo.fullyQualifiedPath().c_str(), drive->label());
+        #endif
         return false;
     }
-    if(!drive->exists(routeInfo.path().c_str())){
+    if( drive->info().type() != dt_SPIFFS && !drive->exists(routeInfo.path().c_str())){
         bool created = drive->mkdir(routeInfo.path().c_str()); 
+        #ifdef DEBUG
         Serial.printf("Creating directory %s %s\n", routeInfo.path(), created ? "SUCESSFULL" : "FAILED" );       
+        #endif
         if(!created) return false;
     }
         
@@ -77,7 +86,9 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.path().c_str()) && !createIfNotFound)
     {
+        #ifdef DEBUG
         Serial.printf("File %s does not exist, and asked not to create. Terminating!\n", routeInfo.name().c_str());
+        #endif
         return false;
     }else
         drive->mkdir(routeInfo.path().c_str());
@@ -113,7 +124,9 @@ size_t esp32_fileio::UpdateFile(const char *filename, const char *message, bool 
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.path().c_str()) && !createIfNotFound)
     {
+        #ifdef DEBUG
         Serial.printf("File %s does not exist, and asked not to create. Terminating!\n", routeInfo.name().c_str());
+        #endif
         return false;
     }
     if(!drive->exists(routeInfo.path().c_str()))
@@ -144,7 +157,9 @@ bool esp32_fileio::DeleteFile(const char * filename){
     auto routeInfo = esp32_route_file_info<esp32_file_info>(filename);
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.fullyQualifiedPath().c_str())){
+        #ifdef DEBUG
         Serial.printf("Attempted to delete a non-existent file %s on disk %s\n", routeInfo.fullyQualifiedPath().c_str(), drive->label());
+        #endif
         return false;
     }
 
@@ -154,11 +169,13 @@ bool esp32_fileio::DeleteFile(const char * filename){
 void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_extended> routeInfo, httpsserver::HTTPResponse *response){
     auto drive = filesystem.getDisk(routeInfo.drive());    
     auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
-    //Serial.printf("Writing %d bytes from  %s located at %s in %s format on drive %d-%s to HTTPResponse\n", file.size(), routeInfo.name().c_str(), routeInfo.fullyQualifiedPath().c_str(), routeInfo.isGZ() ? "GZ" : "RAW", drive->index(), drive->label());
+    Serial.printf("Writing %d bytes from  %s located at %s in %s format on drive %d-%s to HTTPResponse\n", file.size(), routeInfo.name().c_str(), routeInfo.fullyQualifiedPath().c_str(), routeInfo.isGZ() ? "GZ" : "RAW", drive->index(), drive->label());
    
     if(!file) {
-    auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
+        auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
+        #ifdef DEBUG
         Serial.printf("Error, file not valid read: %d write: %d \n", file.available(), file.availableForWrite());
+        #endif
         return;
     }
     //f.seek(0);
@@ -166,7 +183,8 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     if (routeInfo.isGZ())
         response->setHeader("Content-Encoding", "gzip");
 
-    response->setHeader("Cache-Control", strstr(file.name(), "list?") != nullptr || routeInfo.isEditorRequest ? "no-store" : "private, max-age=604800");
+    bool noStore = strstr(file.name(), "list?") != nullptr || strstr(file.path(), PATH_LOGGING_ROOT) != nullptr || routeInfo.isEditorRequest;
+    response->setHeader("Cache-Control", noStore ? "no-store" : "private, max-age=604800");
     string extension = routeInfo.extension();
     if (routeInfo.isDownload())
     {

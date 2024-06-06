@@ -22,7 +22,7 @@ void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     }
     response += "]";
     //Serial.printf("Found the following log files \n%s\n", response.c_str());
-    controllerTemplate.SetTemplateVariable("$_LOGFILES",response.c_str() );
+    controllerTemplate.SetTemplateVariable(F("$_LOGFILES"),response.c_str() );
 
     esp32_base_controller::Index(req,res);      
 }
@@ -65,7 +65,9 @@ void esp32_logs_controller::Logs(HTTPRequest* req, HTTPResponse* res){
         res->setStatusCode(500);
         return;
     }
-    filename = PATH_LOGGING_ROOT + filename; //prefix log path
+    filename = string_format("/%s%s%s", drive->label(), PATH_LOGGING_ROOT, filename.c_str()); //prefix log path
+
+    //Serial.printf("Getting log file %s from drive %s\n",filename.c_str(), drive->label());
 
     if(!drive->exists(filename.c_str())){
         res->printf("File %s not found!",filename.c_str());

@@ -15,8 +15,8 @@ void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
         //TODO: 
     }
     DeserializationError error = deserializeJson(doc, taskFile);
-    if (error)
-        Serial.println(F("Failed to read task, setting to empty list"));
+    // if (error)
+    //     Serial.println(F("Failed to read task, setting to empty list"));
     taskFile.close();
 
     string outputString;
@@ -36,7 +36,7 @@ void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
     } else
         serializeJson(doc, outputString);
     //set to template variable
-    controllerTemplate.SetTemplateVariable("$_TASKS", outputString.c_str());
+    controllerTemplate.SetTemplateVariable(F("$_TASKS"), outputString.c_str());
     esp32_base_controller::Index(req,res);    
     
 }
@@ -77,7 +77,7 @@ void custom_task_manager_controller::Post(HTTPRequest* req, HTTPResponse* res) {
                 if(taskName.equalsIgnoreCase(value)){
                     bool isCompleted = task["completed"].as<bool>();
                     task["completed"] = !isCompleted;
-                    Serial.printf("Setting task %s to %s", taskName.c_str(), isCompleted ? "Completed" : "Not Completed");
+                    //Serial.printf("Setting task %s to %s", taskName.c_str(), isCompleted ? "Completed" : "Not Completed");
                     break;
                 }
             }

@@ -22,8 +22,9 @@ void esp32_mqtt_client::start()
     _brokerUri = systemConfig["mqtt"]["broker"].isNull() ? "test.mosquitto.org" :  systemConfig["mqtt"]["broker"].as<const char*>();
     _port = systemConfig["mqtt"]["port"].isNull() ? 8883 : systemConfig["mqtt"]["port"].as<int>();
     _hostname = systemConfig["hostname"].as<const char *>();
-    
+    #ifdef DEBUG
     Serial.printf("Setting MQTT broker to %s on port %d.\n", _brokerUri.c_str(), _port);
+    #endif
     if(_port == 8883){ //load certs for encrypted traffic
         StaticJsonDocument<1024> serverConfig;
         esp32_config::getConfigSection("server", &serverConfig);        
@@ -61,7 +62,9 @@ bool esp32_mqtt_client::connect()
 {
     if(!_started) {
         //start();
+        #ifdef DEBUG
         Serial.println("Failed to connect. MQTT Client is not started.");
+        #endif
         
     }
     if(_port == 8883){
@@ -89,7 +92,9 @@ void esp32_mqtt_client::loop(){
     //if there is anything to piublish, do so
      if(!isConnected())
         connect();
+    #ifdef DEBUG
     Serial.printf("Processing %d publications\n", _publishList.size());
+    #endif
     //int qos = 0;
     auto it = _publishList.end();
     do{
@@ -118,7 +123,7 @@ void esp32_mqtt_client::disconnect()
 {
     _port == 8883 ? networkSecure.stop() : networkInsecure.stop();
 }
-
+//TODO: This functionality is not yet implemented/verified
 void esp32_mqtt_client::subscribe(const char *topic, void (*callback)(char* topic, uint8_t* payload, unsigned int size))
 {
     // client.subscribe(topic);
@@ -133,7 +138,10 @@ bool esp32_mqtt_client::publish(const char *topic, const char* data)
 {
     if(!_enabled) return false;
     _publishList.push_back(pair<string, string>(topic + '\0', data + '\0')); //ask my why
+    logger.logInfo(string_format("Published %s to topic %s", data, topic),esp32_log_type::device);
+    #ifdef DEBUG
     Serial.printf("Added message %s to topic %s\n", data, topic);
+    #endif
    
 //   // prepare message
 //   lwmqtt_message_t message = lwmqtt_default_message;

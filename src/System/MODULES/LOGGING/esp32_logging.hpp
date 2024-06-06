@@ -18,10 +18,11 @@ enum esp32_log_type{
 };
 
 enum esp32_log_level{
-    error = 0,
-    warning = 1,
-    info = 2,
-    debug = 3
+    disabled = 1,
+    error = 2,
+    warning = 3,
+    info = 4,
+    debug = 5
 };
 
 //syslog

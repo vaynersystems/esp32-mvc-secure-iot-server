@@ -18,7 +18,7 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
    
     string deviceString = "";
     serializeJson(doc, deviceString);
-    controllerTemplate.SetTemplateVariable("$_DEVICES",deviceString );
+    controllerTemplate.SetTemplateVariable(F("$_DEVICES"),deviceString.c_str() );
 
     vector<esp32_file_info_extended> files;
     auto disk = filesystem.getDisk(logger.location());
@@ -36,7 +36,7 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         }
         response += "]";
         //Serial.printf("Found the following log files \n%s\n", response.c_str());
-        controllerTemplate.SetTemplateVariable("$_LOGDAYS",response.c_str() );
+        controllerTemplate.SetTemplateVariable(F("$_LOGDAYS"),response.c_str() );
     }
     esp32_base_controller::Index(req,res);      
 }
@@ -90,11 +90,11 @@ void esp32_historic_controller::Logs(HTTPRequest* req, HTTPResponse* res){
         res->setStatusCode(404);
         return;
     }
-    Serial.printf("[Historic Controller] Getting log from file %s\n", filename.c_str());
+    //Serial.printf("[Historic Controller] Getting log from file %s\n", filename.c_str());
     File f = disk->open(filename.c_str());
 
     if(!f){
-        Serial.println("Error opening file!");
+        //Serial.println("Error opening file!");
         return;
     } else Serial.printf("Opened file %s (%d bytes)\n", filename.c_str(), f.size());
     char buf[512];

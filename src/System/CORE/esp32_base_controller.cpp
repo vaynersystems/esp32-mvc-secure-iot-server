@@ -6,9 +6,9 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
     //serve get request using template engine
     auto info = esp32_file_info(this->controllerTemplate.templateContentFilePath.c_str());
     auto file = filesystem.getDisk(info.drive())->open(string_format("%s%s", PATH_SITE_ROOT, "/T/_template.html").c_str());
-
-    Serial.printf("Template file %s result %s\n", info.path(), file ? " Open " : "Failed");
-
+    #ifdef DEBUG
+    Serial.printf("Template file %s result %s\n", info.path().c_str(), file ? " Open " : "Failed");
+    #endif
     //File f = SPIFFS.open(string_format("%s%s", PATH_SITE_ROOT, "/T/_template.html").c_str());
     res->setStatusCode(200);
     res->setStatusText("OK");
@@ -20,7 +20,9 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
         headeridx = 0,
         contentidx = 0,
         footeridx = 0;
+    #ifdef DEBUG
     Serial.printf("[esp32_base_controller::handleRoot] Opening file %s\n", file.path());
+    #endif
     while (file.available()) {
         line = file.readStringUntil('\n');
         //if we already processed a section, skip trying to reprocess

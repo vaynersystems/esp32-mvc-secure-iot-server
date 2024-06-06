@@ -5,6 +5,7 @@
 #include <system_helper.h>
 #include <regex>
 extern esp32_file_system filesystem;
+const char* loggingSection = "logging";
 void esp32_logging::start()
 {
     logTypes[esp32_log_type::syslog] = "SYSLOG";
@@ -18,15 +19,17 @@ void esp32_logging::start()
 
     StaticJsonDocument<1024> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);   
-    if(!systemConfig["logging"].isNull()){
-        if(!systemConfig["logging"]["retention"].isNull() )
-            _retentionDays = systemConfig["logging"]["retention"].as<int>();
+    if(!systemConfig[loggingSection].isNull()){
+        if(!systemConfig[loggingSection]["retention"].isNull() )
+            _retentionDays = systemConfig[loggingSection]["retention"].as<int>();
         
-        if(!systemConfig["logging"]["level"].isNull() )
-            _loggingLevel = systemConfig["logging"]["level"].as<esp32_log_level>();
+        if(!systemConfig[loggingSection]["level"].isNull() )
+            _loggingLevel = systemConfig[loggingSection]["level"].as<esp32_log_level>();
 
-        if(!systemConfig["logging"]["location"].isNull() ){
-            _location = systemConfig["logging"]["location"].as<esp32_drive_type>();
+        if(!systemConfig[loggingSection]["location"].isNull() ){
+            _location = systemConfig[loggingSection]["location"].as<esp32_drive_type>();
+            if(filesystem.driveCount() <= 1 && _location != dt_SPIFFS)
+                _location = dt_SPIFFS; // default to SPIFFS if configured volume is not found
             #ifdef DEBUG
             if(_location == dt_SD){
                 Serial.println("Setting SD as log location");

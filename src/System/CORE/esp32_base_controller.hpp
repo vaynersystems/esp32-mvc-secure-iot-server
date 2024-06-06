@@ -50,7 +50,9 @@ class esp32_base_controller {
         virtual void Action(HTTPRequest* req, HTTPResponse* res) {
             //set temlate variables from json file
             LoadModel();
+            #ifdef DEBUG
             Serial.printf("Request for action %s on controller %s\n", route.action.c_str(), route.controller.c_str());
+            #endif
             if (iequals(route.action.c_str(), "LIST", 4)) {
                 List(req, res);
             } else if (iequals(route.action.c_str(), "PUT", 3)) {
@@ -108,7 +110,7 @@ class esp32_base_controller {
                     controllerTemplate.templateContentFilePath += route.action.c_str();
                 }
                 controllerTemplate.templateContentFilePath += ".html";        
-                Serial.printf("Set template content path to        %s\n", controllerTemplate.templateContentFilePath.c_str());
+                //Serial.printf("Set template content path to        %s\n", controllerTemplate.templateContentFilePath.c_str());
             }
         }
 

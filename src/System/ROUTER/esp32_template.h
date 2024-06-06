@@ -16,7 +16,8 @@ class esp32_template
 public:
 	//static std::string templateFilePath;
 	std::string templateContentFilePath;
-	std::map<std::string, std::string> templateVars;
+	//std::map<std::string, std::string> templateVars;
+    std::map<std::string, std::string> templateVars;
     ~esp32_template(){
         templateContentFilePath = "";
         templateVars.clear();
@@ -25,16 +26,16 @@ public:
 	
 	bool RenderTemplate(HTTPRequest* req, HTTPResponse* res);
 
-
+    void SetTemplateVariable(const __FlashStringHelper * name, const char* value);
 	void SetTemplateVariable(std::string name, std::string value);
 	void SetGlobalVariables(HTTPRequest* req, HTTPResponse* res);
     void ClearVariables();
 
-	std::pair<std::string, std::string> GetTemplateVariable(int idx);
-	std::pair<std::string, std::string> GetTemplateVariable(std::string name);
+	// std::pair<std::string, std::string> GetTemplateVariable(int idx);
+	// std::pair<std::string, std::string> GetTemplateVariable(std::string name);
 
 
-	void PrintDebugMessage(HTTPRequest* req, HTTPResponse* res);
+	//void PrintDebugMessage(HTTPRequest* req, HTTPResponse* res);
 };
 
 #endif

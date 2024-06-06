@@ -9,16 +9,14 @@ void esp32_users_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         res->setStatusCode(401);
         return;
     }
-    StaticJsonDocument<1024> doc;
+    
     title = "User Listing";
 
     JsonArray users = LoadUsers();
-    //doc.set(users);
-
     string configData;
     serializeJson(users, configData); 
     
-    controllerTemplate.SetTemplateVariable("$_USER_LIST", configData.c_str());   
+    controllerTemplate.SetTemplateVariable(F("$_USER_LIST"), configData.c_str());   
     esp32_base_controller::Index(req,res);    
 }
 
@@ -32,11 +30,8 @@ void esp32_users_controller::List(HTTPRequest* req, HTTPResponse* res) {
     title = "User Listing";
 
     JsonArray users = LoadUsers();
-    DynamicJsonDocument doc(1024);
-    doc.set(users);
-
     string configData;
-    serializeJson(doc, configData);
+    serializeJson(users, configData); 
     res->print(configData.c_str());
     res->setStatusCode(200);
     res->setStatusText("OK");
@@ -150,7 +145,7 @@ bool esp32_users_controller::UpdateUser(HTTPRequest* req, HTTPResponse* res){
         content.append(buf,bytesRead);
     }
     delete[] buf;
-    Serial.printf("Updating user from data: %s...\n", content.c_str());
+    //Serial.printf("Updating user from data: %s...\n", content.c_str());
     auto error = deserializeJson(doc, content);
     if(error != DeserializationError::Ok){
         res->setStatusCode(500);
@@ -281,22 +276,25 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
     }
     //get user object, update it, store back
     File file = SPIFFS.open(filename.c_str());
-    StaticJsonDocument<512> d;
-    DeserializationError error = deserializeJson(d,file);
+    DynamicJsonDocument doc(file.size() * 2);
+    
+    DeserializationError error = deserializeJson(doc,file);
     file.close();
 
     if (error) {
+        #ifdef DEBUG
         Serial.print("deserializeJson() failed: ");
         Serial.println(error.c_str());
+        #endif
         return false;
     }
-    auto existingUser = esp32_authentication::findUser(d.as<JsonArray>(), username);
+    auto existingUser = esp32_authentication::findUser(doc.as<JsonArray>(), username);
     if(existingUser.isNull()) return false;
     
     existingUser["role"] = role;
     existingUser["enabled"] = enabled;
     file = SPIFFS.open(filename.c_str(),"w");
-    serializeJson(d, file);
+    serializeJson(doc, file);
     file.close();
         
     
@@ -311,7 +309,9 @@ bool esp32_users_controller::DeleteUser(const char *username)
     auto error = deserializeJson(doc,file);
     file.close();
     if(error != DeserializationError::Ok){
+        #ifdef DEBUG
         Serial.printf("Error occured deserializing user data: %s\n", error.c_str());
+        #endif
         return false;
     }
     auto users =  doc.as<JsonArray>();
@@ -345,7 +345,9 @@ JsonVariant esp32_users_controller::LoadUsers() {
     auto error = deserializeJson(doc,f,  DeserializationOption::Filter(filter));
     f.close();
     if(error != DeserializationError::Ok){
+        #ifdef DEBUG
         Serial.printf("Error occured deserializing user data: %s\n", error.c_str());
+        #endif
         return JsonArray();
     }
     //serializeJson(doc, Serial);

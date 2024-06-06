@@ -306,7 +306,9 @@ JsonObject esp32_devices::findDeviceState(JsonArray deviceStates, int deviceId){
         }
             
     }
+    #ifdef DEBUG
     Serial.println("Not found");
+    #endif
     return JsonObject();
 }
 
