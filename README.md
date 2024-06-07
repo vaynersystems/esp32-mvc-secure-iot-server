@@ -3,16 +3,16 @@
 ## Getting Started
 
 1. Clone the repo
- `git clone $repo`
+ `git clone https://github.com/vaynersystems/esp32-mvc-secure-iot-server`
 1. Open in VS Code with Platform IO
     - On the Platform IO extension, select open folder
-1. Set your WiFi creds in esp32_wifi.h
-    `//TODO: move wifi creds to config file`
+1. (Optional) Set your WiFi credentials in /data/INT/system_config.json
+    
 1. Upload Filesystem Image
 
 1. Upload binary/elf file
 
-1. Monitor to see IP address assigned.
+1. Monitor to see IP address assigned. If not configured, network will be available with the same netowrk name and password
 
 ## Editor
 
@@ -103,7 +103,7 @@ Navigate to /edit to use the advanced system editor
 ## MVC
 - Content files related to a view should be placed in CSS, IMG and JS directorries accordingly.
 - Model and View files related to the MVC should be managed in `data/W/T` directory.
-- Controller files are in `src/data/C`
+- Controller files are in `src/MVC/Controllers`
 
 The directory structure is as follows
 
@@ -194,7 +194,7 @@ Let's consider the naming conventions for our files
 
  #### Add controller
 
-##### Create a new file in `src/Data/C` named `custom_task_manager_controller.hpp`.
+##### Create a new file in `src/MVC/Controllers` named `custom_task_manager_controller.hpp`.
 ```cpp
 #ifndef _ESP32__CONTROLLER_CONFIG_H
 #define _ESP32__CONTROLLER_CONFIG_H
@@ -226,7 +226,7 @@ private:
 };
 #endif
 ```
-##### Create a new file in `src/Data/C` named `custom_task_manager_controller.cpp`.
+##### Create a new file in `src/MVC/Controllers` named `custom_task_manager_controller.cpp`.
 
 ```cpp
 #include "custom_task_manager_controller.hpp"
@@ -252,9 +252,7 @@ void custom_task_manager_controller::Delete(HTTPRequest* req, HTTPResponse* res)
 ```
 >   For now we are just adding stubs. We will implement these later
 
-Compile and navigate to {HOST}/index.html
-You should not see the new controller registered with all of its actions
-Try to navigate to any action.
+Try to navigate to the controller.
 You will see an error like 
 >Template /W/T/V/custom_task_manager.html not found! 
 
@@ -298,7 +296,7 @@ Add the following text so we have some mock data to explore
 Let's add code to display the list on the controller's list action
 
 #### Pass data to view from controller
-##### Modify `custom_task_manager_controller.cpp` in  `src/Data/C` .
+##### Modify `custom_task_manager_controller.cpp` in  `src/MVC/Controllers` .
 
 
 
