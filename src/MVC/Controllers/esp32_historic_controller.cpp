@@ -10,10 +10,10 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     //this page will render charts for devices.
     // set device config to template variable
-    StaticJsonDocument<1024> doc;
+    StaticJsonDocument<2048> doc;
     esp32_config::getConfigSection("devices",&doc);
 
-    StaticJsonDocument<1024> docsys;
+    StaticJsonDocument<512> docsys;
     esp32_config::getConfigSection("system",&docsys);
    
     string deviceString = "";

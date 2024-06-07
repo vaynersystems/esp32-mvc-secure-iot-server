@@ -144,9 +144,13 @@ bool esp32_cert_nvs::importFromTemporary()
     /* One option is to set fields if ssl cert is initialized*/
     // _cert->setCert((unsigned char *)publicKey, publicLength);
     // _cert->setPK((unsigned char *)privateKey, privateLength);
-
-    _cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
-    saveCertificates();
+    auto cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
+    //Serial.printf("Importing certificate with %d bytes of data and %d bytes in key\n", cert->getCertLength(), cert->getPKLength());
+    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
+    {
+        _cert = cert;
+        saveCertificates();
+    }    
     pubFile.close();
     priFile.close();
 

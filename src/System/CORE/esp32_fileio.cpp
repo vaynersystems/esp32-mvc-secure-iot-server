@@ -169,7 +169,7 @@ bool esp32_fileio::DeleteFile(const char * filename){
 void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_extended> routeInfo, httpsserver::HTTPResponse *response){
     auto drive = filesystem.getDisk(routeInfo.drive());    
     auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
-    Serial.printf("Writing %d bytes from  %s located at %s in %s format on drive %d-%s to HTTPResponse\n", file.size(), routeInfo.name().c_str(), routeInfo.fullyQualifiedPath().c_str(), routeInfo.isGZ() ? "GZ" : "RAW", drive->index(), drive->label());
+    //Serial.printf("Writing %d bytes from  %s located at %s in %s format on drive %d-%s to HTTPResponse\n", file.size(), routeInfo.name().c_str(), routeInfo.fullyQualifiedPath().c_str(), routeInfo.isGZ() ? "GZ" : "RAW", drive->index(), drive->label());
    
     if(!file) {
         auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");

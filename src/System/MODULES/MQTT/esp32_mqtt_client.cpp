@@ -11,7 +11,7 @@ void esp32_mqtt_client::start()
     if(systemConfig["mqtt"]["enabled"].isNull() || !systemConfig["mqtt"]["enabled"].as<bool>() == true)
         return; //not configured
 
-    _enabled = systemConfig["mqtt"]["enabled"].as<bool>();
+    _enabled = true;
     if(!_enabled) return; //do not initialize if disabled
     _subscribeEnabled = systemConfig["mqtt"]["subscribeEnabled"].as<bool>();
     _insecureMode = systemConfig["mqtt"]["insecure"].isNull() || systemConfig["mqtt"]["insecure"].as<bool>();
@@ -26,7 +26,7 @@ void esp32_mqtt_client::start()
     Serial.printf("Setting MQTT broker to %s on port %d.\n", _brokerUri.c_str(), _port);
     #endif
     if(_port == 8883){ //load certs for encrypted traffic
-        StaticJsonDocument<1024> serverConfig;
+        StaticJsonDocument<256> serverConfig;
         esp32_config::getConfigSection("server", &serverConfig);        
         esp32_cert_base* certManager;
         if(serverConfig["certificates"]["source"].isNull() || 
@@ -47,10 +47,8 @@ void esp32_mqtt_client::start()
 
     client.setKeepAlive(60);
     
-    client.setServer(_brokerUri.c_str(),_port);
-    //client.setServer("test.mosquitto.org",8883);    
-    _started = client.connected(); 
-    //client.begin(_brokerUri.c_str(), network);
+    client.setServer(_brokerUri.c_str(),_port);  
+    _started = true; 
     
     _publishList.clear();
     #ifdef DEBUG
@@ -76,15 +74,16 @@ bool esp32_mqtt_client::connect()
         #ifdef DEBUG
         Serial.printf("[MQTT] Connecting to INSECURE network %s on port %d\n", _brokerUri.c_str(),_port);
         #endif
-            //if(networkInsecure.connect(_brokerUri.c_str(),_port))
-                //Serial.println("MQTT Connected!");
     }
     return client.connect(_brokerUri.c_str());
 }
 
 /// @brief Durable delivery. Message will wait in queue until it is confirmed as delivered to host
 void esp32_mqtt_client::loop(){
-    if(!_enabled || !_started) return;
+    if(!_enabled || !_started) {
+        Serial.printf("MQTT Disabled. Quitting");
+        return;
+    }
     if(_publishList.empty())
         return;
     //if there is anything to piublish, do so
@@ -124,8 +123,6 @@ void esp32_mqtt_client::disconnect()
 //TODO: This functionality is not yet implemented/verified
 void esp32_mqtt_client::subscribe(const char *topic, void (*callback)(char* topic, uint8_t* payload, unsigned int size))
 {
-    // client.subscribe(topic);
-    // client.onMessage(callback);
     logger.logDebug(string_format("Subscribed to %s\n", topic));
     client.subscribe(topic,2);
     client.setCallback(callback);
@@ -136,37 +133,12 @@ bool esp32_mqtt_client::publish(const char *topic, const char* data)
 {
     if(!_enabled || !_started) return false;
     _publishList.push_back(pair<string, string>(topic + '\0', data + '\0')); //ask my why
-    logger.logInfo(string_format("Published %s to topic %s", data, topic),esp32_log_type::device);
+    logger.logDebug(string_format("Published %s to topic %s", data, topic),esp32_log_type::device);
     #ifdef DEBUG
     Serial.printf("Added message %s to topic %s\n", data, topic);
     #endif
    
-//   // prepare message
-//   lwmqtt_message_t message = lwmqtt_default_message;
-//   message.payload = (uint8_t *)data;
-//   message.payload_len = strlen(data);
-//   message.retained = false;
-//   message.qos = lwmqtt_qos_t(qos);
-
-//   // prepare options
-//   lwmqtt_publish_options_t options = lwmqtt_default_publish_options;
-
-  
-
-//   // publish message
-//   auto error = lwmqtt_publish(&lwmqtt_client, &options, lwmqtt_string(topic), message, _timeout);
-//   logger.logDebug(string_format("%s publishing %s to topic %s\n", error == LWMQTT_SUCCESS ? "Suceeded" : "Failed", data, topic));
-//   if (error != LWMQTT_SUCCESS) {
-//     // close connection
-//     disconnect();
-
-    return true;
-  //}
-
- // return true;
-    
-   //bool result = client.publish(topic,data);
-   
+    return true;   
 }
 
 void esp32_mqtt_client::callback(char* topic, byte* payload, unsigned int length) {
@@ -178,9 +150,3 @@ void esp32_mqtt_client::callback(char* topic, byte* payload, unsigned int length
   }
   Serial.println();
 }
-
-
-
-
-
-//

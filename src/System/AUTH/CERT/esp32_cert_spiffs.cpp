@@ -93,9 +93,12 @@ bool esp32_cert_spiffs::importFromTemporary()
     /* One option is to set fields if ssl cert is initialized*/
     // _cert->setCert((unsigned char *)publicKey, publicLength);
     // _cert->setPK((unsigned char *)privateKey, privateLength);
-
-    _cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
-    saveCertificates();
+    auto cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
+    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
+    {
+        _cert = cert;
+        saveCertificates();
+    }
 
     pubFile.close();
     priFile.close();

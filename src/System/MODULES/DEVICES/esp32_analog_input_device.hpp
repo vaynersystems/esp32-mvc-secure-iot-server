@@ -8,9 +8,16 @@ public:
     ~esp32_analog_input_device(){
     }
     
-    uint16_t getValue();
+    inline uint16_t getValue()
+    {
+        return analogRead(_pin);
+    }
 
-    void setValue(uint16_t value);
+    inline void setValue(uint16_t value)
+    {
+        analogWrite(_pin, value);
+    }
 
-    esp32_device_type type(){ return esp32_device_type::AnalogInput; }
+
+    inline esp32_device_type type(){ return esp32_device_type::AnalogInput; }
 };

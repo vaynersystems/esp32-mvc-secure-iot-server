@@ -1,3 +1,5 @@
+//Notes:   This isa hacky approach because I couldn't get generic list of devices that supports different types of storage for reads and writes.
+//         someone with a stronger c/c++ background can likely resolve this with little effort.
 #include "esp32_devices.hpp"
 #include <esp32-hal-gpio.h>
 
@@ -37,13 +39,7 @@ void esp32_devices::onInit()
 
 
 void esp32_devices::onLoop()
-{
-    //handled by task manager delay
-    //if(millis() - _lastSnapshotTime < 500) return;
-    //vector<esp32_device_collection_snapshot> snapshot;
-
-    
-    
+{   
     auto seriesEntry = _scratchpad.to<JsonObject>();
     
     tm now = getDate();

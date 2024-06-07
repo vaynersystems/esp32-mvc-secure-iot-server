@@ -322,10 +322,10 @@ function loadSettings(){
     if(mqttPortElement !== null && mqttCertSkipVerificationContainerElement != null){
         mqttPortElement.addEventListener('change', (ev) => {
             mqttCertSkipVerificationContainerElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
-            mqttConstraintsElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
+            //mqttConstraintsElement.style.display = ev.target.value == 1883 ? 'none' : 'grid';
         })
         mqttCertSkipVerificationContainerElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
-        mqttConstraintsElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
+        //mqttConstraintsElement.style.display = mqttPortElement.value == 1883 ? 'none' : 'grid';
     }
 
 
@@ -505,10 +505,44 @@ function restoreSettings() {
                     alert("Not a valid backup file");
                     return;
                 }
-                if (json.type === "esp32-config") {
+                if (json.type === "esp32-backup") {
                     var writeToDevice = confirm("You are about to overwrite your device settings. Are you sure you want to continue?");
-                    if(writeToDevice)
-                        saveSettings(json);
+                    if(writeToDevice){
+                        console.log('calling backend to restore from backup ', json);
+                        const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+                        const url = base + "/" + 'Restore';
+                        request.open("POST", url, true);
+                        request.setRequestHeader("Content-type", "application/json");
+                        request.onreadystatechange = function () {
+                            if (request.readyState == request.DONE) {
+                                hideLoading();
+                                //hideWait('page');
+                                if (request.status == 401) {
+                                    showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                                    return;
+                                }
+                                var response = request.responseText;
+                                if(request.status == 200){
+                                    pendingChanges = false;
+                                    showModal('Settings restored sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', 
+                                    [
+                                        {text:'No',action: () => { closeModal();} }, 
+                                        {
+                                            text:'Yes', 
+                                            action: () => {
+                                                reset(true);closeModal(); 
+                                                setTimeout( reload,5000)
+                                            }
+                                        }
+
+                                    ]);
+                                }
+                                                
+                            }
+                        }
+                        request.send(JSON.stringify(json));
+                    }
+                        
                 }
             };
             reader.readAsText(input.files[0]);
