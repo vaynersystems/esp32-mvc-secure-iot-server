@@ -43,6 +43,8 @@ private:
 
     bool isPublicPage(string path);
 
+    static bool parseJwtToken(string &token);
+
     vector<string> _publicPages;
 };
 

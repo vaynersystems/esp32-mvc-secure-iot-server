@@ -2,9 +2,6 @@
 #include <HTTPMiddlewareFunction.hpp>
 #include <esp_task_wdt.h>
 
-// esp32_server::esp32_server() : unsecureServer(new HTTPServer())
-// {
-// }
 esp32_server::esp32_server() : unsecureServer(new HTTPServer())
 {
     
@@ -38,7 +35,12 @@ bool esp32_server::start() {
     //initialize certificates
     _certManager->loadCertificates();   
 
-    _restartMicros = serverConfig["restartAfter"].isNull() ? 0 : serverConfig["restartAfter"].as<int>() * 1000000 * 3600; // to seconds, then to hours
+    _restartMillis = serverConfig["restartAfter"].isNull() ? 0 : atoi(serverConfig["restartAfter"].as<const char*>()) * 1000 * 3600; // to seconds, then to hours
+    #ifdef DEBUG 
+    uint64_t millisInAnHour = (uint64_t)1000 * (uint64_t)3600;
+    if(_restartMillis > 0)
+        Serial.printf("Setting reset timer to %lu hours\n", _restartMillis / millisInAnHour);
+    #endif
 
     if(_enableSSL){       
         secureServer = new HTTPSServer(_certManager->getCert());        
@@ -79,7 +81,6 @@ bool esp32_server::start() {
     _router->RegisterHandler( corsNode);
     _router->RegisterHandler( node404);
     _router->RegisterHandler( nodeSpecial);
-    //_router->RegisterHandler("/esp32_*", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
     if(_enableSSL){
         secureServer->setDefaultNode(nodeRoot);
@@ -109,9 +110,6 @@ bool esp32_server::stop()
         secureServer->stop();
         unsecureServer->stop();        
     }
-    //esp_task_wdt_deinit();
-    // delete publicKey;
-    // delete privateKey;
     return true;
 }
 
@@ -125,8 +123,11 @@ void esp32_server::step()
         secureServer->loop();
     unsecureServer->loop();  
 
-    if(_restartMicros > 0 && esp_timer_get_time() > _restartMicros)  
+    if(_restartMillis > 0 && (esp_timer_get_time()/1000) > _restartMillis) {
+        logger.logInfo("Restarting controller due to configuration 'restartAfter' parameter.");
         esp_restart();
+    } 
+        
 }
 
 void esp32_server::registerNode(HTTPNode *node)
@@ -138,7 +139,6 @@ void esp32_server::registerNode(HTTPNode *node)
 
 SSLCert *esp32_server::getCertificate()
 {
-    //if(_certManager == nullptr) sleep(500);
     return _certManager->getCert();
 }
 

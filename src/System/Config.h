@@ -10,7 +10,7 @@
 #define ENABLE_EDITOR 1
 
 #define SOCKET_MAX 3
-//#define DEBUG
+#define DEBUG
 #define PATH_AUTH_FILE SYSTEM_DRIVE "/INT/authorized.dat"
 #define PATH_SYSTEM_CONFIG SYSTEM_DRIVE "/INT/system_config.json"
 #define PATH_PUBLIC_PAGES SYSTEM_DRIVE "/INT/public_pages.txt"

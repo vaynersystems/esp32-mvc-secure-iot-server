@@ -144,24 +144,25 @@ bool esp32_wifi::start(){
     sntp_init();    
     
     
-    // Set timezone to Eastern Standard Time
-	setenv("TZ", timeZone.c_str(), 1);
-	tzset();
-    #ifdef DEBUG
-    Serial.printf("Initializing NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
-    Serial.printf("Waiting for NTP time..\n");
-    #endif
-    struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
-    do{
-        gettimeofday(&tv, NULL);
+    if(WiFi.getMode() == WIFI_MODE_STA){
+        setenv("TZ", timeZone.c_str(), 1);
+        tzset();
         #ifdef DEBUG
-        if(tv.tv_usec%500==0) Serial.print(".");
+        Serial.printf("Initializing NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
+        Serial.printf("Waiting for NTP time..\n");
         #endif
-        
-    } while(tv.tv_sec < 100000);
-    #ifdef DEBUG
+        struct timeval tv = { .tv_sec = 0, .tv_usec = 0 };
+        do{
+            gettimeofday(&tv, NULL);
+            #ifdef DEBUG
+            if(tv.tv_usec%500==0) Serial.print(".");
+            #endif
+            
+        } while(tv.tv_sec < 15); //15 seconds to init NTP
+    }
+    //#ifdef DEBUG
     Serial.println(" done!");
-    #endif
+    //#endif
 
     return WiFi.status() == WL_CONNECTED;
 }
