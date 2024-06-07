@@ -439,6 +439,9 @@ function seveSettingsFromForm(){
         config.wifi.ap.password = document.getElementById('wifi-network-ap-password')?.value;
         config.wifi.ap.ip = document.getElementById('wifi-network-ap-ip')?.value;
         config.wifi.ap.subnet = document.getElementById('wifi-network-ap-subnet')?.value;
+        if(config.wifi.ap.password.length < 8) {
+            alert('Acess Point password should be at leat 8 characters long');
+        }
     }
     config.type = 'esp32-config'
     saveSettings(config);
@@ -632,7 +635,7 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('wifi-network-dhcp-no');
     
     invalidateOnChange('wifi-network-name');
-    invalidateOnChange('wifi-network-password');
+    invalidateOnChange('wifi-network-ap-password');
     invalidateOnChange('wifi-network-ap-ip');
     invalidateOnChange('wifi-network-ap-subnet');
 

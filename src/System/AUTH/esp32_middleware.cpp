@@ -78,7 +78,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                logger.logInfo(string_format("Authentication for: %s : %s", info.username.c_str(), info.authenticated ? "VALID" : "INVALID"), auth);
+                string message = string_format("Authentication for: %s : %s", info.username.c_str(), info.authenticated ? "VALID" : "INVALID");
+                logger.logInfo(message.c_str(), auth);
+                Serial.println(message.c_str());
                 
                 
                 // if authentication was successful issue JWT token
@@ -91,28 +93,31 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                     jwtTokenPayload.clear();
                     serializeJson(doc, jwtTokenPayload);
 
-                    jwtToken = "Bearer ";
-                    jwtToken = jwtToken + server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload);
+                    res->print("{\"access_token\": \"Bearer ");
+                    res->print(server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload).c_str());
+                    res->print("\"}");
+                    // jwtToken = "Bearer ";
+                    // jwtToken = jwtToken + server.middleware->jwtTokenizer->encodeJWT(jwtTokenPayload);
                     
                     setAuthHeaders(req, reqUsername.c_str(), info.role.c_str(),jwtToken.c_str());
                    
-                    //verify
-                    string strippedToken = jwtToken.substr(7).c_str();
-                    if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
-                        logger.logInfo("[ERROR]  *** Failed to encode JWT token. Security validation Failed.", auth);
-                    }
-                    else {
+                    // //verify
+                    // string strippedToken = jwtToken.substr(7).c_str();
+                    // if (!server.middleware->jwtTokenizer->decodeJWT(strippedToken, jwtTokenPayloadVerify)) {
+                    //     logger.logInfo("[ERROR]  *** Failed to encode JWT token. Security validation Failed.", auth);
+                    // }
+                    // else {
 
-                        //set response AUTH header
-                        req->setHeader(HEADER_AUTH, jwtToken);
-                        // The user tried to authenticate and was successful
-                        // -> We proceed with this request.
-                        DynamicJsonDocument tokenDoc(384);
-                        tokenDoc["access_token"] = jwtToken;
-                        jwtToken = "";
-                        serializeJson(tokenDoc, jwtToken);
-                        res->print(jwtToken.c_str());
-                    }
+                    //     //set response AUTH header
+                    //     req->setHeader(HEADER_AUTH, jwtToken);
+                    //     // The user tried to authenticate and was successful
+                    //     // -> We proceed with this request.
+                    //     DynamicJsonDocument tokenDoc(384);
+                    //     tokenDoc["access_token"] = jwtToken;
+                    //     jwtToken = "";
+                    //     serializeJson(tokenDoc, jwtToken);
+                    //     res->print(jwtToken.c_str());
+                    // }
                 }
                 else {
                     res->setStatusText("Authentication failed! Invalid username or password.");
@@ -188,7 +193,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         }
         else if(strcmp(parts[0].c_str(),"auth") == 0){
             jwtTokenFromCookie = parts[1];
-            //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
+            Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
         }
         else if(strcmp(parts[0].c_str(),"expires") == 0){
             jwtTokenExpires = parts[1];
@@ -196,7 +201,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     }
     if(jwtTokenFromCookie.length() > 0){
         //TODO: check if its expired
-        //Serial.printf("Checking expiry date of cookie %s from cookie header %s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
+        Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
          if(strcmp(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") == 0){
             if(!isLoginPage){
                 res->setStatusCode(303);
@@ -210,6 +215,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
 
     string jwtTokenFromRequest = authHeader.c_str();
     if (jwtTokenFromRequest.length() > 7) { //strip leading "Bearer: "
+        Serial.print("Stripping Bearer from token text\n");
         jwtTokenFromRequest.erase(0,7);
     }
 
@@ -224,7 +230,8 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     }    
     
     string jwtDecodedString="";
-    jwtDecodedString.reserve(jwtToken.length() * 4);    
+    jwtDecodedString.reserve(jwtToken.length() * 4);   
+    //Serial.printf("Decoding JWT token %s\n", jwtToken.c_str()); 
     if(jwtToken.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtToken,jwtDecodedString))
         decodeResult= true;
     string message = string_format(
@@ -237,7 +244,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     Serial.println(message.c_str());
     #endif
     if (decodeResult) {        
-        DynamicJsonDocument doc(jwtDecodedString.length() * 2 + 25);
+        DynamicJsonDocument doc(jwtDecodedString.length() * 2);
         DeserializationError err = deserializeJson(doc, jwtDecodedString);
         if (err.code() == err.Ok)
         {
@@ -361,6 +368,11 @@ bool esp32_middleware::isPublicPage(string path)
         if(iequals(_publicPages[i].c_str(), /* isGz ? path.substr(0,path.length() - 3).c_str() : */ path.c_str(),length))
             return true; //page is marked as public
     }
+    return false;
+}
+
+bool esp32_middleware::parseJwtToken(string &token)
+{
     return false;
 }
 

@@ -49,7 +49,7 @@ void esp32_mqtt_client::start()
     
     client.setServer(_brokerUri.c_str(),_port);
     //client.setServer("test.mosquitto.org",8883);    
-    _started = true; 
+    _started = client.connected(); 
     //client.begin(_brokerUri.c_str(), network);
     
     _publishList.clear();
@@ -61,10 +61,11 @@ void esp32_mqtt_client::start()
 bool esp32_mqtt_client::connect()
 {
     if(!_started) {
-        //start();
+        
         #ifdef DEBUG
         Serial.println("Failed to connect. MQTT Client is not started.");
         #endif
+        return false;
         
     }
     if(_port == 8883){
@@ -78,15 +79,12 @@ bool esp32_mqtt_client::connect()
             //if(networkInsecure.connect(_brokerUri.c_str(),_port))
                 //Serial.println("MQTT Connected!");
     }
-    client.connect(_brokerUri.c_str());
-    
-    
-  
-    return true;
+    return client.connect(_brokerUri.c_str());
 }
 
 /// @brief Durable delivery. Message will wait in queue until it is confirmed as delivered to host
 void esp32_mqtt_client::loop(){
+    if(!_enabled || !_started) return;
     if(_publishList.empty())
         return;
     //if there is anything to piublish, do so
@@ -136,7 +134,7 @@ void esp32_mqtt_client::subscribe(const char *topic, void (*callback)(char* topi
 
 bool esp32_mqtt_client::publish(const char *topic, const char* data)
 {
-    if(!_enabled) return false;
+    if(!_enabled || !_started) return false;
     _publishList.push_back(pair<string, string>(topic + '\0', data + '\0')); //ask my why
     logger.logInfo(string_format("Published %s to topic %s", data, topic),esp32_log_type::device);
     #ifdef DEBUG

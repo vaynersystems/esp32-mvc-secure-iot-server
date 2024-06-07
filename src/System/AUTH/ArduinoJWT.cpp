@@ -27,7 +27,7 @@
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  **/
-//#define DEBUG
+#define DEBUG
 #include <Arduino.h>
 #include "ArduinoJWT.h"
 #include "base64.hpp"
@@ -71,10 +71,10 @@ int ArduinoJWT::getJWTPayloadLength(const char* jwt) {
     return decode_base64_length((unsigned char*)tokens[1].c_str()) + 1;
 //   char jwtCopy[strlen(jwt)];
 //   memcpy((char*)jwtCopy, jwt, strlen(jwt));
-//     // Get all three jwt parts
+    // Get all three jwt parts
 //   const char* sep = ".";
 //   char* token;
-//   token = strtok(jwtCopy, sep);
+//   token = strtok((char*)jwt, sep);
 //   token = strtok(NULL, sep);
 //   if(token == NULL) {
 //     return -1;
@@ -127,6 +127,7 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
             //     return false;
             // }
             //char jsonPayload[payloadLength];
+            Serial.printf("Received token string \n%s\n for processing\n", jwt.c_str());
             if(decodeJWT(jwt.c_str(), _payload, getJWTPayloadLength(jwt.c_str()))) {
                 payload = _payload;
 #ifdef DEBUG
@@ -152,10 +153,16 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
 
 bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
     // Get all three jwt parts
+    Serial.printf("Received token \n%s\n for processing\n", jwt);
     auto tokens = explode(jwt,".");    
     if(tokens.size() < 3) {
         #ifdef DEBUG
-        Serial.printf("Missing critical section of token {Header:Payload:Signature}, {%s,\t%s,\t%s}\n", tokens[0].c_str(), tokens[1].c_str(), tokens[2].c_str());
+        Serial.printf("Missing critical section of token {Header:Payload:Signature}, {%s,\t%s,\t%s}\n in token: %s\n",
+            tokens.size() > 0 ? tokens[0].c_str() : "MISSING",
+            tokens.size() > 1 ? tokens[1].c_str() : "MISSING",
+            tokens.size() > 2 ? tokens[2].c_str() : "MISSING",
+            jwt
+        );
         #endif
         payload = NULL;
         return false;
@@ -197,7 +204,7 @@ bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
     return true;
   } else {
 #ifdef DEBUG
-      Serial.printf("Failed to validate JWT Signature \n\Actual\n\t[%s] \n\Expected\n\t[%s]\n", tokens[2].c_str(), (unsigned char*)base64Signature);
+      Serial.printf("Failed to validate JWT Signature \nActual\t[%s] \nExpected\t[%s]\n", tokens[2].c_str(), (unsigned char*)base64Signature);
 #endif
     payload = NULL;
     return false;
