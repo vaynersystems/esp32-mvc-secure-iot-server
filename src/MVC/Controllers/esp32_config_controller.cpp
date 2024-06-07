@@ -4,7 +4,7 @@
 
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
 
-void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
+void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response) {
     
     title = "Module Configuration Page";
 
@@ -25,37 +25,43 @@ void esp32_config_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable(F("$_CONFIGURATION_DATA"), configData.c_str());
     //controllerTemplate.SetTemplateVariable(F("$_CONFIG_FILE"), PATH_SYSTEM_CONFIG);
     
-    esp32_base_controller::Index(req,res);    
+    esp32_base_controller::Index(request, response);    
 }
 
-void esp32_config_controller::Post(HTTPRequest* req, HTTPResponse* res) {
-    SaveConfigData(req,res);   
+void esp32_config_controller::Post(HTTPRequest* request, HTTPResponse* response) {
+    SaveConfigData(request, response);   
 }
 
 /// @brief Overwrite Action since we have custom action implemented
 /// @param req 
 /// @param res 
-void esp32_config_controller::Action(HTTPRequest* req, HTTPResponse* res) {
+void esp32_config_controller::Action(HTTPRequest* request, HTTPResponse* response) {
     if (route.action.compare("GetAvailableWifi") == 0) {
-        GetAvailableWifi(req,res);
+        GetAvailableWifi(request, response);
     }
     else if (route.action.compare("LoadConfigData") == 0) {
-        LoadConfigData(req,res);
+        LoadConfigData(request, response);
     }
     else if (route.action.compare("SaveConfigData") == 0) {
-        SaveConfigData(req,res);
+        SaveConfigData(request, response);
     }
     else if (route.action.compare("ResetDevice") == 0) {
-        ResetDevice(req,res);
+        ResetDevice(request, response);
     }
     else if (route.action.compare("UploadCertificate") == 0) {
-        UploadCertificate(req,res);
+        UploadCertificate(request, response);
     }
     else if (route.action.compare("GenerateCertificate") == 0) {
-        GenerateCertificate(req,res);
+        GenerateCertificate(request, response);
+    }
+    else if (route.action.compare("Backup") == 0) {
+        Backup(request, response);
+    }
+    else if (route.action.compare("Restore") == 0) {
+        Restore(request, response);
     }
     else
-        esp32_base_controller::Action(req,res);
+        esp32_base_controller::Action(request, response);
 }
 
 bool esp32_config_controller::HasAction(const char * action){
@@ -82,6 +88,14 @@ bool esp32_config_controller::HasAction(const char * action){
     else if (strcmp(action, "GenerateCertificate") == 0) {
         return true;
     }
+
+    else if (strcmp(action, "Backup") == 0) {
+        return true;
+    }
+
+    else if (strcmp(action, "Restore") == 0) {
+        return true;
+    }
     
     else
         return esp32_base_controller::HasAction(action);
@@ -91,7 +105,7 @@ bool esp32_config_controller::HasAction(const char * action){
 
 
 //custom action to get wifi list, or other list
-void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* res) {
+void esp32_config_controller::GetAvailableWifi(HTTPRequest* request, HTTPResponse* response) {
      int n = WiFi.scanNetworks();
      string outputstring;   
 
@@ -138,21 +152,16 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* req, HTTPResponse* r
             WiFi.channel(i),
             encryption.c_str()
         );
-        // network["ssid"]= WiFi.SSID(i);
-        // network["rssi"]= WiFi.RSSI(i);
-        // network["channel"]= WiFi.channel(i);`
-        // network["encryption"]= encryption;   
     }
     outputstring += "]";
-    //serializeJson(doc,outputstring);   
-    res->print(outputstring.c_str());    
-    res->setStatusCode(200);
+    response->print(outputstring.c_str());    
+    response->setStatusCode(200);
 }
 
 /// @brief Load configuration information from json file on disk
 /// @param req 
 /// @param res 
-void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res) {
+void esp32_config_controller::LoadConfigData(HTTPRequest* request, HTTPResponse* response) {
     File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
     byte buff[32];
     int bytesToRead = 0;
@@ -160,26 +169,26 @@ void esp32_config_controller::LoadConfigData(HTTPRequest* req, HTTPResponse* res
         bytesToRead = f.available() > sizeof(buff) ? sizeof(buff) : f.available();
         if(bytesToRead <= 0) break;
         f.readBytes((char*)buff,bytesToRead);
-        res->write(buff,bytesToRead);
+        response->write(buff,bytesToRead);
     }
     f.close();    
 
-    res->setStatusCode(200);
+    response->setStatusCode(200);
 }
 
 /// @brief Save configuration json to disk
 /// @param req 
 /// @param res 
 /// @return 
-bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res){
-    const int length = req->getContentLength();
+bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse* response){
+    const int length = request->getContentLength();
     
     DynamicJsonDocument doc(length * 2);
     string content;
     char * buf = new char[32];
     while(true){
         
-        int bytesRead = req->readBytes((byte*)buf,32); 
+        int bytesRead = request->readBytes((byte*)buf,32); 
         if(bytesRead <= 0) break;       
         content.append(buf,bytesRead);
     }
@@ -201,13 +210,13 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
         File f = SPIFFS.open(PATH_SYSTEM_CONFIG, "w");
         serializeJson(doc,f);
         f.close();
-        res->setStatusCode(200);
-        logger.logInfo(string_format("%s saved configuration to %s", req->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+        response->setStatusCode(200);
+        logger.logInfo(string_format("%s saved configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
     } else{
-        res->setStatusCode(500);
+        response->setStatusCode(500);
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
-        res->setStatusText(error.c_str());
+        response->setStatusText(error.c_str());
         #ifdef DEBUG
         Serial.printf(error.c_str());
         #endif
@@ -217,28 +226,28 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* req, HTTPResponse* res
     return true;
 }
 
-void esp32_config_controller::ResetDevice(HTTPRequest* req, HTTPResponse* res){
-    if(strcmp(req->getHeader(HEADER_GROUP).c_str(),"ADMIN") == 0)
+void esp32_config_controller::ResetDevice(HTTPRequest* request, HTTPResponse* response){
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") == 0)
         esp_restart();
-    else res->setStatusCode(401);
+    else response->setStatusCode(401);
 }
 
-void esp32_config_controller::UploadCertificate(HTTPRequest *req, HTTPResponse *res)
+void esp32_config_controller::UploadCertificate(HTTPRequest *request, HTTPResponse *response)
 {
     // Serial.printf("Uploading with action %s and parameter %s\n",
     //     route.action.c_str(), route.params.c_str());
     //req has post of file.
     if(strcmp(route.params.c_str(), "Public") == 0){
-        esp32_router::handleFileUpload(req,res, PUBLIC_TEMP_PATH);
+        esp32_router::handleFileUpload(request, response, PUBLIC_TEMP_PATH);
     } else if(strcmp(route.params.c_str(), "Private") == 0){
-        esp32_router::handleFileUpload(req,res, PRIVATE_TEMP_PATH);
+        esp32_router::handleFileUpload(request, response, PRIVATE_TEMP_PATH);
     }
     
 }
 
-void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse *res)
+void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResponse *response)
 {
-    const int length = req->getContentLength();
+    const int length = request->getContentLength();
     
     DynamicJsonDocument doc(length * 2);
     string content;
@@ -248,7 +257,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
     char * buf = new char[32];
     while(true){
         
-        int bytesRead = req->readBytes((byte*)buf,32); 
+        int bytesRead = request->readBytes((byte*)buf,32); 
         if(bytesRead <= 0) break;       
         content.append(buf,bytesRead);
     }
@@ -260,7 +269,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
         string deviceName = "", companyName = "", validFrom="", validTo="";
         //get certificate parameters
         if(doc["device"].isNull() || doc["company"].isNull()){
-            res->println("Missing device or company. Please fill in fields and retry");
+            response->println("Missing device or company. Please fill in fields and retry");
             return;
         }
 
@@ -280,6 +289,97 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *req, HTTPResponse
             server.generateCertificate(deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str());
         
     } else {
-        res->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
+        response->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
     }
+}
+
+void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *response)
+{
+    //package config, auth, public files into one
+    DynamicJsonDocument doc(8192);
+    DynamicJsonDocument docPublic(2048);
+    DynamicJsonDocument docSecurity(1024);
+    DynamicJsonDocument docConfig(3072);
+
+    File authorize = SPIFFS.open(PATH_AUTH_FILE, "r");
+    deserializeJson(docSecurity,authorize);
+    authorize.close();
+
+    File config = SPIFFS.open(PATH_SYSTEM_CONFIG, "r");
+    deserializeJson(docConfig,config);
+    config.close();
+
+    File publicPages = SPIFFS.open(PATH_PUBLIC_PAGES, "r");
+    auto publicArray = docPublic.to<JsonArray>();
+    while(publicPages.available()){      
+        publicArray.add(publicPages.readStringUntil('\n'));
+    }
+    publicPages.close();
+
+    doc["security"] = docSecurity;
+    doc["config"] = docConfig;
+    doc["public"] = docPublic;
+    doc["type"] = "esp32-backup";
+
+    serializeJson(doc,*response);
+
+    char dispStr[128];
+    sprintf(dispStr, " attachment; filename = \"%s\"", "backup.json");
+    response->setHeader("Content-Disposition", dispStr);    
+    response->setHeader("Content-Type","application/octet-stream");
+    response->setStatusCode(200);
+}
+
+void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *response)
+{
+    const int length = request->getContentLength();
+    
+    DynamicJsonDocument doc(length * 2);
+    string content;
+    char * buf = new char[32];
+    while(true){
+        
+        int bytesRead = request->readBytes((byte*)buf,32); 
+        if(bytesRead <= 0) break;       
+        content.append(buf,bytesRead);
+    }
+    delete[] buf;
+
+    #ifdef DEBUG
+    Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
+    #endif
+    auto error = deserializeJson(doc, content);
+
+    if(error.code() == DeserializationError::Ok){
+        //if we need to apply certs do so and clear it
+        if(!doc["security"].isNull()){
+            File security = SPIFFS.open(PATH_AUTH_FILE,"w");
+            serializeJson(doc["security"], security);
+            security.close();
+        }
+        if(!doc["config"].isNull()){
+            File config = SPIFFS.open(PATH_SYSTEM_CONFIG,"w");
+            serializeJson(doc["config"], config);
+            config.close();
+        }
+        if(!doc["public"].isNull()){
+            File publicPages = SPIFFS.open(PATH_PUBLIC_PAGES,"w");
+            for(auto page: doc["public"].as<JsonArray>())
+                publicPages.println(page.as<const char*>());
+            publicPages.close();
+        }
+
+
+        response->setStatusCode(200);
+        logger.logInfo(string_format("%s restored configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+    } else{
+        response->setStatusCode(500);
+        // String errorText = "Error saving configuration: ";
+        // errorText += error.c_str();
+        response->setStatusText(error.c_str());
+        #ifdef DEBUG
+        Serial.printf(error.c_str());
+        #endif
+    }    
+
 }

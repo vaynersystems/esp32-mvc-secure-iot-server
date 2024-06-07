@@ -36,7 +36,7 @@ void onShutdown();
 extern const int SERVER_STACK_SIZE = 1024*24; 
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
-const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 100 / portTICK_PERIOD_MS;
+const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 int64_t lastreportServer = 0;
 string freeBytesHEAPSPretty("");
@@ -47,7 +47,7 @@ void serverTask(void* params) {
     server.start();
     while (true) {
         server.step();
-        //vTaskDelay(serverDelay);
+        vTaskDelay(serverDelay);
         #ifdef DEBUG
         if(esp_timer_get_time() - lastreportServer > REPORT_FREQUENCY){
             auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
@@ -87,11 +87,12 @@ void deviceTask(void* params) {
 
 void mqttClientTask(void * params){
     //initialize mqtt    
-    mqtt.start();    
-    while(true){
-        mqtt.loop();        
-        vTaskDelay(deviceDelay);
-    }
+    mqtt.start();
+    if(mqtt.enabled()) // do not use all this RAM if its disabled     
+        while(true){
+            mqtt.loop();        
+            vTaskDelay(deviceDelay);
+        }
     vTaskDelete( NULL );
 }
 
@@ -112,7 +113,6 @@ void setup() {
     // //start logger
     logger.start();
 
-    //mqtt.start();
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
 
@@ -127,19 +127,31 @@ void setup() {
     logger.logInfo("System started");
 }
 int64_t lastReportMain = 0;
-string freeBytesHEAPPretty = "", freeBytesSTACKmPretty = "";
+string freeBytesHEAPPretty = "", freeBytesSTACKmPretty = "";//, freeBytesSTACKServerPretty="", freeBytesSTACKDevicePretty="", freeBytesSTACKMQTTPretty="";
 void loop() {   
-    
+    #ifdef DEBUG
     if(esp_timer_get_time() - lastReportMain > REPORT_FREQUENCY){        
-        
+
+       
         auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
+        // auto stackServerFreeBytes = uxTaskGetStackHighWaterMark(serverTaskHandle); 
+        // auto stackDeviceFreeBytes = uxTaskGetStackHighWaterMark(deviceTaskHandle); 
+        // auto stackMQTTFreeBytes = uxTaskGetStackHighWaterMark(mqttClientTaskHandle); 
         esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPPretty);
         esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKmPretty);
+        // esp32_fileio::PrettyFormat(stackServerFreeBytes, &freeBytesSTACKServerPretty);
+        // esp32_fileio::PrettyFormat(stackDeviceFreeBytes, &freeBytesSTACKDevicePretty);
+        // esp32_fileio::PrettyFormat(stackMQTTFreeBytes, &freeBytesSTACKMQTTPretty);
         
-        Serial.printf("[MAIN] Free heap: %s\t stack: %s\n",
+        Serial.printf("[MAIN] Free heap: %s\tmain stack: %s\n", // \n\tserver stack: %s\n\tdevice stack: %s\n\tmqtt stack: %s
             freeBytesHEAPPretty.c_str(), 
             freeBytesSTACKmPretty.c_str()
+            // freeBytesSTACKServerPretty.c_str(),
+            // freeBytesSTACKDevicePretty.c_str(),
+            // freeBytesSTACKMQTTPretty.c_str()
         );
         lastReportMain = esp_timer_get_time(); 
     }
+    delay(50);
+    #endif
 }

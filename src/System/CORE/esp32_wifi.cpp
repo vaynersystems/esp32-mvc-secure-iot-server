@@ -14,11 +14,11 @@ bool esp32_wifi::start(){
     Serial.println("Setting up WiFi");
 
     IPAddress addr = IPAddress(10, 0, 1, 1);
-    StaticJsonDocument<1024> wifiConfig;
+    StaticJsonDocument<512> wifiConfig;
     esp32_config::getConfigSection("wifi", &wifiConfig);
-    StaticJsonDocument<1024> systemConfig;
+    StaticJsonDocument<768> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);
-    StaticJsonDocument<512> serverConfig;
+    StaticJsonDocument<256> serverConfig;
     esp32_config::getConfigSection("server", &serverConfig);
 
 

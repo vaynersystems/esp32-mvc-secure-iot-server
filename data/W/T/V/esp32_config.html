@@ -281,9 +281,13 @@
                         <span>Skip Certificate Validation</span>
                         <input type="checkbox" id="mqtt-insecure">
                     </div>
-                    <div class="hint row" id="mqtt-constraints-warning">Enabling MQTT slows down device loop and constrains resources. 
-                        Encrypted MQTT while using SSL browing portal will crash the device if using the 320KB RAM version.
-                        Proceed with caution.
+                    <div class="hint row" id="mqtt-constraints-warning">
+                        <pre>
+                            Enabling MQTT consumes 40KB of RAM. 
+                            It prevents you from accessing the site via HTTPS in the 320KB RAM version.
+                            <span style="font-weight: 800;">Proceed with caution.</span>    
+                        </pre>
+                        
                     </div>
                 </div>
                 <div class="grid-2">
@@ -422,7 +426,7 @@
         <div class="section" name="backup">
             <div class="section-header">Backup</div>
             <div class="section-content">
-                <a href="$_CONFIG_FILE?download=true" target="_blank">Download a copy</a> of your configuration so you can restore.
+                <a href="esp32_config/Backup" download="backup.dat" target="_blank">Download a copy</a> of your configuration so you can restore.
             </div>
         </div>
         <div class="section" name="restore">
@@ -576,8 +580,7 @@
 
 
         <div class="section" id="editor-certificate-upload">
-            <div class="header-sub">If you want to upload new certificates, you can do that here.</div>
-            <div class="tiny">Certificates must be in DER format!</div>
+            <div class="header-sub">Certificates must be in DER format!</div>            
             <div class="hint">
                 <div>To convert PEM to DER Files</div>
                 

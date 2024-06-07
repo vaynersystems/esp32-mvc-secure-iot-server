@@ -6,13 +6,38 @@ public:
         _lastOnTime = lastOnMillis;
     }
     
-    bool getValue();
+    inline bool getValue()
+    {
+        return digitalRead(_pin);
+    }
 
-    void setValue(bool value);
+    inline void setValue(bool value)
+    {
+        digitalWrite(_pin, value);
+        if(value){ //record when relay was last turned on
+            Serial.printf("Setting last on time for relay to: %lu\n",
+                millis()
+            );
+            _lastOnTime = millis();
+        }
+    }
 
-    bool turnOffIfTime(unsigned long duration);
+    inline bool turnOffIfTime(unsigned long duration)
+    {
+        if(!getValue()) return false;
+        if(millis() - _lastOnTime < duration)
+            return false;
+        
+        Serial.printf("Detected that it is time to turn off relay. Current millis: %lu, start %lu\n",
+            millis(), _lastOnTime
+        );
+        setValue(false);
+        return true;
+        
+    }
 
-    esp32_device_type type(){ return esp32_device_type::Switch; }
+
+    inline esp32_device_type type(){ return esp32_device_type::Switch; }
 
 protected:
     unsigned long _lastOnTime = 0;

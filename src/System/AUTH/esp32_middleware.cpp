@@ -193,7 +193,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         }
         else if(strcmp(parts[0].c_str(),"auth") == 0){
             jwtTokenFromCookie = parts[1];
-            Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
+            //Serial.printf("Found auth header %s in cookie\n", jwtTokenFromCookie.c_str());        
         }
         else if(strcmp(parts[0].c_str(),"expires") == 0){
             jwtTokenExpires = parts[1];
@@ -201,7 +201,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     }
     if(jwtTokenFromCookie.length() > 0){
         //TODO: check if its expired
-        Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
+        //Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
          if(strcmp(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") == 0){
             if(!isLoginPage){
                 res->setStatusCode(303);
@@ -215,7 +215,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
 
     string jwtTokenFromRequest = authHeader.c_str();
     if (jwtTokenFromRequest.length() > 7) { //strip leading "Bearer: "
-        Serial.print("Stripping Bearer from token text\n");
+        //Serial.print("Stripping Bearer from token text\n");
         jwtTokenFromRequest.erase(0,7);
     }
 
@@ -224,7 +224,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     if(iequals(request.c_str(), "/logout",strlen("/logout"))){
         //redirect to login
         res->setStatusCode(303);
-        res->setHeader("Location","/logout.html");
+        res->setHeader("Location","/W/logout.html");
         next(); 
         return;
     }    
@@ -240,7 +240,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         jwtDecodedString.c_str()
     );
     logger.log(message, auth, debug);
-    #ifdef DEBUG
+    #ifdef DEBUG_SECURITY
     Serial.println(message.c_str());
     #endif
     if (decodeResult) {        
@@ -256,7 +256,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             //verify token is valid    
             authResult = esp32_authentication::authenticateUser(doc["user"].as<string>().c_str(),doc["password"].as<string>().c_str());
             //authResult.authenticated = true; //IF YOU WANT TO BYPAS VERIFIACTION OF USER
-            #ifdef DEBUG
+            #ifdef DEBUG_SECURITY
             Serial.printf(
                 "**Authorization** Result %s\n", 
                 authResult.authenticated ? "Authenticated" : "Unauthorized"
@@ -283,7 +283,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
                     err.c_str()
             );
             logger.log( message, auth, error);
-            #ifdef DEBUG
+            #ifdef DEBUG_SECURITY
             Serial.println(message.c_str());
             #endif  
         }     

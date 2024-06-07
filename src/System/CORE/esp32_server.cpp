@@ -10,7 +10,7 @@ esp32_server::esp32_server() : unsecureServer(new HTTPServer())
 
 bool esp32_server::start() {
     //check if ssl setting is enabled
-    StaticJsonDocument<1024> systemConfig;
+    StaticJsonDocument<512> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);    
 
     if(systemConfig["enableSSL"].isNull())
@@ -19,7 +19,7 @@ bool esp32_server::start() {
         _enableSSL = systemConfig["enableSSL"].as<bool>();
 
     // check for certificate storage location
-    StaticJsonDocument<1024> serverConfig;
+    StaticJsonDocument<256> serverConfig;
     esp32_config::getConfigSection("server", &serverConfig);
     logger.logDebug(string_format("Setting certificate storage to %s",
         serverConfig["certificates"]["source"].isNull() ? "NVS by default" : serverConfig["certificates"]["source"].as<const char*>()

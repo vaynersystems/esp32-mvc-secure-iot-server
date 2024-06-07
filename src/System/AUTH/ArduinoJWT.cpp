@@ -27,7 +27,7 @@
  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
  **/
-#define DEBUG
+
 #include <Arduino.h>
 #include "ArduinoJWT.h"
 #include "base64.hpp"
@@ -127,7 +127,7 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
             //     return false;
             // }
             //char jsonPayload[payloadLength];
-            Serial.printf("Received token string \n%s\n for processing\n", jwt.c_str());
+            //Serial.printf("Received token string \n%s\n for processing\n", jwt.c_str());
             if(decodeJWT(jwt.c_str(), _payload, getJWTPayloadLength(jwt.c_str()))) {
                 payload = _payload;
 #ifdef DEBUG
@@ -153,7 +153,7 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
 
 bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
     // Get all three jwt parts
-    Serial.printf("Received token \n%s\n for processing\n", jwt);
+    
     auto tokens = explode(jwt,".");    
     if(tokens.size() < 3) {
         #ifdef DEBUG
