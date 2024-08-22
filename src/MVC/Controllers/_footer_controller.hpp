@@ -11,6 +11,13 @@ public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
 
+    virtual esp32_controller_category GetCategory(){
+        return esp32_controller_category::_Internal;
+    }
+    virtual const char* GetName(){
+        return "Footer";
+    }
+
 private:
 	static DerivedController<_footer_controller> reg; //register the controller
 };

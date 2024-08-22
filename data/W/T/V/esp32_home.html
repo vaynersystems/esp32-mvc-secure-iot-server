@@ -1,30 +1,8 @@
+<script type="text/javascript" src="/W/JS/esp32_home.js"></script>
 <h2>Welcome, $_USERNAME</h2>
 
 <div class="home-container">
-    <div class="box">
-        <div class="header">Devices</div>
-        <div class="column sub-header">
-            <a href="/esp32_dashboard">Dashboard</a>
-            <a href="/esp32_historic">History</a>
-        </div>
-    </div>
-
-    <div class="box">
-        <div class="header">Site Management</div>
-        <div class="column sub-header">
-            <a href="/esp32_users">User Management</a>
-            <a href="/esp32_config">Configuration</a>
-            <a href="/esp32_system_info">Live Monitoring</a>
-            <a href="/esp32_logs">Logs</a>
-        </div>
-    </div>
-
-    <div class="box">
-        <div class="header">Tools</div>
-        <div class="column sub-header">
-            <a href="/edit" target="_blank">Editor</a>
-        </div>
-    </div>
+    
 </div>
 
 <style>
@@ -52,3 +30,10 @@
         color: var(--primary-color) !important;
     }
 </style>
+<script type="text/javascript">
+    let controllers = '$_Controllers';    
+    if(controllers[0] == '[') 
+    {
+        setControllers(controllers);
+    }
+</script>

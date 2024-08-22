@@ -16,6 +16,15 @@
 #include <algorithm>
 using namespace httpsserver;
 
+enum esp32_controller_category{
+    Devices = 0,
+    Users = 1,
+    Site = 2,
+    Tools = 3,
+    Extras = 4,
+    _Internal = 5
+};
+
 class esp32_base_controller {
     public:
         esp32_base_controller() {};
@@ -30,7 +39,7 @@ class esp32_base_controller {
         }
         virtual void List(HTTPRequest* req, HTTPResponse* res) {
             GenericIndex(req,res); //if not overwritten, build page using MVC framework
-         }
+        }
         virtual void Put(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Post(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Delete(HTTPRequest* req, HTTPResponse* res) { }
@@ -42,6 +51,13 @@ class esp32_base_controller {
         virtual bool isPostImplemented(){ return false;}
         virtual bool isDeleteImplemented(){ return false;}
         virtual bool isOptionsImplemented(){ return false;}
+
+        virtual esp32_controller_category GetCategory(){
+            return esp32_controller_category::_Internal;
+        }
+        virtual const char* GetName(){
+            return "Base";
+        }
 
         
         /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
@@ -150,6 +166,7 @@ class esp32_base_controller {
     
 protected:
     esp32_controller_route route;   
+    
 
 };
 
