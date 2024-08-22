@@ -32,7 +32,12 @@ public:
     virtual void Backup(HTTPRequest *request, HTTPResponse * response);
     virtual void Restore(HTTPRequest *request, HTTPResponse * response);
     
-    
+    virtual esp32_controller_category GetCategory(){
+        return esp32_controller_category::Site;
+    }
+    virtual const char* GetName(){
+        return "Configuration";
+    }
 protected:
     inline virtual void Action(HTTPRequest* request, HTTPResponse* response);
     inline virtual bool HasAction(const char * action);

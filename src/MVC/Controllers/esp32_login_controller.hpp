@@ -11,6 +11,9 @@ public:
     inline virtual bool isIndexImplemented(){ return true;}
     inline virtual void Post(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isPostImplemented(){ return true;}
+    virtual const char* GetName(){
+        return "Login";
+    }
 
 private:
 	static DerivedController<esp32_login_controller> reg; //register the controller
