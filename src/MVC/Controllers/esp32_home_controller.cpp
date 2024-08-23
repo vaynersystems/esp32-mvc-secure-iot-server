@@ -8,7 +8,7 @@ void esp32_home_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     title = "ESP32 Web Server Home Page";
 
     
-    controllerTemplate.SetTemplateVariable("$_Controllers", GetControllersJSON().c_str());
+    controllerTemplate.SetTemplateVariable("$_Controllers", GetControllersJSON(req).c_str());
     
     esp32_base_controller::Index(req,res);    
 }

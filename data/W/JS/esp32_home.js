@@ -29,13 +29,7 @@ function setControllers(controllerText){
 
             controllersContainerElement.appendChild(controllerElement);
         }
-        //custom add editor to tools
-        if(groupName == 'Tools'){
-            var editorElement = document.createElement('a');
-            editorElement.href = '/edit';
-            editorElement.innerHTML = 'Editor';
-            editorElement.target = '_blank';
-        }
+       
         groupElement.appendChild(controllersContainerElement);
         controllerListElement.appendChild(groupElement);
     }

@@ -363,9 +363,11 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res){
 void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const char * overwriteFilePath)
 {
     string drive="";
-    //req->getParams()->getQueryParameter("drive",drive);
-    
-    //auto fs = strcmp(drive.c_str(),"1") == 0 ? (FS)SPIFFS : (FS)SD;
+    bool authorized = strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    if(!authorized){
+        handle401(req,res);
+        return;
+    }
     if (req->getMethod() == "DELETE")
     {
 
@@ -591,6 +593,12 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 #if ENABLE_EDITOR   	
 void esp32_router::handleEditor(HTTPRequest *req, HTTPResponse *res)
 {
+    
+    bool authorized = strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    if(!authorized){
+        handle401(req,res);
+        return;
+    }
     auto routeInfo = esp32_route_file_info<esp32_file_info_extended>("/W/edit.html");
     esp32_fileio::writeFileToResponse(routeInfo, res);
 
@@ -609,6 +617,19 @@ void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
     res->println("</html>");
 }
 
+void esp32_router::handle401(HTTPRequest *req, HTTPResponse *res)
+{
+    req->discardRequestBody();
+    res->setStatusCode(404);
+    res->setStatusText("Unauthorized");
+    res->setHeader("Content-Type", "text/html");
+    res->println("<!DOCTYPE html>");
+    res->println("<html>");
+    res->println("<head><title>Unauthorized</title></head>");
+    res->println("<body><h1>401 Unauthorized</h1><p>The requested was not authorized for this resource.</p></body>");
+    res->println("</html>");
+}
+
 void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, esp32_controller_route route)
 {
     // route is under controller
@@ -623,6 +644,9 @@ void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, 
     if (!controllerObj->HasAction(route.action.c_str()))
     {
         esp32_router::handle404(req, res);
+    }
+    else if(!controllerObj->Authorized(req)){
+        handle401(req,res);
     }
     else
     {

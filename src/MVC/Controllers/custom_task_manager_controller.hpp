@@ -10,8 +10,8 @@ public:
     inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
 
-	inline virtual void List(HTTPRequest* req, HTTPResponse* res);
-    inline virtual bool isListImplemented(){ return true;}
+	//inline virtual void List(HTTPRequest* req, HTTPResponse* res);
+    inline virtual bool isListImplemented(){ return false;}
 
     inline virtual void Put(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isPutImplemented(){ return true;}

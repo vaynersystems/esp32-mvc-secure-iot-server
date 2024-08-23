@@ -1,25 +1,38 @@
 <style>
     .menu-container{
         display: grid;
-        grid-template-columns: 3% 15% 15% 18% 15% 15% auto;
+        grid-template-columns: 12% 12% 12% 12% 12% 12% 12% auto;
+        /* display: flex;
+        flex-direction: row;
+        justify-content: space-between; */
         width: 100%;
     }
     .menu-header> a{
         width:100%;
+        text-decoration: none;
+        border-width: 0px;
     }
     .items{
         display: none;
-        flex-direction: column;
-        padding: 2px;
+        flex-direction: column;        
         background-color: var(--primary-color);
-        margin-top:12px;
-
+        margin-top:4px;
+        width: fit-content;
     }
-    .button{
+    .button-small{
         color: var(--primary-header-color);        
         font-size: 20px;
         font-weight: 600;
         padding: 4px; 
+        display: none;
+        justify-content: center;
+    }
+    .button-large{
+        color: var(--primary-header-color);        
+        font-size: 20px;
+        font-weight: 600;
+        text-decoration: none;
+        line-height: 18px;
     }
     .menu-header{
         color: var(--primary-header-color);
@@ -29,22 +42,25 @@
         padding: 4px;  
         height: 32px;
     }
-    .menu-header:hover{
+    .menu-group:hover{
         /* text-decoration: underline; */
         background: rgb(from var(--primary-header-background) r g b /.8);
         cursor: pointer;
     }
     .menu-group{
         background: transparent;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
     }
-    .menu-group:hover{
+    /* .menu-group:hover{
         background: rgb(255,255,255);
-        background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(244,248,255,1) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
-    }
+        background: linear-gradient(180deg, rgba(255,255,255,.2) 0%, rgba(244,248,255,.2) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
+    } */
     .menu-group[selected] 
     {
         background: rgb(255,255,255);
-        background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(244,248,255,1) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,.3) 0%, rgba(244,248,255,.3) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
         .items{
             display: flex;
             position: relative;
@@ -54,7 +70,14 @@
             background: rgb(from var(--primary-header-background) r g b /.6);
         }
     }
-    
+    @media screen and (max-width: 800px) {
+        .button-small{
+            display: flex;
+        }        
+        .button-large{
+            display: none;
+        }
+    }
 </style>
 
 <script src="https://kit.fontawesome.com/1bc8b5378d.js" crossorigin="anonymous"></script>
@@ -102,17 +125,10 @@
 
         if(controllerListElement === undefined) return;
         controllerListElement = controllerListElement[0];
-
-        //add home button
-        var homeElement = document.createElement('div');
-        homeElement.className = 'menu-header';
         
-        var homeAnchorElement = document.createElement('a');
-        homeAnchorElement.className = 'button';
-        homeAnchorElement.innerHTML = '<i class="fa-solid fa-house"></i>';
-        homeAnchorElement.href = '/esp32_home';
-        homeElement.appendChild(homeAnchorElement);
-        controllerListElement.appendChild(homeElement);
+        //add home button
+        var groupElement = createMenuGroupItem('Home', '/esp32_home');
+        controllerListElement.appendChild(groupElement);
 
         //group controllers by controller-group
         var grouped = Object.groupBy(controllers, ({sort}) => sort);
@@ -120,57 +136,92 @@
             var group = grouped[groupIdx];
             var groupName = group[0].group;
 
-            if(groupName == 'Internal') continue; //do not display internal
-            
-            var groupElement = document.createElement('div');
-            groupElement.className = 'menu-group';
-            var groupHeaderElement = document.createElement('div');
-            groupHeaderElement.className = 'menu-header';
-            groupHeaderElement.innerHTML = groupName;
-            groupElement.appendChild(groupHeaderElement);
-
-            var controllersContainerElement = document.createElement('div');
-            controllersContainerElement.className = "items";
-            for(var controller of group){
-                var controllerElement = document.createElement('a');
-                controllerElement.href = controller.controller;
-                controllerElement.innerHTML = controller.name;
-
-
-                controllersContainerElement.appendChild(controllerElement);
-            }
-            //custom add editor to tools
-            if(groupName == 'Tools'){
-                var editorElement = document.createElement('a');
-                editorElement.href = '/edit';
-                editorElement.innerHTML = 'Editor';
-                editorElement.target = '_blank';
-                controllersContainerElement.appendChild(editorElement);
-            }
-
-            groupElement.appendChild(controllersContainerElement);
-            controllerListElement.appendChild(groupElement);
+            var groupElement = createMenuGroup(groupName, group);
+            if(groupElement !== undefined)
+                controllerListElement.appendChild(groupElement);
         }
+        //add account button
+        var groupElement = createMenuGroup('Account', [{"controller":"/logout", "name": "Log Off"}]);
+        controllerListElement.appendChild(groupElement);
+    }
 
-        //account group
+    /// groupName - string representing the name of the group
+    /// listItems - array of objects containing controller and name property e.g. {controller: esp32_home, name: home}
+    function createMenuGroup(groupName, listItems){
+        if(groupName == 'Internal') return undefined; //do not display internal
+            
         var groupElement = document.createElement('div');
         groupElement.className = 'menu-group';
-        var groupHeaderElement = document.createElement('div');
-        groupHeaderElement.className = 'menu-header';
-        groupHeaderElement.innerHTML = 'Account';
-        groupElement.appendChild(groupHeaderElement);
-        //custom add log off
+
+
+        var groupSmallElement = document.createElement('a');
+        groupSmallElement.className = 'button-small';
+        groupSmallElement.innerHTML = '<i class="' + getIconForMenuGroup(groupName) + '"></i>';        
+        groupElement.appendChild(groupSmallElement);
+
+        var groupLargeElement = document.createElement('a');
+        groupLargeElement.className = 'button-large';
+        groupLargeElement.innerHTML = groupName;        
+        groupElement.appendChild(groupLargeElement);
+
+
         var controllersContainerElement = document.createElement('div');
         controllersContainerElement.className = "items";
+        for(var controller of listItems){
+            var controllerElement = document.createElement('a');
+            controllerElement.href = controller.controller;                
+            controllerElement.innerHTML = controller.name;
+            if(controller.target !== undefined)
+                controllerElement.target = controller.target;
 
-        var logOffElement = document.createElement('a');
-        logOffElement.href = '/logout';
-        logOffElement.innerHTML = 'Log Off';
-        controllersContainerElement.appendChild(logOffElement);
+            controllersContainerElement.appendChild(controllerElement);
+        }
         groupElement.appendChild(controllersContainerElement);
-        controllerListElement.appendChild(groupElement);
-
+        return groupElement;
     }
+    /// similar to menu group, but parent is a direct link
+    function createMenuGroupItem(groupName, url){
+        if(groupName == 'Internal') return undefined; //do not display internal
+            
+        var groupElement = document.createElement('div');
+        groupElement.className = 'menu-group';
+
+
+        var groupSmallElement = document.createElement('a');
+        groupSmallElement.className = 'button-small';
+        groupSmallElement.innerHTML = '<i class="' + getIconForMenuGroup(groupName) + '"></i>';        
+        groupSmallElement.href = url;
+        groupElement.appendChild(groupSmallElement);
+
+        var groupLargeElement = document.createElement('a');
+        groupLargeElement.className = 'button-large';
+        groupLargeElement.innerHTML = groupName;        
+        groupLargeElement.href = url;
+        groupElement.appendChild(groupLargeElement);
+        return groupElement;
+    }
+
+    function getIconForMenuGroup(groupName){
+        switch(groupName){
+            case "Home":
+                return 'fa-solid fa-house';  
+            case "Devices":
+                return 'fa-solid fa-microchip';                
+            case "Users":
+                return 'fa-solid fa-users';
+
+            case "Site":
+                return 'fa-solid fa-earth-europe';
+            case "Tools":
+                return 'fa-solid fa-screwdriver-wrench';
+            case "Extras":
+                return 'fa-solid fa-star';
+            case "Account":
+                return 'fa-solid fa-user';
+                
+        }
+    }
+
     setMenuItems('$_Controllers');
     addClickBehavior();
 </script>

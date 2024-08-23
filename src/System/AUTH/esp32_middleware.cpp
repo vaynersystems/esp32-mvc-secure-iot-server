@@ -379,11 +379,6 @@ bool esp32_middleware::isPublicPage(string path)
     return false;
 }
 
-bool esp32_middleware::parseJwtToken(string &token)
-{
-    return false;
-}
-
 int esp32_middleware::initPublicPages()
 {
     _publicPages.clear();

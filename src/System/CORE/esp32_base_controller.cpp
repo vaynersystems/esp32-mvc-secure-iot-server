@@ -74,7 +74,7 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
     
 }
 
-inline std::string esp32_base_controller::GetControllersJSON(){
+inline std::string esp32_base_controller::GetControllersJSON(HTTPRequest* req){
     string ctrString = "[";
     int numOfControllers = BaseControllerFactory::getInstanceCount();
     //Serial.printf("Found %i controllers\n", numOfControllers);
@@ -82,6 +82,8 @@ inline std::string esp32_base_controller::GetControllersJSON(){
         auto controller = BaseControllerFactory::getInstanceAt(i);
         if(controller.first[0] == '_') continue;
         auto genController = controller.second();    
+        if(!genController->Authorized(req))
+            continue;
 
         //check if current role has access
         //genController.    
@@ -123,6 +125,12 @@ inline std::string esp32_base_controller::GetControllersJSON(){
         // actions.clear();
     
         delete genController; 
+    }
+    //add editor if authorized
+    Serial.printf("Checking if role %s is ADMIN: %s\n", req->getHeader(HEADER_GROUP).c_str(), strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0 ? "Yes" : "No");
+    if(strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0){        
+        ctrString += string_format("{\"group\": \"Tools\", \"sort\": \"%d\", \"name\": \"Editor\", \"controller\": \"edit\", \"target\": \"_blank\"}, ", esp32_controller_category::Tools);
+
     }
     
     if(ctrString.length() > 2) //trim off trailing comma
