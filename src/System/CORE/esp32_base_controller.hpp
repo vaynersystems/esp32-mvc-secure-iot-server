@@ -60,7 +60,11 @@ class esp32_base_controller {
             return "Base";
         }
 
-        virtual std::string GetControllersJSON();
+        virtual bool Authorized(HTTPRequest* req){
+            return true; //default to allow
+        }
+
+        virtual std::string GetControllersJSON(HTTPRequest* req);
         
         /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
         /// @param req 
@@ -204,9 +208,12 @@ public:
     }
     static int getInstanceCount() {
         map_type::iterator it = getMap()->begin();
-        int count = 0;
-        for (count = 0; count < getMap()->size(); count++)
+        int count = 0; 
+        for (count = 0; count < getMap()->size();count++)
+        {            
             it++;
+        }
+            
         return count;
     }
     static std::pair<std::string, esp32_base_controller*(*)()> getInstanceAt(int idx) {

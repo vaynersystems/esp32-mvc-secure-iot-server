@@ -38,6 +38,9 @@ public:
     virtual const char* GetName(){
         return "Configuration";
     }
+    virtual bool Authorized(HTTPRequest* req){
+        return strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    }
 protected:
     inline virtual void Action(HTTPRequest* request, HTTPResponse* response);
     inline virtual bool HasAction(const char * action);

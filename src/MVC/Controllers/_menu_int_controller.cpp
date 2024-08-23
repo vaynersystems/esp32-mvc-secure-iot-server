@@ -5,6 +5,6 @@
 DerivedController<_menu_int_controller> _menu_int_controller::reg("_menu_int");
 
 void _menu_int_controller::Index(HTTPRequest* req, HTTPResponse* res) {
-    controllerTemplate.SetTemplateVariable("$_Controllers", GetControllersJSON().c_str());
+    controllerTemplate.SetTemplateVariable("$_Controllers", GetControllersJSON(req).c_str());
 }
 
