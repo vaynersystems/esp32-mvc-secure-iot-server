@@ -1,0 +1,176 @@
+<style>
+    .menu-container{
+        display: grid;
+        grid-template-columns: 3% 15% 15% 18% 15% 15% auto;
+        width: 100%;
+    }
+    .menu-header> a{
+        width:100%;
+    }
+    .items{
+        display: none;
+        flex-direction: column;
+        padding: 2px;
+        background-color: var(--primary-color);
+        margin-top:12px;
+
+    }
+    .button{
+        color: var(--primary-header-color);        
+        font-size: 20px;
+        font-weight: 600;
+        padding: 4px; 
+    }
+    .menu-header{
+        color: var(--primary-header-color);
+        background-color: var(--primary-header-background);
+        font-size: 20px;
+        font-weight: 600;
+        padding: 4px;  
+        height: 32px;
+    }
+    .menu-header:hover{
+        /* text-decoration: underline; */
+        background: rgb(from var(--primary-header-background) r g b /.8);
+        cursor: pointer;
+    }
+    .menu-group{
+        background: transparent;
+    }
+    .menu-group:hover{
+        background: rgb(255,255,255);
+        background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(244,248,255,1) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
+    }
+    .menu-group[selected] 
+    {
+        background: rgb(255,255,255);
+        background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(244,248,255,1) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
+        .items{
+            display: flex;
+            position: relative;
+            float:left;
+        }
+        .menu-header{
+            background: rgb(from var(--primary-header-background) r g b /.6);
+        }
+    }
+    
+</style>
+
+<script src="https://kit.fontawesome.com/1bc8b5378d.js" crossorigin="anonymous"></script>
+<div class="menu-container">    
+</div>
+<script type="text/javascript">
+
+    var selectedIndex = 0;
+    function addClickBehavior(){
+        var groupLinks = document.getElementsByClassName('menu-group');
+        var linkId = 1;
+        for(var link of groupLinks){
+            link.id = 'link_' + linkId;            
+            link.addEventListener('click', function(ev) {                
+                var clickedSelected = ev.currentTarget.id === 'link_' + selectedIndex;
+                //clicked one that is open
+                if(clickedSelected){
+                    selectedIndex = 0;
+                    document.getElementById(ev.currentTarget.id).removeAttribute('selected');
+                    return;
+                }
+                //something else is open
+                if(selectedIndex != 0){
+                    //close any
+                    var menuItemElements = document.getElementsByClassName('menu-group');
+                    for(var item of menuItemElements)
+                        item.removeAttribute('selected');                    
+                    selectedIndex = 0;
+
+                }
+
+                selectedIndex = ev.currentTarget.getAttribute('id').substring(5);
+                document.getElementById(ev.currentTarget.id).setAttribute('selected','');
+            });
+            linkId++;
+        }
+    }
+
+    function setMenuItems(controllersText){
+        if(controllersText[0] == '$')
+        controllersText = '[{"group": "Extras", "sort": "4", "name": "Custom Task Manager", "controller": "c_t_m"}, {"group": "Site", "sort": "2", "name": "Configuration", "controller": "esp32_config"}, {"group": "Devices", "sort": "0", "name": "Dashboard", "controller": "esp32_dashboard"}, {"group": "Devices", "sort": "0", "name": "History", "controller": "esp32_historic"}, {"group": "Internal", "sort": "5", "name": "Home", "controller": "esp32_home"}, {"group": "Tools", "sort": "3", "name": "Logs", "controller": "esp32_logs"}, {"group": "Site", "sort": "2", "name": "Live Monitoring", "controller": "esp32_system_info"}, {"group": "Users", "sort": "1", "name": "Users", "controller": "esp32_users"}, {"group": "Internal", "sort": "5", "name": "Login", "controller": "login"}]';
+
+        var controllers = JSON.parse(controllersText);
+        controllerListElement = document.getElementsByClassName('menu-container');
+
+        if(controllerListElement === undefined) return;
+        controllerListElement = controllerListElement[0];
+
+        //add home button
+        var homeElement = document.createElement('div');
+        homeElement.className = 'menu-header';
+        
+        var homeAnchorElement = document.createElement('a');
+        homeAnchorElement.className = 'button';
+        homeAnchorElement.innerHTML = '<i class="fa-solid fa-house"></i>';
+        homeAnchorElement.href = '/esp32_home';
+        homeElement.appendChild(homeAnchorElement);
+        controllerListElement.appendChild(homeElement);
+
+        //group controllers by controller-group
+        var grouped = Object.groupBy(controllers, ({sort}) => sort);
+        for(var groupIdx of Object.keys(grouped)){
+            var group = grouped[groupIdx];
+            var groupName = group[0].group;
+
+            if(groupName == 'Internal') continue; //do not display internal
+            
+            var groupElement = document.createElement('div');
+            groupElement.className = 'menu-group';
+            var groupHeaderElement = document.createElement('div');
+            groupHeaderElement.className = 'menu-header';
+            groupHeaderElement.innerHTML = groupName;
+            groupElement.appendChild(groupHeaderElement);
+
+            var controllersContainerElement = document.createElement('div');
+            controllersContainerElement.className = "items";
+            for(var controller of group){
+                var controllerElement = document.createElement('a');
+                controllerElement.href = controller.controller;
+                controllerElement.innerHTML = controller.name;
+
+
+                controllersContainerElement.appendChild(controllerElement);
+            }
+            //custom add editor to tools
+            if(groupName == 'Tools'){
+                var editorElement = document.createElement('a');
+                editorElement.href = '/edit';
+                editorElement.innerHTML = 'Editor';
+                editorElement.target = '_blank';
+                controllersContainerElement.appendChild(editorElement);
+            }
+
+            groupElement.appendChild(controllersContainerElement);
+            controllerListElement.appendChild(groupElement);
+        }
+
+        //account group
+        var groupElement = document.createElement('div');
+        groupElement.className = 'menu-group';
+        var groupHeaderElement = document.createElement('div');
+        groupHeaderElement.className = 'menu-header';
+        groupHeaderElement.innerHTML = 'Account';
+        groupElement.appendChild(groupHeaderElement);
+        //custom add log off
+        var controllersContainerElement = document.createElement('div');
+        controllersContainerElement.className = "items";
+
+        var logOffElement = document.createElement('a');
+        logOffElement.href = '/logout';
+        logOffElement.innerHTML = 'Log Off';
+        controllersContainerElement.appendChild(logOffElement);
+        groupElement.appendChild(controllersContainerElement);
+        controllerListElement.appendChild(groupElement);
+
+    }
+    setMenuItems('$_Controllers');
+    addClickBehavior();
+</script>
