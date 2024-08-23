@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.30"
+#define FIRMWARE_VERSION "0.40"
 #define SYSTEM_DRIVE "" //"/spiffs"
 #define PATH_SITE_ROOT SYSTEM_DRIVE "/W"
 #define PATH_INTERNAL_ROOT SYSTEM_DRIVE "/INT"
@@ -10,8 +10,8 @@
 #define ENABLE_EDITOR 1
 
 #define SOCKET_MAX 5
-#define DEBUG
-#define DEBUG_SECURITY
+//#define DEBUG
+//#define DEBUG_SECURITY
 #define PATH_AUTH_FILE SYSTEM_DRIVE "/INT/authorized.dat"
 #define PATH_SYSTEM_CONFIG SYSTEM_DRIVE "/INT/system_config.json"
 #define PATH_PUBLIC_PAGES SYSTEM_DRIVE "/INT/public_pages.txt"

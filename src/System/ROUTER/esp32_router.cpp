@@ -119,7 +119,7 @@ int esp32_router::handlePagePart_Menu(HTTPRequest *req, HTTPResponse *res, Strin
         if(req->getHeader(HEADER_GROUP).length() <= 0){
             return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, "/T/menu_pub.html");
         }
-        Serial.printf("Authenticated user == %s.\n", req->getHeader(HEADER_GROUP).c_str());
+        //Serial.printf("Authenticated user == %s.\n", req->getHeader(HEADER_GROUP).c_str());
         int idx = line.indexOf(HTML_REF_CONST_MENU);
         if (idx < 0)
             return idx;
