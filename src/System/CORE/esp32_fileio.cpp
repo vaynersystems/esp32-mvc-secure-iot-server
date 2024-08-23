@@ -195,10 +195,14 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     }
     else
     {
-        if (strcmp(routeInfo.extension(), "htm") == 0)
+        //Serial.printf("Comparing extension %s for file %s\n", extension.c_str(), routeInfo.name().c_str());
+        if (strcmp(extension.c_str(), "htm") == 0)
             extension = "html"; // workaround for encoding
-        else if (routeInfo.extension() ==  "js")
+        else if (extension.compare("js") == 0)
             extension = "javascript"; // workaround for encoding
+
+        if(extension.find_first_of(".gz") != extension.npos)
+            extension = extension.substr(0,extension.length() - 3);
         extension = "text/" + extension;
     }
     response->setHeader("Content-Type", extension);

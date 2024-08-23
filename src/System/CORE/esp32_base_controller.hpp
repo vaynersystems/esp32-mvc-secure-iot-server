@@ -17,12 +17,13 @@
 using namespace httpsserver;
 
 enum esp32_controller_category{
-    Devices = 0,
-    Users = 1,
-    Site = 2,
-    Tools = 3,
+    Devices = 0,    
+    Site = 1,
+    Tools = 2,
+    Users = 3,
     Extras = 4,
-    _Internal = 5
+    Account = 5,
+    _Internal = 6
 };
 
 class esp32_base_controller {
@@ -59,6 +60,7 @@ class esp32_base_controller {
             return "Base";
         }
 
+        virtual std::string GetControllersJSON();
         
         /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
         /// @param req 

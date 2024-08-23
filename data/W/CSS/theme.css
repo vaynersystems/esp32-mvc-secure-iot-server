@@ -1,20 +1,20 @@
 html, body{
-    --primary-color: #191955;
+    --primary-color: rgb(25, 25, 85);
     --primary-border: rgb(66, 80, 207);
-    --primary-background: #f4f5f1;
-    --secondary-color: #a0a4b6;
-    --secondary-background: #34346a;;
-    --primary-control-color: #053f16;
-    --primary-control-background: #ffffff;
-    --primary-button-color: #edeeef;
-    --primary-button-background:  #0b2d64;
-    --secondary-button-color: #edeeef;
-    --secondary-button-background: #1d8e56;
-    --secondary-button-background-hover: #11633a;
-    --modal-color: #fff;
+    --primary-background: rgb(244, 245, 241);
+    --secondary-color: rgb(160, 164, 182);
+    --secondary-background: rgb(52, 52, 106);;
+    --primary-control-color: rgb(5, 63, 22);
+    --primary-control-background: rgb(255, 255, 255);
+    --primary-button-color: rgb(237, 238, 239);
+    --primary-button-background:  rgb(11, 45, 100);
+    --secondary-button-color: rgb(237, 238, 239);
+    --secondary-button-background: rgb(29, 142, 86);
+    --secondary-button-background-hover: rgb(17, 99, 58);
+    --modal-color: rgb(255, 255, 255);
     --modal-background: rgba(3, 45, 9, 0.4);
-    --modal-header-color: #fff;
-    --modal-header-background: #1d8e56;
+    --modal-header-color: rgb(255, 255, 255);
+    --modal-header-background: rgb(29, 142, 86);
 
     --primary-header-background: var(--primary-color); /* #86b92c; */
     --primary-header-color: var(--primary-background); /* #fff; */

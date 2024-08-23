@@ -115,9 +115,37 @@ int esp32_router::handlePagePart_Header(HTTPRequest *req, HTTPResponse *res, Str
 int esp32_router::handlePagePart_Menu(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
-        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/menu_int.html" : "/T/menu_pub.html");
+    {
+        if(req->getHeader(HEADER_GROUP).length() <= 0){
+            return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, "/T/menu_pub.html");
+        }
+        Serial.printf("Authenticated user == %s.\n", req->getHeader(HEADER_GROUP).c_str());
+        int idx = line.indexOf(HTML_REF_CONST_MENU);
+        if (idx < 0)
+            return idx;
+        res->print(line.substring(0, idx));
+
+        auto headerModule =                                        /*controllerFactory->hasInstance(route.controller) ? */
+            controllerFactory->createInstance("_menu_int", "index"); // : NULL;
+
+        if (headerModule != NULL)
+        {
+            // module found
+            headerModule->Action(req, res); // execute module action
+            handlePagePart_Content(req, res, HTML_REF_CONST_CONTENT, headerModule); //render menu template content
+            delete headerModule;
+            res->println(line.substring(idx + sizeof(HTML_REF_CONST_MENU) - 1)); //finish the rest of the global template line
+            return idx;
+        }
+        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, "/T/menu_pub.html");
+    }
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_MENU, content);
+
+    // if (content.length() <= 0)
+    //     return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/menu_int.html" : "/T/menu_pub.html");
+
+    // return handlePagePart_FromString(req, res, line, HTML_REF_CONST_MENU, content);
 }
 
 int esp32_router::handlePagePart_Content(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
