@@ -127,7 +127,6 @@ inline std::string esp32_base_controller::GetControllersJSON(HTTPRequest* req){
         delete genController; 
     }
     //add editor if authorized
-    Serial.printf("Checking if role %s is ADMIN: %s\n", req->getHeader(HEADER_GROUP).c_str(), strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0 ? "Yes" : "No");
     if(strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0){        
         ctrString += string_format("{\"group\": \"Tools\", \"sort\": \"%d\", \"name\": \"Editor\", \"controller\": \"edit\", \"target\": \"_blank\"}, ", esp32_controller_category::Tools);
 
