@@ -9,6 +9,10 @@
 #include <mbedtls/sha1.h>
 #include <functional>
 
+#ifdef ESP32
+#include <sha/sha_parallel_engine.h>
+#endif
+
 // Required for sockets
 #include "lwip/netdb.h"
 #undef read
