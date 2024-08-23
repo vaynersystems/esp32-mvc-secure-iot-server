@@ -202,7 +202,9 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     if(jwtTokenFromCookie.length() > 0){
         //TODO: check if its expired
         bool cookieExpired = strstr(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") != nullptr;
+        #ifdef DEBUG_SECURITY
         Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
+        #endif
          if(cookieExpired){
             if(!isLoginPage){
                 res->setStatusCode(303);
