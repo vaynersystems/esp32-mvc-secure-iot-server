@@ -1,0 +1,26 @@
+[
+    {
+        "Name": "Device Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "device"
+    },
+    {
+        "Name": "Company Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "company"
+    },
+    {
+        "Name": "Valid From",
+        "Type": "Date",
+        "Readonly": false,
+        "Source": "from"
+    },
+    {
+        "Name": "Valid To",
+        "Type": "Date",
+        "Readonly": false,
+        "Source": "to"
+    }               
+]

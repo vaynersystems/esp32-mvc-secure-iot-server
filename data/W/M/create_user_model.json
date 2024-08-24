@@ -1,0 +1,36 @@
+[
+    {
+        "Name": "Username",
+        "Type": "Text",
+        "Value": "",
+        "Readonly": false,
+        "Source": "username"
+    },
+    {
+        "Name": "Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "password"
+    },
+    {
+        "Name": "Confirm Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "password"
+    },
+    {
+        "Name": "Role",
+        "Type": "Lookup",
+        "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}],
+        "Readonly": false,
+        "Source": "role"
+    },
+    {
+        "Name": "Enabled",
+        "Type": "Boolean",
+        "Readonly": false,
+        "Source": "enabled"
+    }          
+]
