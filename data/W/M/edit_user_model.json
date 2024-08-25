@@ -3,22 +3,8 @@
         "Name": "Username",
         "Type": "Text",
         "Value": "",
-        "Readonly": false,
+        "Readonly": true,
         "Source": "username"
-    },
-    {
-        "Name": "Password",
-        "Type": "Password",
-        "Value": "",
-        "Readonly": false,
-        "Source": "password"
-    },
-    {
-        "Name": "Confirm Password",
-        "Type": "Password",
-        "Value": "",
-        "Readonly": false,
-        "Source": "password"
     },
     {
         "Name": "Role",
@@ -32,5 +18,11 @@
         "Type": "Boolean",
         "Readonly": false,
         "Source": "enabled"
+    },    
+    {
+        "Name": "Created On",
+        "Type": "Date",
+        "Readonly": true,
+        "Source": "created"
     }          
-]
+]    

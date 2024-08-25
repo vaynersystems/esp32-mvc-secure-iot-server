@@ -22,8 +22,6 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     bool isLoginPage = strstr(req->getRequestString().substr(0, 6).c_str(), "/login") != nullptr ;
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
 
-
-    Serial.printf("MATCH: %s to /logout: %s\n", req->getRequestString().substr(0, 7).c_str(), req->getRequestString().substr(0, 7) == "/logout" ? "MATCH" : "FAIL");
     if (req->getRequestString().substr(0, 7) == "/logout") {
         jwtTokenFromRequest.clear();
         res->setHeader("Set-Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;auth=; path=/");
@@ -63,7 +61,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     {   
         reqUsername = req->getBasicAuthUser();
         reqPassword = req->getBasicAuthPassword();
-        Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s\n", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
+        //Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s\n", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
     }
 
     if(!jwtTokenValid){ //fall back to processing from request if available

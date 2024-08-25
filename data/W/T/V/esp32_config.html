@@ -1,7 +1,7 @@
 
-<!-- <script type="text/javascript" src="/W/JS/modal.js"></script>
-<link rel="stylesheet" type="text/css" href="/CSS/theme.css"/>
-<link rel="stylesheet" type="text/css" href="/CSS/style.css"/> -->
+<script type="text/javascript" src="/W/JS/esp32_modal.js"></script>
+<link rel="stylesheet" type="text/css" href="/W/CSS/theme.css"/>
+<link rel="stylesheet" type="text/css" href="/W/CSS/style.css"/>
 <script type="text/javascript" src="/W/JS/system.js"></script>  
 <script type="text/javascript" src="/W/JS/esp32_devices.js"></script> 
 <script type="text/javascript" src="/W/JS/esp32_certificates.js"></script> 
@@ -444,141 +444,6 @@
             </div>
         </div>
 
-        <div class="section" name="device-editor" id="device-editor">            
-            <div class="content">
-                <div class="flex">
-                    <div>
-                        <div class="grid-2">
-                            <span>Device ID</span>
-                            <div name="editor-device-id" id="editor-device-id"></div>
-                        </div> 
-                        <div class="grid-2">
-                            <span>Device Name</span>
-                            <input type="text" name="editor-device-name" id="editor-device-name"/>    
-                        </div> 
-                        <div class="grid-2">
-                            <span>Device Type</span>
-                            <div>
-                                <select id="editor-device-type" name="editor-device-type">
-                                    <optgroup label="Inputs">
-                                        <option value="DigitalInput">Digital Input</option>
-                                        <option value="AnalogInput">Analig Input</option>   
-                                        <option value="Thermometer">Thermometer</option>
-                                    </optgroup>
-                                    <optgroup label="Outputs">
-                                        <option value="Relay">Relay</option>
-                                    <option value="Switch">Switch</option>        
-                                    </optgroup>      
-                                </select>
-                            </div>
-                        </div> 
-                        <div class="grid-2">
-                            <span>Device Pin</span>
-                            <div>
-                                <select id="editor-device-pin" name="editor-device-pin">
-                                    <option value="4">D4</option>
-                                    <option value="13">D13</option>
-                                    <option value="18">D18</option>
-                                    <option value="19">D19</option>
-                                    <option value="21">D21</option>
-                                    <option value="22">D22</option>
-                                    <option value="23">D23</option>
-                                    <option value="25">D25</option>
-                                    <option value="26">D26</option>
-                                    <option value="27">D27</option>
-                                    <option value="32">D32 (analog)</option>
-                                    <option value="33">D33 (analog)</option>
-                                    <option value="33">D34 (analog)</option>
-                                    <option value="33">D35 (analog)</option>
-                                </select>
-                            </div>
-                        </div>  
-                        <div class="grid-2" id="editor-device-mqtt-publish-container">
-                            <span>MQTT Publish</span>
-                            <input type="checkbox" id="editor-device-mqtt-publish">
-                        </div> 
-
-                        <div id="editor-device-mqtt-panel">
-                        
-                            <div class="grid-2">
-                                <span>Topic</span>
-                                <input type="text" id="editor-device-mqtt-topic">
-                            </div>
-    
-                            <div class="grid-2" id="editor-device-mqtt-frequency-container">
-                                <span>Frequency</span>
-                                <select id="editor-device-mqtt-frequency">
-                                    <option value="1">1 minute</option>
-                                    <option value="2">2 minutes</option>
-                                    <option value="5">5 minutes</option>
-                                    <option value="10">10 minutes</option>
-                                    <option value="30">30 minutes</option>
-                                    <option value="60">1 hour</option>
-                                </select>
-                            </div>
-                        </div>
-                        
-                        
-                        <div class="grid-2"  id="editor-device-signal-container">
-                            <span>Device Signal</span>
-                            <div>
-                                <select id="editor-device-signal" name="editor-device-signal">
-                                    <option value="high">Active High</option>
-                                    <option value="low">Active Low</option>
-                                </select>
-                            </div>
-                        </div> 
-                        <div class="grid-2"  id="editor-device-duration-container">
-                            <span>Duration <span class="hint"> (in seconds)</span></span>
-                            <div>
-                                <input type="number" id="editor-device-duration" name="editor-device-duration">                               
-                            </div>
-                        </div>   
-                        <div class="grid-2" id="editor-device-use-trigger-container">
-                            <span>Use Trigger</span>
-                            <input type="checkbox" id="editor-device-use-trigger">
-                        </div>
-                       
-                    </div>
-                    <div id="editor-device-trigger-panel">
-                        
-                        <div class="grid-2">
-                            <span>Trigger Device</span>
-                            <select id="editor-device-trigger-source-device">
-                            </select>
-                        </div>
-
-                        <div class="grid-2">
-                            <span>Trigger Type</span>
-                            <select id="editor-device-trigger-type">
-                                <option value="<"><</option>
-                                <option value=">">></option>
-                                <option value="=">=</option>
-                            </select>
-                        </div>
-
-                        <div class="grid-2">
-                            <span>Trigger Value</span>
-                            <input type="number" id="editor-device-trigger-value">
-                            </select>
-                        </div>
-                        <div class="grid-2">
-                            <span>Threshold</span>
-                            <input type="number" id="editor-device-trigger-threshold">
-                            </select>
-                        </div>
-                        <div class="row">
-                            <span class="hint">Once turned on, source must cross the Trigger Value by this amount to turn off.</span>
-                        </div>
-                    </div>
-                </div>
-                
-                
-            </div>
-        </div>
-
-
-
         <div class="section" id="editor-certificate-upload">
             <div class="header-sub">Certificates must be in DER format!</div>            
             <div class="hint">
@@ -619,30 +484,6 @@
                 </div>
                 
             </div> 
-        </div>
-
-        <div class="section" id="editor-certificate-generate">
-            <div class="hint">If you want to generate a new self signed certificate, you can do that here.</div>
-            <div class="column">
-                <div class="row">
-                    <label for="device-name">Device Name</label>
-                    <input type="text" name="device-name" id="device-name"/>
-                </div>
-                <div class="row">
-                    <label for="company-name">Company Name</label>
-                    <input type="text" name="company-name" id="company-name"/>
-                </div>
-                <div class="row">
-                    <label for="valid-from">Valid From</label>
-                    <input type="date" name="valid-from" id="valid-from"/>
-                </div>
-                <div class="row">
-                    <label for="valid-to">Valid To</label>
-                    <input type="date" name="valid-to" id="valid-to"/>
-                </div>
-                
-            </div>    
-            
         </div>
 
     </div>

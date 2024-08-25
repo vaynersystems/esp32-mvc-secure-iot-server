@@ -4,21 +4,31 @@
         "Type": "Text",
         "Value": "",
         "Readonly": false,
-        "Source": "username"
+        "Source": "username",
+        "Validation": [
+            {"Type": "Required"},
+            {"Type": "MinLength", "Value": 5}
+        ]
     },
     {
         "Name": "Password",
         "Type": "Password",
         "Value": "",
         "Readonly": false,
-        "Source": "password"
+        "Source": "password",
+        "Validation": [
+            {"Type": "Required"}
+        ]
     },
     {
         "Name": "Confirm Password",
         "Type": "Password",
         "Value": "",
         "Readonly": false,
-        "Source": "password"
+        "Source": "confirm",
+        "Validation": [
+            {"Type": "Required"}
+        ]
     },
     {
         "Name": "Role",
@@ -32,5 +42,5 @@
         "Type": "Boolean",
         "Readonly": false,
         "Source": "enabled"
-    }          
+    }   
 ]
