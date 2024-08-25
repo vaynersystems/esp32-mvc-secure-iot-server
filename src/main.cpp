@@ -33,9 +33,9 @@ void onShutdown();
 #endif
 #define REPORT_FREQUENCY 5000000 // 5 seconds
 // DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
-extern const int SERVER_STACK_SIZE = 1024*32; 
+extern const int SERVER_STACK_SIZE = 1024*24; 
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
-extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 42;
+extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
 const TickType_t deviceDelay = 600 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS;
 #ifdef DEBUG
 int64_t lastreportServer = 0;

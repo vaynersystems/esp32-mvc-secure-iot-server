@@ -90,7 +90,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role, bool enabled){
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     byte encryptedPass[SHA256_SIZE];
-    char storedPass[64];
+    char storedPass[(SHA256_SIZE*2) + 1];
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
@@ -138,7 +138,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
        
     }
     byte encryptedPass[SHA256_SIZE];
-    char storedPass[64];
+    char storedPass[(SHA256_SIZE*2) + 1]; //2 bytes per hex digit and null terminator
     //get user object, update it, store back
     File file = SPIFFS.open(PATH_AUTH_FILE);
     DynamicJsonDocument doc(2048);
@@ -157,17 +157,14 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
         
              
     encryptPassword(newPassword, encryptedPass);
-    binaryPasswordToString(encryptedPass, storedPass);
-
-    existingUser["password"] = storedPass;    
+    binaryPasswordToString(encryptedPass, storedPass);         
+    existingUser["password"] = storedPass;
 
     //write back
     file = SPIFFS.open(PATH_AUTH_FILE,"w");
     serializeJson(doc, file);
 //    file.flush();
     file.close();
-        
-    
     return ChangePasswordResult::Ok;    
 }
 

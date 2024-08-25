@@ -38,96 +38,14 @@
         </div>    
     </div>
 
-    <div  name="user-change-password-editor" id="user-change-password-editor">
-        <div class="header">Change Password</div>
-        <div class="content">
-            <div class="grid-2">
-                <span>Username</span>
-                <div name="editor-username" id="editor-username"></div>
-            </div> 
-            <div class="grid-2">
-                <span>Old Password</span>
-                <input type="password" name="editor-old-password" id="editor-old-password"/>    
-            </div> 
-            <div class="grid-2">
-                <span>New Password</span>
-                <input type="password" name="editor-new-password" id="editor-new-password"/>  
-            </div> 
-            <div class="grid-2">
-                <span>Confirm Password</span>
-                <input type="password" name="editor-confirm-password" id="editor-confirm-password"/>  
-            </div> 
-        </div>
-    </div>
-
-    <div name="user-editor" id="user-editor">
-        <div class="header">User Details</div>
-        <div class="content">
-            <div class="grid-2">
-                <span>Username</span>
-                <div name="editor-username" id="editor-username"></div>
-            </div> 
-            
-            <div class="grid-2">
-                <span>Role</span>
-                <div>
-                    <select id="editor-user-role" name="editor-user-role">
-                        <option value="ADMIN">Administrator</option>
-                        <option value="USER">User</option>
-                    </select>
-                </div>
-            </div> 
-            <div class="grid-2">
-                <span>Enabled</span>
-                <input type="checkbox" name="editor-user-enabled" id="editor-user-enabled"/>    
-            </div> 
-
-            <div class="grid-2">
-                <span>Created On</span>
-                <div name="editor-created-on" id="editor-created-on"></div>
-            </div> 
-
-        </div>
-    </div>
-
-    <div name="user-new" id="user-new">
-        <div class="header">User Details</div>
-        <div class="content">
-            <div class="grid-2">
-                <span>Username</span>
-                <input type="text" name="editor-username" id="editor-username"/>
-            </div> 
-
-            <div class="grid-2">
-                <span>Password</span>
-                <input type="password" name="editor-password" id="editor-password"/>
-            </div> 
-
-            <div class="grid-2">
-                <span>Confirm Password</span>
-                <input type="password" name="editor-confirm" id="editor-confirm"/>
-            </div> 
-            
-            <div class="grid-2">
-                <span>Role</span>
-                <div>
-                    <select id="editor-user-role" name="editor-user-role">
-                        <option value="ADMIN">Administrator</option>
-                        <option value="USER">User</option>
-                    </select>
-                </div>
-            </div> 
-            <div class="grid-2">
-                <span>Enabled</span>
-                <input type="checkbox" name="editor-user-enabled" id="editor-user-enabled"/>    
-            </div> 
-        </div>
-    </div>
+    
 </div>
 
-
+<script src="/W/JS/esp32_modal.js"></script>
 <script type="text/javascript">
-
+const changePasswordViewModelPath = '/W/M/change_password_model.json';
+const createUserViewModelPath = '/W/M/create_user_model.json';
+const editUserViewModelPath = '/W/M/edit_user_model.json';
 var request = new XMLHttpRequest();
 
 function loadUsers(configDataSting){
@@ -158,7 +76,7 @@ function loadUsers(configDataSting){
         userEntry.className = "grid-5 grid-row";
 
         userEntry.querySelector('#user-delete').addEventListener('click', () => {
-            showModal('Are you sure you want to delete user <b>' + userEntry.getAttribute('username') + '</b>?','Confirm Delete User',
+            showModal('Confirm Delete User','Are you sure you want to delete user <b>' + userEntry.getAttribute('username') + '</b>?',
                 [
                     {text:'No', action: () => closeModal() }, 
                     {text: 'Yes', action: () => {deleteUser(userEntry.getAttribute('username'));closeModal();} }
@@ -181,24 +99,26 @@ function loadUsers(configDataSting){
 }
 
 function showChangePassword(username){
-    const userChangePasswordSourceElement = document.getElementById('user-change-password-editor');
-    if(userChangePasswordSourceElement === null) return;
+    // const userChangePasswordSourceElement = document.getElementById('user-change-password-editor');
+    // if(userChangePasswordSourceElement === null) return;
 
-    const userChangePasswordElement =  document.createElement('div');
-    userChangePasswordElement.innerHTML = userChangePasswordSourceElement.innerHTML;
+    // const userChangePasswordElement =  document.createElement('div');
+    // userChangePasswordElement.innerHTML = userChangePasswordSourceElement.innerHTML;
 
 
-    const usernameElement = userChangePasswordElement.querySelector('#editor-username');   
-    if(usernameElement === null)  return;
+    // const usernameElement = userChangePasswordElement.querySelector('#editor-username');   
+    // if(usernameElement === null)  return;
 
-    usernameElement.innerHTML = username;
+    // usernameElement.innerHTML = username;
 
-    showModalComponent(userChangePasswordElement,'Change Password', 
-        [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Change', action:  () => {if(changePassword()) closeModal();}}
-        ]
-    );
+    openModal('Change ' + username + '\'s password', changePasswordViewModelPath, {'username': username}, null, null, null, changePassword);
+
+    // showModalComponent(userChangePasswordElement,'Change Password', 
+    //     [
+    //         { text:'Cancel',action: () => { closeModal();}},
+    //         { text: 'Change', action:  () => {if(changePassword()) closeModal();}}
+    //     ]
+    // );
 }
 
 function deleteUser(username){
@@ -228,18 +148,17 @@ function deleteUser(username){
     showLoading();
 }
 
-function changePassword(){
-    modalElement = document.getElementById("system-modal-content");
+function changePassword(viewModel){
+    // modalElement = document.getElementById("system-modal-content");
 
     changePasswordRequest = {};
-    changePasswordRequest.username = modalElement.querySelector('#editor-username').innerHTML;
-    changePasswordRequest.oldPassword = modalElement.querySelector('#editor-old-password').value;
-    changePasswordRequest.newPassword = modalElement.querySelector('#editor-new-password').value;
-    changePasswordRequest.confirmPassword = modalElement.querySelector('#editor-confirm-password').value;
+    changePasswordRequest.username = viewModel.find(f => f.Source== 'username').Value;
+    changePasswordRequest.oldPassword = viewModel.find(f => f.Source== 'oldPassword').Value;
+    changePasswordRequest.newPassword = viewModel.find(f => f.Source== 'newPassword').Value;
+    changePasswordRequest.confirmPassword = viewModel.find(f => f.Source== 'confirmPassword').Value;
 
     if(changePasswordRequest.newPassword != changePasswordRequest.confirmPassword){
-        alert('New and Confirm passwords do not match!');
-        return false;
+        return ['New and Confirm passwords do not match!'];
     }
     console.log('change password', changePasswordRequest);
 
@@ -252,7 +171,7 @@ function changePassword(){
 
             hideLoading();
             if (request.status == 401) {
-                showModal('<p class="error">' + request.statusText + '</p>','Error changing password')
+                showModal('Error changing password','<p class="error">' + request.statusText + '</p>',)
                 return;
             }
             var response = request.responseText;
@@ -268,41 +187,41 @@ function changePassword(){
     return true;
 
 }
+function showEditUser(user){   
+        openModal('Edit ' + user.name, editUserViewModelPath, user, null, UpdateUser);     
+        // const userEditorElementSource = document.getElementById('user-editor');
+        // if(userEditorElementSource === null) return;
+        // const userEditorElement = document.createElement('div');
+        // userEditorElement.innerHTML = userEditorElementSource.innerHTML;
 
-function showEditUser(user){        
-        const userEditorElementSource = document.getElementById('user-editor');
-        if(userEditorElementSource === null) return;
-        const userEditorElement = document.createElement('div');
-        userEditorElement.innerHTML = userEditorElementSource.innerHTML;
+        // const usernameElement = userEditorElement.querySelector('#editor-username');
+        // usernameElement.innerHTML = user.username;
 
-        const usernameElement = userEditorElement.querySelector('#editor-username');
-        usernameElement.innerHTML = user.username;
+        // const roleElement = userEditorElement.querySelector('#editor-user-role');
+        // if(roleElement !== null) roleElement.value = user.role;
 
-        const roleElement = userEditorElement.querySelector('#editor-user-role');
-        if(roleElement !== null) roleElement.value = user.role;
+        // const enabledElement = userEditorElement.querySelector('#editor-user-enabled');
+        // if(enabledElement !== null) enabledElement.checked = user.enabled;
 
-        const enabledElement = userEditorElement.querySelector('#editor-user-enabled');
-        if(enabledElement !== null) enabledElement.checked = user.enabled;
+        // const createdOnElement = userEditorElement.querySelector('#editor-created-on');
+        // if(createdOnElement !== null ) createdOnElement.innerHTML = user.created;
 
-        const createdOnElement = userEditorElement.querySelector('#editor-created-on');
-        if(createdOnElement !== null ) createdOnElement.innerHTML = user.created;
-
-        showModalComponent(userEditorElement,'Edit User', 
-        [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Save', action:  () => {if(UpdateUser()) closeModal();}}
-        ]
-    );
+        // showModalComponent(userEditorElement,'Edit User', 
+        // [
+        //     { text:'Cancel',action: () => { closeModal();}},
+        //     { text: 'Save', action:  () => {if(UpdateUser()) closeModal();}}
+        // ]
+    // );
 
 }
 
-function UpdateUser(){
+function UpdateUser(userModel){
     modalElement = document.getElementById("system-modal-content");
 
     updateUserRequest = {};
-    updateUserRequest.username = modalElement.querySelector('#editor-username').innerHTML;
-    updateUserRequest.role = modalElement.querySelector('#editor-user-role').value;
-    updateUserRequest.enabled = modalElement.querySelector('#editor-user-enabled').checked;
+    updateUserRequest.username = userModel.username;
+    updateUserRequest.role = userModel.role;
+    updateUserRequest.enabled = userModel.enabled;
 
    
     console.log('update user', updateUserRequest);
@@ -334,36 +253,36 @@ function UpdateUser(){
 
 }
 
-function showCreateUser(user){        
-        const userCreateElementSource = document.getElementById('user-new');
-        if(userCreateElementSource === null) return;
-        const useCreateElement = document.createElement('div');
-        useCreateElement.innerHTML = userCreateElementSource.innerHTML;
+function showCreateUser(user){  
+        openModal('Add User', createUserViewModelPath, user, null, null, null,CreateUser);       
+    //     const userCreateElementSource = document.getElementById('user-new');
+    //     if(userCreateElementSource === null) return;
+    //     const useCreateElement = document.createElement('div');
+    //     useCreateElement.innerHTML = userCreateElementSource.innerHTML;
+
+    //     showModal()
 
 
-        showModalComponent(useCreateElement,'Create User', 
-        [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Save', action:  () => {if(CreateUser()) closeModal();}}
-        ]
-    );
+    //     showModalComponent(useCreateElement,'Create User', 
+    //     [
+    //         { text:'Cancel',action: () => { closeModal();}},
+    //         { text: 'Save', action:  () => {if(CreateUser()) closeModal();}}
+    //     ]
+    // );
 
 }
 
-function CreateUser(){
-
-    modalElement = document.getElementById("system-modal-content");
+function CreateUser(userViewModel){
 
     createUserRequest = {};
-    createUserRequest.username = modalElement.querySelector('#editor-username').value;
-    createUserRequest.password = modalElement.querySelector('#editor-password').value;
-    createUserRequest.confirm = modalElement.querySelector('#editor-confirm').value;
-    createUserRequest.role = modalElement.querySelector('#editor-user-role').value;
-    createUserRequest.enabled = modalElement.querySelector('#editor-user-enabled').checked;
+    createUserRequest.username = userViewModel.find(f => f.Source == 'username').Value;// modalElement.querySelector('#editor-username').value;
+    createUserRequest.password = userViewModel.find(f => f.Source == 'password').Value;
+    createUserRequest.confirm = userViewModel.find(f => f.Source == 'confirm').Value;
+    createUserRequest.role = userViewModel.find(f => f.Source == 'role').Value;
+    createUserRequest.enabled = userViewModel.find(f => f.Source == 'enabled').Value;
 
     if(createUserRequest.password !== createUserRequest.confirm){
-        alert('Passwords do not match!');
-        return false;
+        return ['Passwords do not match!'];
     }
 
    

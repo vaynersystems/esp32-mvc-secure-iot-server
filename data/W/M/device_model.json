@@ -15,14 +15,30 @@
         "Name": "Device Type",
         "Type": "LookupGrouped",
         "Readonly": false,
-        "Data" : [{"name":"Digital Input", "value": 1, "group": "Inputs"},{"name": "Analog Input", "value": 2, "group": "Inputs"},{ "name": "Thermometer", "value":3, "group": "Inputs"}, {"name": "Switch", "value": 4, "group": "Outputs"},{"name":"Relay" , "value": 5, "group": "Outputs"}],
+        "Value": "DigitalInput",
+        "Data" : [{"name":"Digital Input", "value": "DigitalInput", "group": "Inputs"},{"name": "Analog Input", "value": "AnalogInput", "group": "Inputs"},{ "name": "Thermometer", "value":"Thermometer", "group": "Inputs"}, {"name": "Switch", "value": "Switch", "group": "Outputs"},{"name":"Relay" , "value": "Relay", "group": "Outputs"}],
         "Source": "type"
     },
     {
         "Name": "Device Pin",
         "Type": "Lookup",
         "Readonly": false,
-        "Data" : [{"name":"D22", "value":22}, {"name": "D23", "value":23}, {"name": "D24", "value":24}, {"name": "D25", "value":25}],
+        "Value": 4,
+        "Data" : [
+            {"name":"D13", "value":13},
+            {"name":"D18", "value":18},
+            {"name":"D19", "value":19},
+            {"name":"D21", "value":21},
+            {"name":"D22", "value":22},
+            {"name":"D23", "value":23},
+            {"name": "D25", "value":25},
+            {"name": "D26", "value":26},
+            {"name": "D27", "value":27},
+            {"name": "D32 (analog)", "value":32},
+            {"name": "D33 (analog)", "value":33},
+            {"name": "D34 (analog)", "value":34},
+            {"name": "D35 (analog)", "value":35}
+        ],
         "Source": "pin",
         "Unique": true
     },
@@ -45,7 +61,19 @@
         "Type": "Lookup",
         "Source": "mqtt.frequency",
         "Readonly": false,
-        "Data": [{"name":"5 seconds", "value":5},{"name":"30 seconds", "value":30},{"name": "1 minute", "value":60}, {"name": "5 minutes", "value":300}],
+        "Data": [
+            {"name":"1 minute", "value":1},
+            {"name":"2 minutes", "value":2},
+            {"name": "5 minutes", "value":5}, 
+            {"name": "10 minutes", "value":10},
+            {"name": "15 minutes", "value":15},
+            {"name": "30 minutes", "value":30},
+            {"name": "1 hour", "value":60},
+            {"name": "2 hours", "value":120},
+            {"name": "3 hours", "value":180},
+            {"name": "4 hours", "value":240}
+        ],
+
         "Condition1": "MQTT Publish",
         "ConditionValue1": true,
         "Condition2": "Device Type.group",
@@ -54,10 +82,10 @@
     {
         "Name": "Device Signal",
         "Type": "Lookup",
-        "Value": "on",
+        "Value": "high",
         "Source": "signal",
         "Readonly": false,
-        "Data": [{"name":"Active High", "value":"on"}, {"name": "Active Low", "value":"off"}]                   
+        "Data": [{"name":"Active High", "value":"high"}, {"name": "Active Low", "value":"low"}]                   
     },
     {
         "Name": "Duration",

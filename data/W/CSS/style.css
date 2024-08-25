@@ -269,14 +269,14 @@ p, div, span, input{
     flex-direction: column;
     justify-content: space-between;
     max-width: 600px;
-    min-height: 250px;    
+    min-height: 150px;    
     text-align: center;
     align-content: center;
     background: var(--primary-control-background);
     color:var(--primary-control-color);
     margin: 15px;
     box-shadow: 6px 6px;
-    
+    width: fit-content;
     margin: auto;
 }
 #system-modal-content .header{
@@ -298,6 +298,9 @@ p, div, span, input{
     flex-grow: 1;
 }
 #system-modal-text{
+    padding: 5px 20px;
+}
+#system-modal-errors{
     padding: 5px 20px;
 }
 #system-modal-actions{
@@ -360,6 +363,13 @@ p, div, span, input{
     font-size: 16px;
     flex-grow:0;
     line-height: 18px;
+}
+
+.error{
+    color:red;
+    font-size: 12px;
+    display: flex;
+    flex-grow: 1;
 }
 
 @media screen and (max-width: 900px) {

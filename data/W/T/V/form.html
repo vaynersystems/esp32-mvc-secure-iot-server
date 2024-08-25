@@ -4,9 +4,12 @@
     <button onclick="showMockGenerateCertificateEditor()">Generate Certificate</button>
     <button onclick="showMockAddUserEditor()">Add User</button>
     <button onclick="showMockEditUserEditor()">Edit User</button>
+    <button onclick="showMocEditUserEditorWithModel()">Edit User - with dynamic model</button>
+    
 </div>
 <link rel="stylesheet" href="/W/CSS/style.css">
 <link rel="stylesheet" href="/W/CSS/theme.css">
+<script src="/W/JS/esp32_modal.js"></script>
 <script type="text/javascript">
     const deviceViewModelPath = '/W/M/device_model.json';
     const genCertViewModelPath = '/W/M/generate_cert_model.json';
@@ -36,7 +39,7 @@
         openModal(
             'Edit Device',
             deviceViewModelPath,
-            {name: 'Pool Temp', id: 2, pin: 23, type:"2", mqtt: {publish: false, frequency: 300}, trigger: {active:true} },
+            {name: 'Pool Temp', id: 2, pin: 23, type:"Thermometer", mqtt: {publish: false, frequency: 300}, trigger: {active:true} },
             [
                 {
                     Source: 'trigger.device', 
@@ -71,417 +74,53 @@
         );
     }
 
+    function showMocEditUserEditorWithModel(){
+        openModalWithModel(
+            'Edit User - dynamic model', 
+            [
+                {
+                    "Name": "Username",
+                    "Type": "Text",
+                    "Value": "",
+                    "Readonly": false,
+                    "Source": "username"
+                },
+                {
+                    "Name": "Password",
+                    "Type": "Password",
+                    "Value": "",
+                    "Readonly": false,
+                    "Source": "password"
+                },
+                {
+                    "Name": "Confirm Password",
+                    "Type": "Password",
+                    "Value": "",
+                    "Readonly": false,
+                    "Source": "password"
+                },
+                {
+                    "Name": "Role",
+                    "Type": "Lookup",
+                    "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}, {"name":"Manager", "value": "MGR"}],
+                    "Readonly": false,
+                    "Source": "role"
+                },
+                {
+                    "Name": "Enabled",
+                    "Type": "Boolean",
+                    "Readonly": false,
+                    "Source": "enabled"
+                }          
+            ]
+        );
+    }
+
     function cancelFunction(model){
         console.log('**Modal Closed**. Cancelled!',model);
     }
     function saveFunction(model){
         console.log('**Modal Closed**. Model can be saved!',model);
-    }
-
-</script>
-        
-<script type="text/javascript">
-    
-    /*****  MODAL CODE, goes into seperate and reusable component  ******/
-    var modalModel;
-    
-    /**
-     *  Opens Modal view with view model and model provided
-     *  Can call save or cancell callback functions when completed
-     * @param {text} name - Form Name,
-     * @param {text} viewModelUri - path where model json is located
-     * @param {object} model - your object model or DTO
-     * @param {array} optional - list of optional parameters in the form {Source: 'Model Path of data point', Field: 'View Model field to bind', Value:'Value to bind'}
-     * @param {function} saveCallback - function to call after form is saved
-     * @param {function} cancelCallback - function to call after form is cancelled
-     */
-    function openModal(name, viewModelUri, model, optional, saveCallback, cancellCallback){
-        fetch(viewModelUri)
-            .then(response => response.json())
-            .then(viewModel => {
-                openModalWithModel(name,viewModel,model,optional, saveCallback, cancelFunction);
-            })
-            .catch(error => console.error(error));
-    }
-
-    function openModalWithModel(name, viewModel, model, optional, saveCallback, cancellCallback){
-        //populate deviceModel fields -- generic for all objects
-        populateViewModel(model, viewModel, optional);
-
-        modalModel = {
-        Name: name, /* string */
-        Items: viewModel,
-        Actions: [
-            { text:'Cancel',action: () => { closeModal(cancellCallback);}},
-            { text: 'Save', action:  () => { saveModel(model);closeModal(saveCallback)}}
-        ],                
-        };
-
-        var modalWindow = showModalModel(modalModel);  
-    }
-
-   
-    //shows the modal dialog using the model provided
-    function showModalModel(viewModel, width){
-
-        //close if any are open
-        closeModal();
-        if(viewModel === undefined)
-            viewModel = createViewModel(undefined);
-
-
-        const modalComponent = _generateModalComponent(width);        
-
-        var t = document.getElementById('system-modal-text');
-        if (t !== null) {   
-            t.innerHTML = '';
-            _drawModalFields(t, viewModel.Items);
-        }
-
-        var h = document.getElementById('system-modal-header');
-        if (h !== null) h.innerHTML = viewModel.Name === undefined ? 'ESP32 MODAL' : viewModel.Name;
-
-        var a = document.getElementById('system-modal-actions');
-        if (a !== null){
-            a.innerHTML = '';
-            if(modalModel.Actions === undefined || modalModel.Actions.length <= 0){
-                modalModel.Actions = [{text:'Ok', action: ()=>{ closeModal();}}]; //default ok
-            }
-
-            for(var b of modalModel.Actions){
-                const button = document.createElement('button');
-                button.textContent = b.text;            
-                button.addEventListener('click', b.action);
-                a.appendChild(button);
-            }    
-        }
-        window.addEventListener('keydown', function(key) {
-            if(key.code == 'Escape')
-                closeModal();
-        })
-
-        return modalComponent;
-    }
-
-    function _drawModalFields(container, model){    
-        for(var modelField of model){
-            //console.log(modelField);
-            _drawModalField(container, modelField);
-                
-        }
-    }
-
-    function _drawModalField(container, modelField){
-        var fieldContainerElement = document.createElement('div');
-        fieldContainerElement.className = 'grid-2';
-        fieldContainerElement.id = 'field-container-' + modelField.Name;
-        
-        var fieldNameElement = document.createElement('span');
-        fieldNameElement.innerHTML = modelField.Name;
-        fieldContainerElement.appendChild(fieldNameElement);
-
-        if(modelField.Readonly){
-            var fieldValueElement = document.createElement('span');
-            fieldValueElement.innerHTML = modelField.Value ?? '';
-            fieldValueElement.id = 'field-value-' + modelField.Name;
-            fieldContainerElement.appendChild(fieldValueElement);
-        }
-        else{
-            switch(modelField.Type){
-                case 'Number':
-                    var fieldInputElement = document.createElement('input');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.type = 'text';
-                    fieldInputElement.value = modelField.Value ?? '';
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-                case 'Text':
-                    var fieldInputElement = document.createElement('input');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.type = 'text';
-                    fieldInputElement.value = modelField.Value ?? '';
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-                case 'Password':
-                case 'password':
-                case 'Secret':
-                case 'secret':
-                    var fieldInputElement = document.createElement('input');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.type = 'password';
-                    fieldInputElement.value = modelField.Value ?? '';
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-                case 'Boolean':
-                case 'boolean':
-                case 'Bool':
-                case 'bool':
-                case 'Bit':
-                case 'bit':
-                case 'check':
-                case 'checkbox':
-                    var fieldInputElement = document.createElement('input');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.type = 'checkbox';
-                    fieldInputElement.checked = modelField.Value ?? '';
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.checked);
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-                case 'Date':
-                case 'date':
-                    var fieldInputElement = document.createElement('input');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.type = 'date';
-                    fieldInputElement.value = modelField.Value ?? '';
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;                
-                case 'Lookup':
-                    var fieldInputElement = document.createElement('select');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    
-
-                    if(modelField.Data != undefined)
-                        for(var option of modelField.Data){
-                            // TODO: implement unique check
-                            //if unique, filter out options used already
-                            var optionElement = document.createElement('option');
-                            optionElement.value = option.value;
-                            optionElement.text = option.name;
-                            fieldInputElement.appendChild(optionElement);
-                        }
-
-                    if(modelField.Value !== undefined)
-                        fieldInputElement.value = modelField.Value;
-
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-                case 'LookupGrouped':
-                    var fieldInputElement = document.createElement('select');
-                    fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    
-                    if(modelField.Data != undefined){
-                        var grouped = Object.groupBy(modelField.Data, ({group}) => group); 
-                        for(var groupName of Object.keys(grouped)){
-                            var group = grouped[groupName];
-                            var groupElement = document.createElement('optgroup');
-                            groupElement.label = groupName;
-                            
-                            for(var option of group){
-                                var optionElement = document.createElement('option');
-                                optionElement.value = option.value;
-                                optionElement.text = option.name;
-                                groupElement.appendChild(optionElement);
-                            }
-                            if(groupElement !== undefined)
-                            fieldInputElement.appendChild(groupElement);
-                        }
-                        
-                    }
-
-                    if(modelField.Value !== undefined)
-                        fieldInputElement.value = modelField.Value;
-
-                    fieldContainerElement.appendChild(fieldInputElement);
-                    break;
-            }    
-        }
-
-        fieldContainerElement.checkConditions = function (){
-            if(modelField.Condition1 !== undefined){
-                checkCondition(fieldContainerElement, 'condition1Met', modelField.Condition1, modelField.ConditionValue1);
-            }
-            if(modelField.Condition2 !== undefined){
-                checkCondition(fieldContainerElement, 'condition2Met', modelField.Condition2, modelField.ConditionValue2);
-            }
-
-            fieldContainerElement.style.display = fieldContainerElement.condition1Met && fieldContainerElement.condition2Met ? 'grid' : 'none';
-        }
-        fieldContainerElement.condition1Met = true;
-        fieldContainerElement.condition2Met = true;
-        
-            
-        if(modelField.Condition1 !== undefined){
-            initConditionCheck(container, fieldContainerElement, 'condition1Met', modelField.Condition1, modelField.ConditionValue1);
-        }
-        if(modelField.Condition2 !== undefined){
-            initConditionCheck(container, fieldContainerElement, 'condition2Met', modelField.Condition2, modelField.ConditionValue2);
-        }
-        
-        fieldContainerElement.style.display = fieldContainerElement.condition1Met && fieldContainerElement.condition2Met ? 'grid' : 'none';
-              
-        
-        container.appendChild(fieldContainerElement);
-    }
-
- 
-    function initConditionCheck(container, fieldContainerElement, conditionName, condition, value){
-        var conditionMet = false;
-        var fieldName = condition.includes('.') ? condition.substring(0,condition.indexOf(".")) : condition;
-
-        //get field representing condition. bind event change to check condition
-        var modelConditionalElement = container.querySelector('[id="field-value-' +fieldName + '"]');
-        if(modelConditionalElement !== null){
-            fieldContainerElement.checkConditions();
-
-            //add event
-            modelConditionalElement.addEventListener('change', (visualElement) =>{
-                fieldContainerElement.checkConditions();
-            });
-        }
-    }
-
-    function checkCondition(fieldContainerElement, conditionName, condition, value){
-
-        var conditionMet = false;
-        var fieldName = condition;
-        var fieldCompareName = fieldName;
-        if(condition.includes(".")){
-            fieldName = condition.substring(0,condition.indexOf("."));
-            //field we want to use for comparison
-            fieldCompareName = condition.substring(condition.indexOf(".") + 1);
-            var fieldValue = modalModel.Items.find(i => i.Name == fieldName);
-            var fieldData = fieldValue.Value === undefined ? '': fieldValue?.Data.find(d => d['value'] == fieldValue.Value);
-
-            conditionMet = fieldData[fieldCompareName] == value;
-            fieldContainerElement[conditionName] = conditionMet;
-        }  else{
-            conditionMet = modalModel.Items.find(i => i.Name == fieldCompareName)?.Value == value;
-            fieldContainerElement[conditionName] = conditionMet;
-        }
-        
-        switch(fieldContainerElement.type){
-            case 'checkbox':
-                conditionMet = fieldContainerElement.checked == value;
-                break;
-            case 'text':
-            case 'number':
-            case 'date':
-            case 'select':
-                conditionMet = fieldContainerElement.value == value;
-                break;
-        }
-        
-        fieldContainerElement[conditionName] = conditionMet;
-        return conditionMet;
-    }
-
-    function createViewModel(){
-        
-        var viewModel = {
-        Name: ' *** ', /* string */
-        Items: [],         
-        Actions: [
-            { text:'Cancel',action: () => { closeModal();}},
-            { text: 'Save', action:  () => { saveModel(device);closeModal();}}
-        ]};
-        return viewModel;
-        
-    }
-
-    function populateViewModel(sourceModel, viewModel, optional){
-        if(sourceModel === undefined) return;
-
-        for(property in sourceModel){
-            var modelProperty = sourceModel[property];
-            if( typeof modelProperty === 'object' ){
-                //enumerate children
-                for(childProperty in modelProperty){
-                    var viewModelProperty = viewModel.find(field => field.Source == property + "." + childProperty);  
-                    if(viewModelProperty === undefined) continue; //property not used                   
-                        viewModelProperty.Value = sourceModel[property][childProperty];                    
-                }
-            } else{
-                var viewModelProperty = viewModel.find(field => field.Source == property);
-                if(viewModelProperty === undefined) continue; //property not used             
-                viewModelProperty.Value = sourceModel[property]
-            }
-            
-        }
-        //populate optional
-        if(optional === undefined || optional === null)
-            return;
-        for(var option of optional){
-            var viewModelField = viewModel.find(f => f.Source == option.Source);
-            if(viewModelField !== undefined)
-                viewModelField[option.Field] = option.Value;
-        };
-    }
-
-    var returnModel = {};
-    function saveModel(sourceModel){
-        //var m = {};
-        if(sourceModel === undefined) sourceModel = {};
-        for(property of modalModel.Items){
-            if(property.Source.includes('.')){
-                var parentName = property.Source.substring(0,property.Source.indexOf('.'));
-                var childName = property.Source.substring(property.Source.indexOf('.') + 1);
-                if(sourceModel[parentName] === undefined)
-                    sourceModel[parentName] = {};
-                sourceModel[parentName][childName] = property.Value;
-            } 
-            else
-            sourceModel[property.Source] = property.Value;
-        }
-        //console.log('Saving Model ' + modalModel.Name , /* modalModel, */ sourceModel);
-        returnModel = sourceModel;
-    }
-    
-
-
-
-    function closeModal(callbackFn){
-        var l = document.getElementById('system-modal');        
-        if (l === null) return;
-        //console.log('Closing Modal');
-        if(callbackFn !== undefined)
-        callbackFn(returnModel);
-        
-        _destroyModalComponent();
-    }
-
-
-    /* ******************************** */
-    //generates the HTML component drawing the modal window and adds it to the document
-    function _generateModalComponent(width){
-        const html = `
-        <div id="system-modal">        
-            <div id="system-modal-content">
-                <div class="row">
-                    <div id="system-modal-header"></div>
-                    <div id="system-modal-close" onclick="closeModal();">X</div>                
-                </div>
-                <div id="system-modal-text"></div>
-                <div id="system-modal-actions">
-                    <button onclick="closeModal()">Ok</button>
-                </div>
-            </div>        
-        </div>`;
-        const modalComponent = document.createElement('div');
-        modalComponent.innerHTML = html;
-        modalComponent.className = "system-modal-container"
-        document.body.appendChild(modalComponent);
-
-        const modalContentComponent = document.getElementById('system-modal-content');
-        if(modalContentComponent !== null && width !== undefined) {
-            modalContentComponent.style.minWidth = width;
-            modalContentComponent.style.maxWidth = width;
-            modalContentComponent.style.width = width;
-        }
-        modalComponent.dispatchEvent(new Event("close"));
-        return modalComponent;
-    }
-
-    //TODO: if having multiple modal windows, pass an id, maintain a list of modals
-    function _destroyModalComponent(){
-        const m = document.getElementById('system-modal');
-        if(m !== null)
-            m.parentElement.removeChild(m);
     }
 
 </script>
