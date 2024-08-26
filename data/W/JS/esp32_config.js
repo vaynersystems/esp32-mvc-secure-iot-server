@@ -3,7 +3,7 @@ pendingChanges = false;
 var persistedConfig = '';
 var activeConfig;
 var selectedSection;
-var devices = new esp32_devices();
+
 function selectView(section){
     
     if(selectedSection !== undefined)
@@ -237,7 +237,7 @@ function showLoggingProjections(){
 function loadSettings(){
     
     //overall
-    var view = activeConfig.preferences === undefined ? 'devices' : activeConfig.preferences.lastPage;
+    var view = activeConfig.preferences === undefined ? 'general' : activeConfig.preferences.lastPage;
     selectView(view);
 
     //wifi
@@ -341,20 +341,13 @@ function loadSettings(){
         child.checked = (child.value === activeConfig.server.certificates.source);
     }
 
-    //devices
-    devices.loadDevices(activeConfig.devices);
     pendingChanges = false;
     
 }
 function seveSettingsFromForm(){
     showLoading();
     var config = persistedConfig;
-    //devices
-    config.devices = activeConfig.devices;
-    if(config.devices === undefined)
-        config.devices = [];
-
-
+   
     //schedules
     if(config.schedules === undefined)
         config.schedules = [];
@@ -612,8 +605,7 @@ function esp32_config_init(configDataSting){
         persistedConfig.wifi.mode = 'client';
         persistedConfig.wifi.dhcp = true;
         persistedConfig.preferences = {};
-
-        persistedConfig.preferences.lastPage = 'devices';   
+        persistedConfig.preferences.lastPage = 'wifi';   
     }
     if(persistedConfig.system === undefined){
         persistedConfig.system = {};

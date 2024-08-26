@@ -5,17 +5,24 @@
     <button onclick="showMockAddUserEditor()">Add User</button>
     <button onclick="showMockEditUserEditor()">Edit User</button>
     <button onclick="showMocEditUserEditorWithModel()">Edit User - with dynamic model</button>
+    <button onclick="showMockDeviceList()">Show mock View</button>
     
+</div>
+<div id="spa">
+
 </div>
 <link rel="stylesheet" href="/W/CSS/style.css">
 <link rel="stylesheet" href="/W/CSS/theme.css">
 <script src="/W/JS/esp32_modal.js"></script>
+<script src="/W/JS/esp32_view.js"></script>
 <script type="text/javascript">
     const deviceViewModelPath = '/W/M/device_model.json';
     const genCertViewModelPath = '/W/M/generate_cert_model.json';
     const createUserViewModelPath = '/W/M/create_user_model.json';
     const editUserViewModelPath = '/W/M/edit_user_model.json';
     const changePasswordViewModelPath = '/W/M/change_password_model.json';
+
+    const deviceListViewModelPath = '/W/M/device_list_model.json';
 
     function showMockAddDeviceEditor(){
         openModal(
@@ -51,6 +58,37 @@
             cancelFunction
         );
        
+    }
+
+    function showMockDeviceList(){
+        openView(
+            'Devices',
+            deviceListViewModelPath,
+            [
+                {'id': '1', 'name': 'Device 1', 'type': 'Switch', 'pin':'25'},
+                {'id': '2', 'name': 'Device 2', 'type': 'Thermometer', 'pin':'35'},
+                {'id': '3', 'name': 'Device 3', 'type': 'Relay', 'pin':'34', 'trigger':{ 'active': true}}
+            ],
+            [{
+                'text':'Edit', action: (ev) =>{
+                    openModal(
+                        'Edit Device',
+                        deviceViewModelPath,
+                        ev.currentTarget.record.Record,
+                        [
+                            {
+                                Source: 'trigger.device', 
+                                Field: 'Data', 
+                                Value: [{'name':'Pool Thermometer', 'value':1}, {'name': 'Pool Heater', 'value':2}, {'name': 'Pool Pump', 'value':3}]
+                            }
+                        ],
+                        saveFunction,
+                        cancelFunction
+                    );
+                }
+            }, {'text':'Delete', action: () => alert('device delete clicked')}],
+            [{'text':'Add device', action: () => alert('device add clicked')}]
+        );
     }
 
     function showMockGenerateCertificateEditor(){

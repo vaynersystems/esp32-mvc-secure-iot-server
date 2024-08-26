@@ -79,7 +79,7 @@ body{
     padding: 10px;
 }
 
-.config-content{
+.config-content, #config-content{
     display: flex;
     flex-direction: column;
     flex-grow: 1;
