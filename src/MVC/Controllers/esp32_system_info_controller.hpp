@@ -11,6 +11,13 @@ public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
 
+    virtual esp32_controller_category GetCategory(){
+        return esp32_controller_category::Site;
+    }
+    virtual const char* GetName(){
+        return "Live Monitoring";
+    }
+
 private:
 	static DerivedController<esp32_system_info_controller> reg; //register the controller
     void prettyFlashModeString(string &flashMode);

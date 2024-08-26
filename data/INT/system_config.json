@@ -2,8 +2,8 @@
   "wifi": {
     "mode": "client",
     "dhcp": true,
-    "network": "",
-    "password": ""
+    "network": "dd-wrt",
+    "password": "4409420820"
   },
   "type": "esp32-config",
   "devices": [

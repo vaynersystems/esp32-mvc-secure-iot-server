@@ -6,7 +6,8 @@ let devices =[];
 function onSnapshotData(event){
     if(event.data === null || event.data === undefined) return;
     //update chart stream data
-    lastLiveDataFrame = JSON.parse(event.data);
+    if(event.data.startsWith('{'))
+        lastLiveDataFrame = JSON.parse(event.data);
     dataAvailable = devices.length;   
 }
 

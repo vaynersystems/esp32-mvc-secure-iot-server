@@ -15,6 +15,13 @@ public:
 
     void Logs(HTTPRequest* req, HTTPResponse* res);
 
+    virtual esp32_controller_category GetCategory(){
+        return esp32_controller_category::Tools;
+    }
+    virtual const char* GetName(){
+        return "Logs";
+    }
+
 protected:
     void Action(HTTPRequest* req, HTTPResponse* res);
     bool HasAction(const char * action);    

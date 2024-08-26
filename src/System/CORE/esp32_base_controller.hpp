@@ -16,6 +16,16 @@
 #include <algorithm>
 using namespace httpsserver;
 
+enum esp32_controller_category{
+    Devices = 0,    
+    Site = 1,
+    Tools = 2,
+    Users = 3,
+    Extras = 4,
+    Account = 5,
+    _Internal = 6
+};
+
 class esp32_base_controller {
     public:
         esp32_base_controller() {};
@@ -30,7 +40,7 @@ class esp32_base_controller {
         }
         virtual void List(HTTPRequest* req, HTTPResponse* res) {
             GenericIndex(req,res); //if not overwritten, build page using MVC framework
-         }
+        }
         virtual void Put(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Post(HTTPRequest* req, HTTPResponse* res) { }
         virtual void Delete(HTTPRequest* req, HTTPResponse* res) { }
@@ -43,6 +53,18 @@ class esp32_base_controller {
         virtual bool isDeleteImplemented(){ return false;}
         virtual bool isOptionsImplemented(){ return false;}
 
+        virtual esp32_controller_category GetCategory(){
+            return esp32_controller_category::_Internal;
+        }
+        virtual const char* GetName(){
+            return "Base";
+        }
+
+        virtual bool Authorized(HTTPRequest* req){
+            return true; //default to allow
+        }
+
+        virtual std::string GetControllersJSON(HTTPRequest* req);
         
         /// @brief Function that handles controller actions. Overwrite this function in a controller to implement custom actions
         /// @param req 
@@ -150,6 +172,7 @@ class esp32_base_controller {
     
 protected:
     esp32_controller_route route;   
+    
 
 };
 
@@ -185,9 +208,12 @@ public:
     }
     static int getInstanceCount() {
         map_type::iterator it = getMap()->begin();
-        int count = 0;
-        for (count = 0; count < getMap()->size(); count++)
+        int count = 0; 
+        for (count = 0; count < getMap()->size();count++)
+        {            
             it++;
+        }
+            
         return count;
     }
     static std::pair<std::string, esp32_base_controller*(*)()> getInstanceAt(int idx) {

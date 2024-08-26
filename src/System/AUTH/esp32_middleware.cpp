@@ -23,10 +23,10 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     bool isPostRequest = strstr(req->getMethod().c_str(), "POST") != nullptr ;
 
 
-    
+    Serial.printf("MATCH: %s to /logout: %s\n", req->getRequestString().substr(0, 7).c_str(), req->getRequestString().substr(0, 7) == "/logout" ? "MATCH" : "FAIL");
     if (req->getRequestString().substr(0, 7) == "/logout") {
         jwtTokenFromRequest.clear();
-        res->setHeader("Set-Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;auth=");
+        res->setHeader("Set-Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;auth=; path=/");
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
         next();
@@ -63,7 +63,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
     {   
         reqUsername = req->getBasicAuthUser();
         reqPassword = req->getBasicAuthPassword();
-        //Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
+        Serial.printf("%s request to url: %s. Using %s and %s from basic auth headers | isLoginPage: %s, isPostRequest: %s\n", req->getMethod().c_str(), req->getRequestString().c_str(), reqUsername.c_str(), reqPassword.c_str(), isLoginPage ? "True" : "False", isPostRequest ? "True" : "False");
     }
 
     if(!jwtTokenValid){ //fall back to processing from request if available
@@ -201,8 +201,11 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     }
     if(jwtTokenFromCookie.length() > 0){
         //TODO: check if its expired
-        //Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
-         if(strcmp(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") == 0){
+        bool cookieExpired = strstr(jwtTokenExpires.c_str(),"Thu, 01 Jan 1970 00:00:00 GMT") != nullptr;
+        #ifdef DEBUG_SECURITY
+        Serial.printf("Checking expiry date of cookie %s from cookie header:\n\t%s\n",jwtTokenExpires.c_str(),cookieHeader.c_str());
+        #endif
+         if(cookieExpired){
             if(!isLoginPage){
                 res->setStatusCode(303);
                 res->setHeader("Location", "/login?to=" + request);
@@ -210,6 +213,13 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             }
             if(!server.middleware->isPublicPage(req->getRequestString()))
                 return;
+            else {
+                Serial.println("Anonomous access");
+                req->setHeader(HEADER_USERNAME, "");
+                req->setHeader(HEADER_GROUP, "");
+                req->setHeader(HEADER_COOKIE, "");
+                jwtTokenFromCookie = ""; //clear cookie data
+            }
          }
     }       
 
@@ -368,11 +378,6 @@ bool esp32_middleware::isPublicPage(string path)
         if(iequals(_publicPages[i].c_str(), /* isGz ? path.substr(0,path.length() - 3).c_str() : */ path.c_str(),length))
             return true; //page is marked as public
     }
-    return false;
-}
-
-bool esp32_middleware::parseJwtToken(string &token)
-{
     return false;
 }
 

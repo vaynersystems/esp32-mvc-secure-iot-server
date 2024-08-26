@@ -10,6 +10,9 @@ class esp32_home_controller : public esp32_base_controller {
 public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
+    virtual const char* GetName(){
+        return "Home";
+    }
 private:
 	static DerivedController<esp32_home_controller> reg; //register the controller
 

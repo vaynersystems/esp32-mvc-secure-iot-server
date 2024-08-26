@@ -4,9 +4,7 @@
 DerivedController<custom_task_manager_controller> custom_task_manager_controller::reg("c_t_m");
 
 void custom_task_manager_controller::Index(HTTPRequest* req, HTTPResponse* res) {
-    res->printf("Serving index action for custom_task_manager\n");
-}
-void custom_task_manager_controller::List(HTTPRequest* req, HTTPResponse* res) {
+   
     // Read tasks from file
     StaticJsonDocument<512> doc;
     File taskFile = SPIFFS.open(TASK_LIST_FILE_NAME,"r");

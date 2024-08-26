@@ -115,9 +115,37 @@ int esp32_router::handlePagePart_Header(HTTPRequest *req, HTTPResponse *res, Str
 int esp32_router::handlePagePart_Menu(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
 {
     if (content.length() <= 0)
-        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/menu_int.html" : "/T/menu_pub.html");
+    {
+        if(req->getHeader(HEADER_GROUP).length() <= 0){
+            return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, "/T/menu_pub.html");
+        }
+        //Serial.printf("Authenticated user == %s.\n", req->getHeader(HEADER_GROUP).c_str());
+        int idx = line.indexOf(HTML_REF_CONST_MENU);
+        if (idx < 0)
+            return idx;
+        res->print(line.substring(0, idx));
+
+        auto headerModule =                                        /*controllerFactory->hasInstance(route.controller) ? */
+            controllerFactory->createInstance("_menu_int", "index"); // : NULL;
+
+        if (headerModule != NULL)
+        {
+            // module found
+            headerModule->Action(req, res); // execute module action
+            handlePagePart_Content(req, res, HTML_REF_CONST_CONTENT, headerModule); //render menu template content
+            delete headerModule;
+            res->println(line.substring(idx + sizeof(HTML_REF_CONST_MENU) - 1)); //finish the rest of the global template line
+            return idx;
+        }
+        return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, "/T/menu_pub.html");
+    }
 
     return handlePagePart_FromString(req, res, line, HTML_REF_CONST_MENU, content);
+
+    // if (content.length() <= 0)
+    //     return handlePagePart_FromFile(req, res, line, HTML_REF_CONST_MENU, (req->getHeader(HEADER_GROUP).length() > 0) ? "/T/menu_int.html" : "/T/menu_pub.html");
+
+    // return handlePagePart_FromString(req, res, line, HTML_REF_CONST_MENU, content);
 }
 
 int esp32_router::handlePagePart_Content(HTTPRequest *req, HTTPResponse *res, String line, string content = "")
@@ -335,9 +363,11 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res){
 void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const char * overwriteFilePath)
 {
     string drive="";
-    //req->getParams()->getQueryParameter("drive",drive);
-    
-    //auto fs = strcmp(drive.c_str(),"1") == 0 ? (FS)SPIFFS : (FS)SD;
+    bool authorized = strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    if(!authorized){
+        handle401(req,res);
+        return;
+    }
     if (req->getMethod() == "DELETE")
     {
 
@@ -563,6 +593,12 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 #if ENABLE_EDITOR   	
 void esp32_router::handleEditor(HTTPRequest *req, HTTPResponse *res)
 {
+    
+    bool authorized = strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    if(!authorized){
+        handle401(req,res);
+        return;
+    }
     auto routeInfo = esp32_route_file_info<esp32_file_info_extended>("/W/edit.html");
     esp32_fileio::writeFileToResponse(routeInfo, res);
 
@@ -581,6 +617,19 @@ void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
     res->println("</html>");
 }
 
+void esp32_router::handle401(HTTPRequest *req, HTTPResponse *res)
+{
+    req->discardRequestBody();
+    res->setStatusCode(404);
+    res->setStatusText("Unauthorized");
+    res->setHeader("Content-Type", "text/html");
+    res->println("<!DOCTYPE html>");
+    res->println("<html>");
+    res->println("<head><title>Unauthorized</title></head>");
+    res->println("<body><h1>401 Unauthorized</h1><p>The requested was not authorized for this resource.</p></body>");
+    res->println("</html>");
+}
+
 void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, esp32_controller_route route)
 {
     // route is under controller
@@ -595,6 +644,9 @@ void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, 
     if (!controllerObj->HasAction(route.action.c_str()))
     {
         esp32_router::handle404(req, res);
+    }
+    else if(!controllerObj->Authorized(req)){
+        handle401(req,res);
     }
     else
     {
