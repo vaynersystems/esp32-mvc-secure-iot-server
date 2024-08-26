@@ -40,6 +40,5 @@ protected:
     char *publicKey;
     char *privateKey;
 };
-static const char* PUBLIC_TEMP_PATH = "/TMP/public.cer";
-static const char* PRIVATE_TEMP_PATH = "/TMP/private.key";
+
 #endif

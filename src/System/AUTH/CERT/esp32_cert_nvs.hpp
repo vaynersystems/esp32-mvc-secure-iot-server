@@ -6,7 +6,7 @@
 #include <string.h>
 #include <SPIFFS.h>
 #include "string_helper.h"
-
+#include "esp32_filesystem.hpp"
 class esp32_cert_nvs : public esp32_cert_base{
 
 public:

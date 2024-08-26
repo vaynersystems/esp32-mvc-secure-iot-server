@@ -35,7 +35,8 @@
         "Type": "Lookup",
         "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}],
         "Readonly": false,
-        "Source": "role"
+        "Source": "role",
+        "Value": "USER"
     },
     {
         "Name": "Enabled",

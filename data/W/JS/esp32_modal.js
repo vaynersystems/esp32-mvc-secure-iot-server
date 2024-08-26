@@ -273,6 +273,18 @@
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;                
+                case 'File':
+                case 'file':
+                    var fieldInputElement = document.createElement('input');
+                    fieldInputElement.id = 'field-value-' + modelField.Name;
+                    fieldInputElement.type = 'file';
+                    fieldInputElement.value = modelField.Value ?? '';
+                    fieldInputElement.addEventListener('change',(ev) => {
+                        modelField.Value = fieldInputElement.value;
+                        modelField.Files = fieldInputElement.files;
+                    });
+                    fieldContainerElement.appendChild(fieldInputElement);
+                    break;
                 case 'Lookup':
                     var fieldInputElement = document.createElement('select');
                     fieldInputElement.id = 'field-value-' + modelField.Name;
@@ -449,18 +461,27 @@
 
     var returnModel = {};
     function saveModel(sourceModel){
-        //var m = {};
-        if(sourceModel === undefined) sourceModel = {};
+        if(sourceModel === undefined || sourceModel === null) sourceModel = {};
+
+        var destField = undefined;
         for(property of modalModel.Items){
+            var isFile = false;
+            if(property.Type == 'File' || property.Type == 'file'){
+                isFile = true;
+            }
             if(property.Source.includes('.')){
                 var parentName = property.Source.substring(0,property.Source.indexOf('.'));
                 var childName = property.Source.substring(property.Source.indexOf('.') + 1);
                 if(sourceModel[parentName] === undefined)
                     sourceModel[parentName] = {};
-                sourceModel[parentName][childName] = property.Value;
-            } 
-            else
-            sourceModel[property.Source] = property.Value;
+                sourceModel[parentName][childName] = isFile ? property.Files[0] : property.Value;
+            }
+            else{
+                sourceModel[property.Source] = isFile ? property.Files[0] : property.Value;
+            }
+
+            //include the file in upload
+            
         }
         //console.log('Saving Model ' + modalModel.Name , /* modalModel, */ sourceModel);
         returnModel = sourceModel;
