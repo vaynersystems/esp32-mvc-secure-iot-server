@@ -11,8 +11,8 @@
 
 using namespace httpsserver;
 extern esp32_server server;
-extern const char* PUBLIC_TEMP_PATH;
-extern const char* PRIVATE_TEMP_PATH;
+// extern const char* PUBLIC_TEMP_PATH;
+// extern const char* PRIVATE_TEMP_PATH;
 //void (esp32_config_controller::*getAvailableWifi)(HTTPRequest* request, HTTPResponse* response) = NULL;
 class esp32_config_controller : public esp32_base_controller {
 public:

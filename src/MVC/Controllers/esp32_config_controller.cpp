@@ -203,11 +203,18 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
         //if we need to apply certs do so and clear it
         if(!doc["server"]["certificates"].isNull() && !doc["server"]["certificates"]["uploaded"].isNull()){
             if(doc["server"]["certificates"]["uploaded"].as<bool>() == true){
-                server.importCertFromTemporaryStorage();
+                bool worked = server.importCertFromTemporaryStorage();
                 doc["server"]["certificates"]["uploaded"] = NULL;
+                if(!worked)
+                {
+                    response->setStatusCode(501);
+                    response->setStatusText("Failed to store certificates.");
+                    return false;
+                }
             }
         }
-        File f = SPIFFS.open(PATH_SYSTEM_CONFIG, "w");
+        auto drive = filesystem.getDisk(0);
+        File f = drive->open(PATH_SYSTEM_CONFIG, "w");
         serializeJson(doc,f);
         f.close();
         response->setStatusCode(200);

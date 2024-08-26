@@ -460,7 +460,7 @@ function saveSettings(config){
             hideLoading();
             //hideWait('page');
             if (request.status == 401) {
-                showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                showModal('Unauthorized', '<p class="error">' + request.statusText + '</p>');                
                 return;
             }
             var response = request.responseText;
@@ -478,6 +478,8 @@ function saveSettings(config){
                     }
 
                 ]);
+            } else{
+                showModal('Unknown Error', 'An unknown error occured while saving. Please try again.');
             }
                             
         }

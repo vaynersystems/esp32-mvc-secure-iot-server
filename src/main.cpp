@@ -33,6 +33,7 @@ void onShutdown();
 #endif
 #define REPORT_FREQUENCY 5000000 // 5 seconds
 // DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
+// SET_LOOP_TASK_STACK_SIZE(1024*16)
 extern const int SERVER_STACK_SIZE = 1024*24; 
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;

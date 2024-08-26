@@ -87,11 +87,15 @@ public:
         //Serial.printf("Opening %s on filesystem %s\n", path, partitionLabel);
         string fileSystemPath = getRelativePath(path);
 
+        #ifdef DEBUG
         if(!exists(fileSystemPath.c_str())){
-            //Serial.printf("Path %s not found on drive %s\n", fileSystemPath.c_str(), partitionLabel);
+            Serial.printf("Path %s not found on drive %s\n", fileSystemPath.c_str(), partitionLabel);
         }
+        #endif
         _workingFile = _fileSystem->open(fileSystemPath.c_str(), mode, create);
-        //Serial.printf("%s %s on filesystem %s with %d bytes\n", _workingFile ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel, _workingFile.size());
+        #ifdef DEBUG
+        Serial.printf("%s %s on filesystem %s with %d bytes\n", _workingFile ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel, _workingFile.size());
+        #endif
         return _workingFile;
     }  
 

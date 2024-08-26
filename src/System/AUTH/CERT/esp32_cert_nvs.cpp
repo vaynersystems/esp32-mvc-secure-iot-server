@@ -2,6 +2,7 @@
 #include "esp32_cert_nvs.hpp"
 
 
+extern esp32_file_system filesystem;
 
 bool esp32_cert_nvs::hasPrivateKey()
 {
@@ -132,8 +133,10 @@ void esp32_cert_nvs::saveCertificates(){
 bool esp32_cert_nvs::importFromTemporary()
 {
     logger.logDebug("Importing certificats from temporary storage");    
-    File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "r");
-    File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "r");
+    auto drive = filesystem.getDisk(0);
+
+    auto pubFile = drive->open(PUBLIC_TEMP_PATH, "r");
+    auto priFile = drive->open(PRIVATE_TEMP_PATH, "r");
 
     char *publicKey = new char[pubFile.size()];
     char *privateKey = new char[priFile.size()];
@@ -141,19 +144,23 @@ bool esp32_cert_nvs::importFromTemporary()
     pubFile.readBytes(publicKey, pubFile.size());
     priFile.readBytes(privateKey, priFile.size());
     
-    /* One option is to set fields if ssl cert is initialized*/
-    // _cert->setCert((unsigned char *)publicKey, publicLength);
-    // _cert->setPK((unsigned char *)privateKey, privateLength);
     auto cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
-    //Serial.printf("Importing certificate with %d bytes of data and %d bytes in key\n", cert->getCertLength(), cert->getPKLength());
-    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
-    {
-        _cert = cert;
-        saveCertificates();
-    }    
+
     pubFile.close();
     priFile.close();
 
-    SPIFFS.remove(PUBLIC_TEMP_PATH);
-    SPIFFS.remove(PRIVATE_TEMP_PATH);
+    drive->remove(PUBLIC_TEMP_PATH);
+    drive->remove(PRIVATE_TEMP_PATH); 
+    
+    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
+    {
+        _cert = cert;
+        saveCertificates();   
+        #ifdef DEBUG
+        Serial.printf("Imported certificate with %d bytes of data and %d bytes key\n", cert->getCertLength(), cert->getPKLength());
+        #endif   
+        return true;  
+    }    
+    
+    return false;
 }

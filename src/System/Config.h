@@ -17,6 +17,9 @@
 #define PATH_PUBLIC_PAGES SYSTEM_DRIVE "/INT/public_pages.txt"
 
 
+#define PUBLIC_TEMP_PATH "/TMP/public.cer"
+#define PRIVATE_TEMP_PATH "/TMP/private.key"
+
 
 #define HTML_REF_CONST_TITLE "$title"
 #define HTML_REF_CONST_HEAD "$doc_head"
