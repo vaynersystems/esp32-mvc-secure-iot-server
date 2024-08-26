@@ -11,3 +11,5 @@ W/favicon.ico
 W/T/V/_footer.html
 W/esp32_home
 W/JS/esp32_home.js
+/CSS/style.css
+/CSS/theme.css

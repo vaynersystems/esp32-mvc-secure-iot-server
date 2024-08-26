@@ -32,6 +32,16 @@ public:
     virtual bool CreateUser(HTTPRequest* req, HTTPResponse* res);    
     virtual bool UpdateUser(HTTPRequest* req, HTTPResponse* res);    
     
+    virtual esp32_controller_category GetCategory(){
+        return esp32_controller_category::Users;
+    }
+    virtual const char* GetName(){
+        return "Users";
+    }
+
+    virtual bool Authorized(HTTPRequest* req){
+        return strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
+    }
     
 protected:
     inline virtual void Action(HTTPRequest* req, HTTPResponse* res);
