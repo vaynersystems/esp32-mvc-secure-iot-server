@@ -1,70 +1,101 @@
 const deviceViewModelPath = '/W/M/device_model.json';
-
+const deviceListViewModelPath = '/W/M/device_list_model.json'
 /* DEVICES */
+var activeConfig;
+var persistedConfig;
+//persistedDevices defined elsewhere
 class esp32_devices{
-
+    
     loadDevices(devices){
-        const deviceListElement = document.getElementById('device-list');
-        if(deviceListElement === null) return;
-    
-        deviceListElement.innerHTML = '';
-    
-        for(const device of devices){
-            const rowElement = document.createElement('div');
-            const idElement = document.createElement('div');
-            const nameElement = document.createElement('div');
-            const typeElement = document.createElement('div');
-            const pinElement = document.createElement('div');
-            const actionsElement = document.createElement('div');
-            const editButtonElement = document.createElement('button');
-            const deleteButtonElement = document.createElement('button');
-    
-            idElement.textContent = device.id;
-            nameElement.textContent = device.name;
-            typeElement.textContent = device.type;
-            pinElement.textContent = device.pin;
-    
-            rowElement.setAttribute('device-name', device.name);
-    
-            editButtonElement.textContent = 'Edit';
-            deleteButtonElement.textContent = 'Delete';
-            editButtonElement.addEventListener('click', (event ) => { event.stopPropagation(); this.showDeviceEditor(device); });
-            deleteButtonElement.addEventListener('click', (event) =>  {
-                event.stopPropagation();
-                showModal(
-                    'Confirm Device Removal', 
-                    'Are you sure you want to delete the <b>' + rowElement.getAttribute('device-name') + '</b> device?',
-                    [
-                        {text:'No', action: () => {closeModal()}}, 
-                        {text: 'Yes', action: () => 
-                            { 
-                                activeConfig.devices = activeConfig.devices.filter(e => e.id != device.id);
-                                closeModal();
-                                this.loadDevices(activeConfig.devices);
-                                pendingChanges = true;
-                            } 
-                        }
-                    ]
-                )
-               
-            });
-            actionsElement.appendChild(editButtonElement);
-            actionsElement.appendChild(deleteButtonElement);
-            
-    
-            rowElement.appendChild(idElement);
-            rowElement.appendChild(nameElement);
-            rowElement.appendChild(typeElement);
-            rowElement.appendChild(pinElement);
-            rowElement.appendChild(actionsElement);
-    
-            rowElement.setAttribute('data', JSON.stringify(device));
-            rowElement.className = "grid-row grid";
-            rowElement.addEventListener('click', () => this.showDeviceEditor(JSON.parse(rowElement.getAttribute('data'))))
-            deviceListElement.appendChild(rowElement);
-        }
+        persistedConfig = devices;
+        activeConfig = devices;
+    }
+    openDeviceView(){
+        //has data
+        openView(
+            'device-content',
+            'Manage Devices',
+            deviceListViewModelPath,
+            activeConfig,
+            [
+                {
+                    'text':'Edit', action: (ev) =>{
+                        var deviceItem = ev.currentTarget.record.Record;
+                        this.showDeviceEditor(deviceItem,  (changed) => pendingChanges = changed);
+                    }
+
+                },
+                {'text':'Delete', action: (ev) => {
+                    var deviceItem = ev.currentTarget.record.Record;
+                    showModal(
+                        'Confirm Device Removal', 
+                        'Are you sure you want to delete the <b>' + deviceItem.name + '</b> device?',
+                        [
+                            {text:'No', action: () => {closeModal()}}, 
+                            {text: 'Yes', action: () => 
+                                { 
+                                    activeConfig = activeConfig.filter(e => e.id != deviceItem.id);
+                                    closeModal();
+                                    this.openDeviceView();
+                                } 
+                            }
+                        ]
+                    )
+                }}
+            ],
+            [{
+                'text':'Add device', action: () => { 
+                    var pendingBeforeAdd = pendingChanges; 
+                    this.showDeviceEditor(
+                        {},
+                        (changed) => pendingChanges = changed,
+                        () => pendingChanges = pendingBeforeAdd);
+                }
+            }]
+           
+        );
     }
     
+    save(){  
+        var waitElement = showWait();
+        const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+        const url = base + "/" + 'SaveDeviceData';
+        request.open("POST", url, true);
+        request.setRequestHeader("Content-type", "application/json");
+        request.onreadystatechange = function () {
+            if (request.readyState == request.DONE) {
+                if(waitElement !== undefined && waitElement !== null && waitElement.dispatchEvent !== undefined){
+                    waitElement.dispatchEvent(new Event('close'));
+            
+                }
+                if (request.status == 401) {
+                    showModal('Unauthorized', '<p class="error">' + request.statusText + '</p>');                
+                    return;
+                }
+                var response = request.responseText;
+                if(request.status == 200){
+                    pendingChanges = false;
+                    showModal('ESP32 Settings Saved','Settings saved sucessfully. \nRestart device to apply settings? ', 
+                    [
+                        {text:'No',action: () => { closeModal();} }, 
+                        {
+                            text:'Yes', 
+                            action: () => {
+                                reset(true);closeModal(); 
+                                setTimeout( () => window.location.reload(),5000)
+                            }
+                        }
+
+                    ]);
+                } else{
+                    showModal('Unknown Error', 'An unknown error occured while saving. Please try again.');
+                }
+                                
+            }
+        }
+        request.send(JSON.stringify(activeConfig));
+    
+    }
    
     
     //Save device edited in the form
@@ -72,26 +103,24 @@ class esp32_devices{
         console.log('Saving device', model);
 
         if(model.id === undefined){
-            model.id = activeConfig.devices.length > 0 ? Math.max(...activeConfig.devices.map(d => d.id)) + 1 : 1;            
+            model.id = activeConfig.length > 0 ? Math.max(...activeConfig.map(d => d.id)) + 1 : 1;            
         }
     
         //update in active config. refresh list
-        if(activeConfig.devices === undefined)
-            activeConfig.devices = [];
-    
-        const deviceIdx = activeConfig.devices.findIndex(d => d.id == model.id);
-        if(deviceIdx >= 0) // replace
-            activeConfig.devices.splice(deviceIdx,1,model);
-        else
-            activeConfig.devices.push(model);
+        if(activeConfig === undefined)
+            activeConfig = [];
+
+        const deviceIdx = activeConfig.findIndex(d => d.id == model.id);
+        if(deviceIdx < 0)
+            activeConfig.push(model);
         
-            devices.loadDevices(activeConfig.devices);
+        deviceManager.openDeviceView();
     
-        pendingChanges = true;
+        
     
     }
     
-    showDeviceEditor(device){
+    showDeviceEditor(device, onChangeCallback, onCancelCallback){
         openModal(
             'Device Editor',
             deviceViewModelPath,
@@ -100,13 +129,20 @@ class esp32_devices{
                 {
                     Source: 'trigger.device', 
                     Field: 'Data', 
-                    Value: activeConfig.devices
+                    Value: activeConfig
                 }
             ],
-            this.saveDevice            
+            this.saveDevice,
+            onCancelCallback,
+            null,
+            onChangeCallback            
         );
     
         
     }
 }
 /* END OF DEVICES */
+
+
+
+var deviceManager = new esp32_devices();

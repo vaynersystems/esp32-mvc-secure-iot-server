@@ -1,7 +1,7 @@
 
     /*****  MODAL CODE, goes into seperate and reusable component  ******/
     var modalModel;
-    
+    var untouchedViewModel;
     /**
      *  Opens Modal view with view model and model provided
      *  Can call save or cancell callback functions when completed
@@ -12,17 +12,18 @@
      * @param {function} saveCallback - function to call after form is saved
      * @param {function} cancelCallback - function to call after form is cancelled
      * @param {function} validationCallback - function to before form is saved
+     * @param {function} changeCallback - function called when a field is changed
      */
-    function openModal(name, viewModelUri, model, optional, saveCallback, cancellCallback, validationCallback){
+    function openModal(name, viewModelUri, model, optional, saveCallback, cancelCallback, validationCallback, changeCallback){
         fetch(viewModelUri)
             .then(response => response.json())
             .then(viewModel => {
-                openModalWithModel(name,viewModel,model,optional, saveCallback, cancellCallback, validationCallback);
+                openModalWithModel(name,viewModel,model,optional, saveCallback, cancelCallback, validationCallback, changeCallback);
             })
             .catch(error => console.error(error));
     }
 
-    function openModalWithModel(name, viewModel, model, optional, saveCallback, cancellCallback, validationCallback){
+    function openModalWithModel(name, viewModel, model, optional, saveCallback, cancelCallback, validationCallback, changeCallback){
         //populate deviceModel fields -- generic for all objects
         populateViewModel(model, viewModel, optional);
 
@@ -30,14 +31,19 @@
             Name: name, /* string */
             Errors: [],
             Items: viewModel,
+            OnChange: changeCallback,
             Actions: [
-                { text:'Cancel',action: () => { confirmCancel(cancellCallback);}},
+                { text:'Cancel',action: () => { confirmCancel(cancelCallback);}},
                 { text: 'Save', action:  () => { if(validate(viewModel,validationCallback)){saveModel(model);closeModal(saveCallback)}}}
             ],                
         };
 
         var modalWindow = showModalModel(modalModel);  
     }
+
+
+
+
 
     function confirmCancel(cancelCallback){
         const modalComponent = _generateModalComponent(); 
@@ -100,7 +106,7 @@
             }            
         }
 
-        if(validationCallback !== undefined){
+        if(validationCallback !== undefined && validationCallback !== null){
             var validationErrors = validationCallback(viewModel);
             if(validationErrors !== undefined && Array.isArray(validationErrors)){
                 formErrors = [...validationErrors];
@@ -169,7 +175,7 @@
         //var t = document.getElementById('system-modal-text');
         if (t !== null) {   
             t.innerHTML = '';
-            _drawModalFields(t, viewModel.Items);
+            _drawModalFields(t, viewModel.Items, viewModel.OnChange);
         }
 
         var h = document.getElementById('system-modal-header');
@@ -197,15 +203,15 @@
         return modalComponent;
     }
 
-    function _drawModalFields(container, model){    
+    function _drawModalFields(container, model, onchange){    
         for(var modelField of model){
             //console.log(modelField);
-            _drawModalField(container, modelField);
+            _drawModalField(container, modelField, onchange);
                 
         }
     }
 
-    function _drawModalField(container, modelField){
+    function _drawModalField(container, modelField, onchange){
         var fieldContainerElement = document.createElement('div');
         fieldContainerElement.className = 'grid-2';
         fieldContainerElement.id = 'field-container-' + modelField.Name;
@@ -228,6 +234,16 @@
                     fieldInputElement.type = 'text';
                     fieldInputElement.value = modelField.Value ?? '';
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                    {
+                        if(onchange !== null && onchange !== undefined){
+                            const changed = _compareToOriginal();
+                            onchange(changed);
+                        }
+                    });
+                    
+                        
+                        
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'Text':
@@ -236,6 +252,13 @@
                     fieldInputElement.type = 'text';
                     fieldInputElement.value = modelField.Value ?? '';
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'Password':
@@ -247,6 +270,13 @@
                     fieldInputElement.type = 'password';
                     fieldInputElement.value = modelField.Value ?? '';
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'Boolean':
@@ -262,6 +292,13 @@
                     fieldInputElement.type = 'checkbox';
                     fieldInputElement.checked = modelField.Value ?? '';
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.checked);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'Date':
@@ -271,6 +308,13 @@
                     fieldInputElement.type = 'date';
                     fieldInputElement.value = modelField.Value ?? '';
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;                
                 case 'File':
@@ -283,13 +327,21 @@
                         modelField.Value = fieldInputElement.value;
                         modelField.Files = fieldInputElement.files;
                     });
+                    if(onchange !== null && onchange !== undefined)
+                        fieldInputElement.addEventListener('change',onchange);
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'Lookup':
                     var fieldInputElement = document.createElement('select');
                     fieldInputElement.id = 'field-value-' + modelField.Name;
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-                    
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
 
                     if(modelField.Data != undefined)
                         for(var option of modelField.Data){
@@ -310,6 +362,13 @@
                     var fieldInputElement = document.createElement('select');
                     fieldInputElement.id = 'field-value-' + modelField.Name;
                     fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
                     
                     if(modelField.Data != undefined){
                         var grouped = Object.groupBy(modelField.Data, ({group}) => group); 
@@ -457,6 +516,7 @@
             if(viewModelField !== undefined)
                 viewModelField[option.Field] = option.Value;
         };
+        untouchedViewModel = window.structuredClone(viewModel);
     }
 
     var returnModel = {};
@@ -487,7 +547,15 @@
         returnModel = sourceModel;
     }
     
-
+    function _compareToOriginal(){
+        for(property of untouchedViewModel){
+            var newValue = modalModel.Items.find(p => p.Source == property.Source)?.Value;
+            if( property.Value !== newValue){
+                return true;
+            }
+        }
+        return false;
+    }
 
 
     function closeModal(callbackFn){

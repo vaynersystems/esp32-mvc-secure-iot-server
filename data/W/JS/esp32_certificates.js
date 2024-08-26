@@ -137,7 +137,6 @@ function checkIfUploaded(waitElement){
     }
     if(waitElement !== undefined && waitElement !== null && waitElement.dispatchEvent !== undefined){
         waitElement.dispatchEvent(new Event('close'));
-
     }
     //if uploaded, user is done
     if(publicSaved > 0 && privateSaved > 0){

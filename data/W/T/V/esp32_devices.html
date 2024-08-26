@@ -1,0 +1,152 @@
+
+<script type="text/javascript" src="/W/JS/modal.js"></script>
+<script type="text/javascript" src="/W/JS/esp32_modal.js"></script>
+<script type="text/javascript" src="/W/JS/esp32_devices.js"></script> 
+<script type="text/javascript" src="/W/JS/esp32_view.js"></script>
+<script type="text/javascript" src="/W/JS/system.js"></script>  
+<link rel="stylesheet" type="text/css" href="/W/CSS/config.css"/>
+<style>
+    table{
+       
+        width: 100%;
+    }
+    .table-header{
+        text-align: left;
+        background-color: var(--secondary-background);
+        color: var(--primary-background);
+        padding: 4px;
+        font-size: 16px;
+        flex-grow: 0;
+        line-height: 18px;
+    }
+    .section-content{
+        flex-grow: 1;
+        justify-content: space-between;
+
+    }
+    .device-content, #device-content{
+        display: flex;
+        flex-direction: column;
+        flex-grow: 1;
+        overflow: hidden;
+        justify-content: space-between;
+    }
+    .device-actions{
+        flex-direction: row;
+        justify-content: space-between;
+        display: flex;
+        border-style: solid;
+        border-width: 1px 0px 0 0;    
+        border-color:  var(--secondary-background);
+        padding: 6px 0px;
+        height: 31px;
+        margin: 5px 5px 0 0;
+    }
+</style>
+<div class="config-view">
+
+    <div class="config-menu">
+        <div class="menu-item">
+            <div class="menu-header">Devices</div>
+            <ul>
+                <li id="devices">Manage Devices</li>
+                <li id="schedules">Manage Schedules</li>
+            </ul>
+        </div>        
+    </div>
+    <div class="device-content">
+        <div id="device-content" >
+
+        </div>
+        <div class="device-actions">
+            <div id="pending-changes">
+                You have pending changes. Hit save to apply these changes to your device.
+            </div>
+            <button id="save-button" onclick="deviceManager.save()">Save</button>
+        </div>
+    </div>
+    
+    <div id="error"></div>
+</div>
+
+
+<script type="text/javascript">    
+    var request = new XMLHttpRequest();
+    pendingChanges = false;
+    var persistedConfig = '';
+    var persistedDevices;
+
+    configurationSting = `$_DEVICE_DATA`; 
+    if(configurationSting[0] == '$'){
+        configurationSting = `[
+            {
+            "id": "1",
+            "name": "Pool thermometer",
+            "type": "Thermometer",
+            "pin": "32",
+            "signal": "high"
+            },
+            {
+            "id": "2",
+            "name": "Heater switch",
+            "type": "Switch",
+            "pin": "26",
+            "signal": "high",
+            "trigger": {
+                "active": true,
+                "source": "1",
+                "type": "<",
+                "value": "75",
+                "threshold": "5"
+            }
+            },
+            {
+            "id": "3",
+            "name": "Pool Pump",
+            "type": "Switch",
+            "pin": "25",
+            "signal": "high",
+            "trigger": {
+                "active": true,
+                "source": "2",
+                "type": "=",
+                "value": "1",
+                "threshold": ""
+            }
+            }
+        ]`;
+    }   
+    if(configurationSting.length > 10 && configurationSting[0] !== '$'){
+        persistedDevices = JSON.parse(configurationSting);
+        deviceManager.loadDevices(persistedDevices);
+    }
+
+    var links = document.querySelectorAll('.config-menu li');
+    for(var link of links) link.addEventListener('click', (ev) => selectView(ev.currentTarget.id));
+
+    function selectView(section){        
+        activeSection = section;
+        switch(section){
+            case 'devices':
+                deviceManager.openDeviceView();
+                break;
+            case 'schedule':
+                break;
+        }
+
+    }
+
+    function checkPendingChanges(){
+        const pendingElement = document.getElementById('pending-changes');
+        const saveButtonElement = document.getElementById('save-button');
+        if(pendingElement === null) return;
+        pendingElement.style.visibility = pendingChanges ? 'visible' : 'hidden';
+        saveButtonElement.disabled = !pendingChanges;
+
+        setTimeout(checkPendingChanges, 500);
+    }
+    selectView('devices');
+    checkPendingChanges();
+</script>
+    
+
