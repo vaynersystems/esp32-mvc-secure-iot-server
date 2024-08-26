@@ -134,10 +134,10 @@ bool esp32_wifi::start(){
             MDNS.begin(hostname.c_str());        
     }
     
-    #ifdef DEBUG
+    //#ifdef DEBUG
     Serial.print("Connected. IP=");
     Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.broadcastIP() :  WiFi.localIP());
-    #endif
+    //#endif
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
     sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());

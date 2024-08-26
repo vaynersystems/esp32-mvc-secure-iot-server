@@ -1,22 +1,24 @@
-#ifndef _ESP32__CONTROLLER_DASHBOARD_H
-#define _ESP32__CONTROLLER_DASHBOARD_H
+#ifndef _ESP32__CONTROLLER__MENU_INT_H
+#define _ESP32__CONTROLLER__MENU_INT_H
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include "System/CORE/esp32_base_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
 
 using namespace httpsserver;
-class esp32_dashboard_controller : public esp32_base_controller {
+class _menu_int_controller : public esp32_base_controller {
 public:
 	inline virtual void Index(HTTPRequest* req, HTTPResponse* res);
     inline virtual bool isIndexImplemented(){ return true;}
+
     virtual esp32_controller_category GetCategory(){
-        return esp32_controller_category::Devices;
+        return esp32_controller_category::_Internal;
     }
     virtual const char* GetName(){
-        return "Dashboard";
+        return "Internal Menu";
     }
+
 private:
-	static DerivedController<esp32_dashboard_controller> reg; //register the controller
+	static DerivedController<_menu_int_controller> reg; //register the controller
 };
 #endif

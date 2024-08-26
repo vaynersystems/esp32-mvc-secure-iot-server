@@ -64,7 +64,7 @@ int HTTPSServer::createConnection(int idx) {
  * This method configures the ssl context that is used for the server
  */
 uint8_t HTTPSServer::setupSSLCTX() {
-  _sslctx = SSL_CTX_new(TLS_server_method());
+  _sslctx = SSL_CTX_new(TLSv1_2_server_method());
   if (_sslctx) {
     // Set SSL Timeout to 5 minutes
     SSL_CTX_set_timeout(_sslctx, 300);

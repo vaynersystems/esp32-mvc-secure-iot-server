@@ -73,3 +73,69 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
     file.close();
     
 }
+
+inline std::string esp32_base_controller::GetControllersJSON(HTTPRequest* req){
+    string ctrString = "[";
+    int numOfControllers = BaseControllerFactory::getInstanceCount();
+    //Serial.printf("Found %i controllers\n", numOfControllers);
+    for(int i=0;i< numOfControllers;i++){
+        auto controller = BaseControllerFactory::getInstanceAt(i);
+        if(controller.first[0] == '_') continue;
+        auto genController = controller.second();    
+        if(!genController->Authorized(req))
+            continue;
+
+        //check if current role has access
+        //genController.    
+        string categoryStr = "";
+
+        switch(genController->GetCategory()){
+            case esp32_controller_category::Devices:
+                categoryStr = "Devices";
+            break;
+            case esp32_controller_category::Extras:
+                categoryStr = "Extras";
+            break;            
+            case esp32_controller_category::Site:
+                categoryStr = "Site";
+            break;
+            case esp32_controller_category::Tools:
+                categoryStr = "Tools";
+            break;
+            case esp32_controller_category::Users:
+                categoryStr = "Users";
+            break;
+            case esp32_controller_category::Account:
+                categoryStr = "Account";
+            break;
+            case esp32_controller_category::_Internal:
+            default:
+                categoryStr = "Internal";
+            break;
+        }
+        ctrString += "{\"group\": \"" + categoryStr + "\", \"sort\": \"" + string_format("%d", genController->GetCategory()).c_str() + "\", \"name\": \"" + genController->GetName() + "\", \"controller\": \"" + controller.first + "\"}, ";
+
+        // vector<string> actions = {};
+        
+        // //ctrString+= "{\"" + genController->category}";
+        // genController->GetActions(&actions);
+        // for(const string& action : actions)     
+        //      ctrString += "{\"" + controller.first + "\": \"" + action + "\"}, ";
+
+        // actions.clear();
+    
+        delete genController; 
+    }
+    //add editor if authorized
+    if(strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0){        
+        ctrString += string_format("{\"group\": \"Tools\", \"sort\": \"%d\", \"name\": \"Editor\", \"controller\": \"edit\", \"target\": \"_blank\"}, ", esp32_controller_category::Tools);
+
+    }
+    
+    if(ctrString.length() > 2) //trim off trailing comma
+        ctrString = ctrString.substr(0,ctrString.length() - 2); 
+
+        ctrString += "]";
+
+    return ctrString;
+}

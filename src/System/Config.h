@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.30"
+#define FIRMWARE_VERSION "0.40"
 #define SYSTEM_DRIVE "" //"/spiffs"
 #define PATH_SITE_ROOT SYSTEM_DRIVE "/W"
 #define PATH_INTERNAL_ROOT SYSTEM_DRIVE "/INT"
