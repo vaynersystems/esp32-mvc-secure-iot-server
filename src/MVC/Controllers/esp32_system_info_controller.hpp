@@ -15,7 +15,7 @@ public:
         return esp32_controller_category::Site;
     }
     virtual const char* GetName(){
-        return "Live Monitoring";
+        return "System Information";
     }
 
 private:

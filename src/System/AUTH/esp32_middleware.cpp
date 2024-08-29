@@ -76,7 +76,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                string message = string_format("Authentication for: %s : %s", info.username.c_str(), info.authenticated ? "VALID" : "INVALID");
+                string message = string_format("Authentication for: %s : %s", reqUsername.c_str(), info.authenticated ? "VALID" : "INVALID");
                 logger.logInfo(message.c_str(), auth);
                 Serial.println(message.c_str());
                 
@@ -84,7 +84,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 // if authentication was successful issue JWT token
                 if (info.authenticated) {
                     DynamicJsonDocument doc(512);
-                    doc["user"] = reqUsername;
+                    doc["user"] = info.username;
                     doc["role"] = info.role.c_str();
                     doc["password"] = info.password;
                     doc["exp"] = getTime() +( 3600 * 24 * 7);

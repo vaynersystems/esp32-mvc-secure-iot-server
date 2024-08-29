@@ -44,7 +44,6 @@
     }
     .menu-group:hover{
         /* text-decoration: underline; */
-        background: rgb(from var(--primary-header-background) r g b /.8);
         cursor: pointer;
     }
     .menu-group{
@@ -52,6 +51,7 @@
         display: flex;
         flex-direction: column;
         width: 100%;
+        z-index: 1;
     }
     /* .menu-group:hover{
         background: rgb(255,255,255);
@@ -91,12 +91,12 @@
         var linkId = 1;
         for(var link of groupLinks){
             link.id = 'link_' + linkId;            
-            link.addEventListener('click', function(ev) {                
+            link.addEventListener('click', (ev) => {                
                 var clickedSelected = ev.currentTarget.id === 'link_' + selectedIndex;
                 //clicked one that is open
                 if(clickedSelected){
                     selectedIndex = 0;
-                    document.getElementById(ev.currentTarget.id).removeAttribute('selected');
+                    ev.currentTarget.removeAttribute('selected');
                     return;
                 }
                 //something else is open
@@ -110,15 +110,29 @@
                 }
 
                 selectedIndex = ev.currentTarget.getAttribute('id').substring(5);
-                document.getElementById(ev.currentTarget.id).setAttribute('selected','');
+                ev.currentTarget.setAttribute('selected','');
             });
             linkId++;
         }
+        document.addEventListener('click', (ev) =>{
+            //if clicked on document and not link, and link is open, close it
+            ev = ev || window.event;
+            var target = ev.target || ev.srcElement
+
+            if(target !== undefined && (target.id.startsWith("link_") || target.parentElement?.id.startsWith("link_")  || target.parentElement?.parentElement?.id?.startsWith("link_") ))
+                return;
+            if(selectedIndex !== 0){
+                var menuItemElements = document.getElementsByClassName('menu-group');
+                for(var item of menuItemElements)
+                    item.removeAttribute('selected');                    
+                selectedIndex = 0;
+            }
+        })
     }
 
     function setMenuItems(controllersText){
         if(controllersText[0] == '$')
-        controllersText = '[{"group": "Extras", "sort": "4", "name": "Custom Task Manager", "controller": "c_t_m"}, {"group": "Site", "sort": "2", "name": "Configuration", "controller": "esp32_config"}, {"group": "Devices", "sort": "0", "name": "Dashboard", "controller": "esp32_dashboard"}, {"group": "Devices", "sort": "0", "name": "History", "controller": "esp32_historic"}, {"group": "Internal", "sort": "5", "name": "Home", "controller": "esp32_home"}, {"group": "Tools", "sort": "3", "name": "Logs", "controller": "esp32_logs"}, {"group": "Site", "sort": "2", "name": "Live Monitoring", "controller": "esp32_system_info"}, {"group": "Users", "sort": "1", "name": "Users", "controller": "esp32_users"}, {"group": "Internal", "sort": "5", "name": "Login", "controller": "login"}]';
+        controllersText = '[{"group": "Extras", "sort": "4", "name": "Custom Task Manager", "controller": "c_t_m"}, {"group": "System", "sort": "2", "name": "Configuration", "controller": "esp32_config"}, {"group": "Devices", "sort": "0", "name": "Dashboard", "controller": "esp32_dashboard"}, {"group": "Devices", "sort": "0", "name": "History", "controller": "esp32_historic"}, {"group": "Internal", "sort": "5", "name": "Home", "controller": "esp32_home"}, {"group": "Tools", "sort": "3", "name": "Logs", "controller": "esp32_logs"}, {"group": "System", "sort": "2", "name": "Information", "controller": "esp32_system_info"}, {"group": "Users", "sort": "1", "name": "Users", "controller": "esp32_users"}, {"group": "Internal", "sort": "5", "name": "Login", "controller": "login"}]';
 
         var controllers = JSON.parse(controllersText);
         controllerListElement = document.getElementsByClassName('menu-container');

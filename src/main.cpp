@@ -16,6 +16,10 @@ esp32_devices deviceManager;
 esp32_logging logger;
 esp32_mqtt_client mqtt;
 DallasTemperature sensors;
+#include <Wire.h>  // I2C library
+#include <LiquidCrystal_I2C.h>  // I2C LCD library
+
+LiquidCrystal_I2C lcd;
 
 TaskHandle_t* serverTaskHandle;
 TaskHandle_t* deviceTaskHandle;
@@ -103,29 +107,54 @@ void onShutdown(){
 
 void setup() {
     
+    // Initialize LCD
+    lcd.begin();
+    lcd.print(F("Starting Controller...")); //(F()) saves string to flash & keeps dynamic memory free
+    delay(2000);
+
+    lcd.clear(); 
+
     //debug logging
+    lcd.print(F("Starting Serial logging.."));
     Serial.begin(115200);
+    lcd.clear(); 
+
+    
     //esp32 filesystem manager
+    lcd.print(F("Starting disk management.."));
     disk.start();    
-   
+    lcd.clear(); 
     // //Connect to wifi
+    lcd.print(F("Connecting to Wifi.."));
     wifi.start();   
-
+    lcd.clear(); 
     // //start logger
+    lcd.print(F("Starting logger.."));
     logger.start();
-
+    lcd.clear(); 
+    
+    lcd.print(F("Creating Server Task"));
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
+    lcd.clear(); 
 
+    lcd.print(F("Creating Device Task"));
     //Create Device Manager
     xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
+    lcd.clear(); 
 
+    lcd.print(F("Creating MQTT Task"));
     //Create MQTT Client
     xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
-    
+    lcd.clear(); 
+    //example use of psram
+    //byte* psram = (uint8_t*)ps_calloc(100000, sizeof(uint32_t));
     esp_register_shutdown_handler(onShutdown);
-   
+
     logger.logInfo("System started");
+    lcd.clear(); 
+    lcd.print("System started");
+
 }
 int64_t lastReportMain = 0;
 string freeBytesHEAPPretty = "", freeBytesSTACKmPretty = "";//, freeBytesSTACKServerPretty="", freeBytesSTACKDevicePretty="", freeBytesSTACKMQTTPretty="";
@@ -152,6 +181,12 @@ void loop() {
             // freeBytesSTACKMQTTPretty.c_str()
         );
         lastReportMain = esp_timer_get_time(); 
+
+        lcd.clear();
+        lcd.setCursor(0, 0);  // Set cursor to row 0, column 0
+        lcd.printf("Uptime %d seconds", millis() / 1000);  // Display static text
+        
+
     }
     delay(50);
     #endif

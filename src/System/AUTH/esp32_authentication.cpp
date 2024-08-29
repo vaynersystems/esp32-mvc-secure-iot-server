@@ -2,6 +2,7 @@
 #include "system_helper.h"
 #include "base64.hpp"
 #include "esp32_sha256.h"
+#include "string_helper.h"
 //case sensitive char literal to binary
 #define SHORT_FROM_CHAR(c) (c == '1' ? 1 : c == '2' ? 2 : c=='3' ? 3 : c=='4' ? 4 : c=='5' ? 5 : c=='6' ? 6 : c=='7' ? 7 : c=='8' ? 8 : c=='9' ? 9 : c=='A' ? 0xA : c=='B' ? 0xB : c=='C' ? 0xC : c=='D' ? 0xD : c=='E' ? 0xE : c=='F' ? 0xF : 0x0 )
 
@@ -171,7 +172,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
 
 JsonObject esp32_authentication::findUser(JsonArray users, const char* userName){
     for(JsonObject seekingUser : users){
-        if(!seekingUser["username"].isNull() && strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
+        if(!seekingUser["username"].isNull() && iequals(seekingUser["username"].as<const char *>(),userName, seekingUser["username"].size()))
             return seekingUser;        
     }
     return JsonObject();

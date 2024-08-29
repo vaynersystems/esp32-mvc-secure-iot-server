@@ -1,4 +1,5 @@
 #include "esp32_socket.h"
+const char *className = "esp32_socket";
 static esp32_socket* activeClients[SOCKET_MAX];
 // This method is called by the webserver to instantiate a new handler for each
 // client that connects to the websocket endpoint
@@ -9,7 +10,7 @@ WebsocketHandler* esp32_socket::createSocket(){
             esp32_socket * handler = new esp32_socket(i+1);
             activeClients[i] = handler;
             #ifdef DEBUG
-            Serial.printf("Creating new socket for client id %d\n", i+1);  
+            Serial.printf("[%s] Creating new socket for client id %d\n", className, i+1);  
             #endif
             return handler;
         break;
@@ -31,7 +32,7 @@ void esp32_socket::onMessage(WebsocketInputStreambuf * input){
     string msg;
     ss << input;
     msg = ss.str();    
-    //Serial.printf("Received web socket message %s\n", msg.c_str());    
+    //Serial.printf("[%s] Received web socket message %s\n", className, msg.c_str());    
     StaticJsonDocument<2048> message;
     deserializeJson(message, msg);
 
@@ -47,7 +48,7 @@ void esp32_socket::onMessage(WebsocketInputStreambuf * input){
     else 
         sendToAllClients(msg);
     #ifdef DEBUG
-    Serial.printf("[%d] Processed websocket message in %d ms\n", this->_clientId, millis() - startTime);
+    Serial.printf("[%s] [%d] Processed websocket message in %d ms\n", className, this->_clientId, millis() - startTime);
     #endif
 }
 
@@ -61,7 +62,7 @@ void esp32_socket::onClose(){
 }
 
 void esp32_socket::sendToAllClients(string message){
-    //Serial.printf("Sending message to all clients: %s\n", message.c_str());
+    //Serial.printf("[%s] Sending message to all clients: %s\n", className, message.c_str());
     for(int i = 0; i < SOCKET_MAX; i++) {
         if (activeClients[i] != nullptr) {
             activeClients[i]->send(message, SEND_TYPE_TEXT);

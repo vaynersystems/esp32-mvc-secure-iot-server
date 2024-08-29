@@ -306,7 +306,8 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     DynamicJsonDocument doc(8192);
     DynamicJsonDocument docPublic(2048);
     DynamicJsonDocument docSecurity(1024);
-    DynamicJsonDocument docConfig(3072);
+    DynamicJsonDocument docConfig(2048);
+    DynamicJsonDocument docDevices(2048);
 
     File authorize = SPIFFS.open(PATH_AUTH_FILE, "r");
     deserializeJson(docSecurity,authorize);
@@ -315,6 +316,10 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     File config = SPIFFS.open(PATH_SYSTEM_CONFIG, "r");
     deserializeJson(docConfig,config);
     config.close();
+
+    File devices = SPIFFS.open(PATH_DEVICE_CONFIG, "r");
+    deserializeJson(docDevices,devices);
+    devices.close();
 
     File publicPages = SPIFFS.open(PATH_PUBLIC_PAGES, "r");
     auto publicArray = docPublic.to<JsonArray>();
@@ -325,6 +330,7 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
 
     doc["security"] = docSecurity;
     doc["config"] = docConfig;
+    doc["devices"] = docDevices;
     doc["public"] = docPublic;
     doc["type"] = "esp32-backup";
 
@@ -374,6 +380,12 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             for(auto page: doc["public"].as<JsonArray>())
                 publicPages.println(page.as<const char*>());
             publicPages.close();
+        }
+        if(!doc["devices"].isNull()){
+            File devices = SPIFFS.open(PATH_DEVICE_CONFIG,"w");
+            for(auto device: doc["devices"].as<JsonArray>())
+                devices.println(device.as<const char*>());
+            devices.close();
         }
 
 
