@@ -77,16 +77,18 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable(F("$SD_MEMORY_AVAILABLE"), sd_info.size() > 0 ? "block" : "none");
     
     /* HEAP */
-    string freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");
-	esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
-	esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize(), &totalBytesHEAPPretty);
-    esp32_fileio::PrettyFormat((size_t)ESP.getHeapSize() - esp_get_free_heap_size(), &usedBytesHEAPPretty);
+    // multi_heap_info_t heapInfo;
+    // heap_caps_get_info(&heapInfo, MALLOC_CAP_INTERNAL);
+    // string freeBytesHEAPSPretty(""), usedBytesHEAPPretty("") , totalBytesHEAPPretty("");
+	// esp32_fileio::PrettyFormat((size_t)heapInfo.total_free_bytes, &freeBytesHEAPSPretty);
+	// esp32_fileio::PrettyFormat((size_t) heapInfo.total_allocated_bytes + heapInfo.total_free_bytes, &totalBytesHEAPPretty);
+    // esp32_fileio::PrettyFormat((size_t)heapInfo.total_allocated_bytes, &usedBytesHEAPPretty);
 
-    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_FREE"), freeBytesHEAPSPretty.c_str());
-    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_USED"), usedBytesHEAPPretty.c_str());
-    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_TOTAL"), totalBytesHEAPPretty.c_str());
-    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)(ESP.getHeapSize() - esp_get_free_heap_size())/(float)ESP.getHeapSize())*100),1).c_str());
-    controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_AVAILABLE"), ESP.getHeapSize() > 0 ? "block" : "none");
+    // controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_FREE"), freeBytesHEAPSPretty.c_str());
+    // controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_USED"), usedBytesHEAPPretty.c_str());
+    // controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_TOTAL"), totalBytesHEAPPretty.c_str());
+    // controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)(ESP.getHeapSize() - esp_get_free_heap_size())/(float)ESP.getHeapSize())*100),1).c_str());
+    // controllerTemplate.SetTemplateVariable(F("$HEAP_MEMORY_AVAILABLE"), ESP.getHeapSize() > 0 ? "block" : "none");
 
     /* PSRAM */
     string freeBytesPSRAMPretty(""), usedBytesPSRAMPretty("") , totalBytesPSRAMPretty("");

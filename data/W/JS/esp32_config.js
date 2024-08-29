@@ -464,9 +464,9 @@ function saveSettings(config){
                     {text:'No',action: () => { closeModal();} }, 
                     {
                         text:'Yes', 
-                        action: () => {
+                        action: async () => {
                             reset(true);closeModal(); 
-                            setTimeout( reload,5000)
+                            setTimeout( reload,5000);
                         }
                     }
 

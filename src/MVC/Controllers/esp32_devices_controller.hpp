@@ -5,6 +5,7 @@
 #include <vector>
 #include "System/CORE/esp32_base_controller.hpp"
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
+#include "System/MODULES/PINS/esp32_pin_manager.hpp"
 class esp32_devices_controller: public esp32_base_controller{
 
 public:

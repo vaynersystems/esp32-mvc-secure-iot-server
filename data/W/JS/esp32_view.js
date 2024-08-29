@@ -1,11 +1,11 @@
 var viewModel;
 
 
-function openView(containerElementName, name, viewModelUri, items, itemActions, viewActions){
+function openView(containerElementName, name, viewModelUri, items, optional,itemActions, viewActions){
     fetch(viewModelUri)
     .then(response => response.json())
     .then(viewModelDefinition => {
-        var viewModelItems = populateViewItems(viewModelDefinition, items);
+        var viewModelItems = populateViewItems(viewModelDefinition, items, optional);
         viewModel = {
             Name: name,
             Errors: [],
@@ -13,6 +13,7 @@ function openView(containerElementName, name, viewModelUri, items, itemActions, 
             Container: containerElementName,
             Actions: itemActions === undefined || itemActions === null ? [] : itemActions,
             ViewActions: viewActions === undefined || viewActions === null ? [] : viewActions,
+            Definition: viewModelDefinition
         };
         var viewPage = showListView(viewModel,);
     })
@@ -29,14 +30,18 @@ function showListView(viewModel, width){
     // if(viewModel === undefined)
     //     viewModel = createViewModel(undefined);
     if(viewModel.Container === undefined){
-        showModal('Error showing list', 'An error occured showing list view. The container specified [' + viewModel.Container + '] was not found.');
+        showModal('Error showing list', 'An error occured showing list view. The container specified <b>' + viewModel.Container + '</b> was not found.');
         return;
     }
     var container = document.getElementById(viewModel.Container);
+    if(container === undefined || container == null) {
+        showModal('Error showing list', 'An error occured. The container <b>' + viewModel.Container + '</b> could not be found.')
+        return;
+    }
     container.innerHTML = '';
 
     _drawViewHeader(container, viewModel.Name);
-    _drawViewTable(container, viewModel.Items, viewModel.Actions);
+    _drawViewTable(container, viewModel);
     _drawViewActions(container, viewModel.ViewActions)
     
     
@@ -68,12 +73,12 @@ function _drawViewHeader(container, name){
     container.appendChild(headerElement);
 }
 
-function _drawViewTable(container, items, itemActions){
+function _drawViewTable(container, viewModel){
     var tableContainerElement = document.createElement('div');
     tableContainerElement.className = 'section-content';
     var tableElement = document.createElement('table');
-    _drawViewTableHeader(tableElement, items, itemActions !== undefined && itemActions !== null);
-    _drawViewtableItems(tableElement,items, itemActions);
+    _drawViewTableHeader(tableElement, viewModel.Definition, viewModel.Actions !== undefined && viewModel.Actions !== null);
+    _drawViewtableItems(tableElement, viewModel.Items, viewModel.Actions);
     tableContainerElement.appendChild(tableElement);
     container.appendChild(tableContainerElement);
 }
@@ -81,7 +86,7 @@ function _drawViewTable(container, items, itemActions){
 function _drawViewTableHeader(container, items, hasActions){
     var tableHeaderElement = document.createElement('tr');
     tableHeaderElement.className = 'table-header';
-    for(var item of items[0]){
+    for(var item of items){
         var itemHeaderElement = document.createElement('th');
         itemHeaderElement.className = 'table-header-item';
         itemHeaderElement.innerHTML = item.Name;
@@ -128,133 +133,126 @@ function _drawViewtableItems(container, items, itemActions){
 
 function _drawTableField(container, modelField){
     
-    if(modelField.Readonly){
-        var fieldValueElement = document.createElement('td');
-        fieldValueElement.innerHTML = modelField.Value ?? '';
-        fieldValueElement.id = 'field-value-' + modelField.Name;
-        container.appendChild(fieldValueElement);
-    }
-    // else{
-    //     switch(modelField.Type){
-    //         case 'Number':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'text';
-    //             fieldInputElement.value = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'Text':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'text';
-    //             fieldInputElement.value = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'Password':
-    //         case 'password':
-    //         case 'Secret':
-    //         case 'secret':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'password';
-    //             fieldInputElement.value = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'Boolean':
-    //         case 'boolean':
-    //         case 'Bool':
-    //         case 'bool':
-    //         case 'Bit':
-    //         case 'bit':
-    //         case 'check':
-    //         case 'checkbox':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'checkbox';
-    //             fieldInputElement.checked = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.checked);
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'Date':
-    //         case 'date':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'date';
-    //             fieldInputElement.value = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;                
-    //         case 'File':
-    //         case 'file':
-    //             var fieldInputElement = document.createElement('input');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.type = 'file';
-    //             fieldInputElement.value = modelField.Value ?? '';
-    //             fieldInputElement.addEventListener('change',(ev) => {
-    //                 modelField.Value = fieldInputElement.value;
-    //                 modelField.Files = fieldInputElement.files;
-    //             });
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'Lookup':
-    //             var fieldInputElement = document.createElement('select');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+    if(modelField.Readonly)
+        switch(modelField.Type){
+            case 'Number':
+            case 'number':
+            case 'Text':
+            case 'text':
+            case 'Password':
+            case 'password':
+            case 'Secret':
+            case 'secret':
+            case 'File':
+            case 'file':
+                var fieldInputElement = document.createElement('td');
+                fieldInputElement.id = 'field-value-' + modelField.Name;
+                fieldInputElement.type = 'text';
+                fieldInputElement.innerText = modelField.Value ?? '';
+                container.appendChild(fieldInputElement);
+                break;
+            
+                break;
+            case 'Boolean':
+            case 'boolean':
+            case 'Bool':
+            case 'bool':
+            case 'Bit':
+            case 'bit':
+            case 'check':
+            case 'checkbox':
+                var fieldContainerElement = document.createElement('td');
+                var fieldInputElement = document.createElement('input');
+                fieldInputElement.setAttribute('disabled','');
+                fieldInputElement.id = 'field-value-' + modelField.Name;
+                fieldInputElement.type = 'checkbox';
+                fieldInputElement.checked = modelField.Value ?? '';
+                fieldContainerElement.appendChild(fieldInputElement)
+                container.appendChild(fieldContainerElement);
+                break;
+            case 'Date':
+            case 'date':
+                var fieldInputElement = document.createElement('td');
+                fieldInputElement.id = 'field-value-' + modelField.Name;
+                fieldInputElement.type = 'date';
+                fieldInputElement.innerText = new Date(modelField.Value).toLocaleDateString() ?? '';
+                container.appendChild(fieldInputElement);
+                break;  
+            case 'Time':
+            case 'time':
+                    var fieldInputElement = document.createElement('td');
+                    fieldInputElement.id = 'field-value-' + modelField.Name;
+                    fieldInputElement.type = 'time';
+                    fieldInputElement.innerHTML = modelField.Value ?? '';
+                    container.appendChild(fieldInputElement);
+                    break;  
+            case 'Lookup':
+                var fieldInputElement = document.createElement('td');
+                var multiple = modelField.Attributes?.find(a => Object.keys(a) == 'multiple');
+                fieldInputElement.id = 'field-value-' + modelField.Name;
                 
 
-    //             if(modelField.Data != undefined)
-    //                 for(var option of modelField.Data){
-    //                     // TODO: implement unique check
-    //                     //if unique, filter out options used already
-    //                     var optionElement = document.createElement('option');
-    //                     optionElement.value = option.value;
-    //                     optionElement.text = option.name;
-    //                     fieldInputElement.appendChild(optionElement);
-    //                 }
+                // if(modelField.Data != undefined)
+                //     for(var option of modelField.Data){
+                //         // TODO: implement unique check
+                //         //if unique, filter out options used already
+                //         var optionElement = document.createElement('option');
+                //         optionElement.value = option.value;
+                //         optionElement.text = option.name;
+                //         fieldInputElement.appendChild(optionElement);
+                //     }
 
-    //             if(modelField.Value !== undefined)
-    //                 fieldInputElement.value = modelField.Value;
+                if(multiple){
+                    if(fieldInputElement.value === undefined) fieldInputElement.value = '';
+                    for(var selection of modelField.Value)
+                    {
+                        const opt = modelField.Data.find(o => o.value == selection);
+                        fieldInputElement.innerHTML += opt.name + ", ";
+                    }
+                    if(fieldInputElement.innerHTML.length > 2) fieldInputElement.innerHTML = fieldInputElement.innerHTML.substring(0,fieldInputElement.innerHTML.length - 2)
+                } else
+                if(modelField.Value !== undefined)
+                    fieldInputElement.innerHTML = modelField.Value;
 
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //         case 'LookupGrouped':
-    //             var fieldInputElement = document.createElement('select');
-    //             fieldInputElement.id = 'field-value-' + modelField.Name;
-    //             fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                container.appendChild(fieldInputElement);
+                break;
+            
+            case 'LookupGrouped':
+                var fieldInputElement = document.createElement('td');
+                fieldInputElement.id = 'field-value-' + modelField.Name;
+                fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
                 
-    //             if(modelField.Data != undefined){
-    //                 var grouped = Object.groupBy(modelField.Data, ({group}) => group); 
-    //                 for(var groupName of Object.keys(grouped)){
-    //                     var group = grouped[groupName];
-    //                     var groupElement = document.createElement('optgroup');
-    //                     groupElement.label = groupName;
+                if(modelField.Data != undefined){
+                    var grouped = Object.groupBy(modelField.Data, ({group}) => group); 
+                    for(var groupName of Object.keys(grouped)){
+                        var group = grouped[groupName];
+                        var groupElement = document.createElement('optgroup');
+                        groupElement.label = groupName;
                         
-    //                     for(var option of group){
-    //                         var optionElement = document.createElement('option');
-    //                         optionElement.value = option.value;
-    //                         optionElement.text = option.name;
-    //                         groupElement.appendChild(optionElement);
-    //                     }
-    //                     if(groupElement !== undefined)
-    //                     fieldInputElement.appendChild(groupElement);
-    //                 }
+                        for(var option of group){
+                            var optionElement = document.createElement('option');
+                            optionElement.value = option.value;
+                            optionElement.text = option.name;
+                            groupElement.appendChild(optionElement);
+                        }
+                        if(groupElement !== undefined)
+                        fieldInputElement.appendChild(groupElement);
+                    }
                     
-    //             }
+                }
 
-    //             if(modelField.Value !== undefined)
-    //                 fieldInputElement.value = modelField.Value;
+                if(modelField.Value !== undefined)
+                    fieldInputElement.value = modelField.Value;
 
-    //             fieldContainerElement.appendChild(fieldInputElement);
-    //             break;
-    //     }    
-    // }
+                container.appendChild(fieldInputElement);
+                break;
+        }    
+        //container.appendChild(fieldContainerElement);
+    }
          
     
-    //container.appendChild(fieldContainerElement);
-}
+    
+
 
 function _drawViewActions(container, actions){
     if(actions === undefined || actions === null)
@@ -278,16 +276,31 @@ function _drawViewActions(container, actions){
 function populateViewItems(sourceModel, items, optional){
     var viewModelItems = [];
     if(sourceModel === undefined) return;
+    if(items === undefined) items = [];
     for(var record of items){
         var destinationViewItem = window.structuredClone(sourceModel);
         for(property in record){
             var modelProperty = record[property];
             if( typeof modelProperty === 'object' ){
+                var checkChildren = false;
                 //enumerate children
+                var viewModelProperty = destinationViewItem.find(field => field.Source == property); 
+                if(viewModelProperty === undefined) checkChildren = true;
+                
+                
                 for(childProperty in modelProperty){
-                    var viewModelProperty = destinationViewItem.find(field => field.Source == property + "." + childProperty);  
-                    if(viewModelProperty === undefined) continue; //property not used                   
-                        viewModelProperty.Value = record[property][childProperty];                    
+                    if(checkChildren)
+                    {
+                        viewModelProperty = destinationViewItem.find(field => field.Source == property+'.'+childProperty); 
+                    }
+                    if(viewModelProperty === undefined) continue;
+                    var multiple = viewModelProperty.Attributes?.find(a => a.multiple !== undefined); 
+                    if(multiple){
+                        if(viewModelProperty.Value === undefined) viewModelProperty.Value = [];
+                        viewModelProperty.Value.push(record[property][childProperty]);
+                    }
+                    else
+                        viewModelProperty.Value = record[property][childProperty];
                 }
             } else{
                 var viewModelProperty = destinationViewItem.find(field => field.Source == property);

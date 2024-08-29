@@ -1,5 +1,5 @@
 #include "esp32_devices_controller.hpp"
-
+esp32_pin_manager pinManager;
 
 DerivedController<esp32_devices_controller> esp32_devices_controller::reg("esp32_devices");
 
@@ -15,14 +15,30 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
     char buff[64];
     string configData= "";
     int bytesRead = 0;
+    int totalBytesRead = 0;    
     do{
         bytesRead = f.readBytes(buff,sizeof(buff));
         configData.append(buff,bytesRead);
+        totalBytesRead += bytesRead;
     } while(bytesRead > 0);
 
-    
+    //Serial.printf("Read %d bytes from %s:\n\t%s\n", totalBytesRead, PATH_DEVICE_CONFIG, configData.c_str());
     controllerTemplate.SetTemplateVariable(F("$_DEVICE_DATA"), configData.c_str());
-    //controllerTemplate.SetTemplateVariable(F("$_CONFIG_FILE"), PATH_SYSTEM_CONFIG);
+
+    auto pins = pinManager.getControllerPins();
+    string pinData = "[";
+
+    for(auto pin : pins){
+        pinData.append(string_format(
+            "{\"pin\": %d, \"analog\": %d, \"mode\": %d}, ",
+            pin.gpioPin,
+            pin.isAnalog?"":" not",
+            pin.pinMode == GPIO_MODE_INPUT?" not":""
+        ));
+    }
+    if(pinData.length() > 2) pinData = pinData.substr(0,pinData.length() - 2);
+    pinData += "]";
+    controllerTemplate.SetTemplateVariable(F("$_PIN_DATA"), pinData.c_str());
     
     esp32_base_controller::Index(request, response);    
     

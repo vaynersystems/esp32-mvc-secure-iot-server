@@ -4,6 +4,7 @@
 <script type="text/javascript" src="/W/JS/esp32_devices.js"></script> 
 <script type="text/javascript" src="/W/JS/esp32_view.js"></script>
 <script type="text/javascript" src="/W/JS/system.js"></script>  
+<link rel="stylesheet" type="text/css" href="/W/CSS/style.css"/>
 <link rel="stylesheet" type="text/css" href="/W/CSS/config.css"/>
 <style>
     table{
@@ -17,7 +18,10 @@
         padding: 4px;
         font-size: 16px;
         flex-grow: 0;
-        line-height: 18px;
+        line-height: 30px;
+    }
+    .table-header th{
+        padding: 2px 8px;
     }
     .section-content{
         flex-grow: 1;
@@ -42,6 +46,47 @@
         height: 31px;
         margin: 5px 5px 0 0;
     }
+    
+    @media screen and (min-width:700px) {
+        .menu-item ul li{
+            i{
+                display: none;
+            }
+            span{
+                display: block;
+                }        
+        }
+    
+    }
+    @media screen and (max-width:699px) {
+        .menu-item ul li{
+            padding: 4px 2px;
+            i{
+                display: block;
+                font-size: 2.5em;
+                padding: .25em;
+            }
+            span{
+                display: none;
+            }
+        } 
+        .config-menu{
+            min-width: 55px;
+
+        }
+        .menu-header{
+            display: none;
+        }
+        .menu-item{
+            padding: 15px 0px;
+        }
+        .content{
+            padding: 20px 0;
+        }
+        .pending-changes{
+            font-size: 13px;
+        }
+    }
 </style>
 <div class="config-view">
 
@@ -49,13 +94,17 @@
         <div class="menu-item">
             <div class="menu-header">Devices</div>
             <ul>
-                <li id="devices">Manage Devices</li>
-                <li id="schedules">Manage Schedules</li>
+                <li id="devices"><i class="fa-solid fa-microchip" title="Manage Devices"></i><span>Manage Devices</span></li>
+                
+                <li id="schedules"><i class="fa-regular fa-calendar" title="Manage Schedules"></i><span>Manage Schedules</span></li>
             </ul>
         </div>        
     </div>
     <div class="device-content">
         <div id="device-content" >
+
+        </div>
+        <div id="device-details" >
 
         </div>
         <div class="device-actions">
@@ -78,43 +127,67 @@
 
     configurationSting = `$_DEVICE_DATA`; 
     if(configurationSting[0] == '$'){
-        configurationSting = `[
-            {
-            "id": "1",
-            "name": "Pool thermometer",
-            "type": "Thermometer",
-            "pin": "32",
-            "signal": "high"
-            },
-            {
-            "id": "2",
-            "name": "Heater switch",
-            "type": "Switch",
-            "pin": "26",
-            "signal": "high",
-            "trigger": {
-                "active": true,
-                "source": "1",
-                "type": "<",
-                "value": "75",
-                "threshold": "5"
+        configurationSting = `{
+            "devices":
+                [
+                    {
+                        "id": "1",
+                        "name": "Pool thermometer",
+                        "type": "Thermometer",
+                        "pin": "32",
+                        "signal": "high"
+                    },
+                    {
+                        "id": "2",
+                        "name": "Pool Pump",
+                        "type": "Switch",
+                        "pin": "25",
+                        "signal": "high",
+                        "trigger": {
+                            "active": true,
+                            "source": "1",
+                            "type": "<",
+                            "value": "75",
+                            "threshold": "5"
+                        }
+                    },
+                    {
+                        "id": "3",
+                        "name": "Pool Heater",
+                        "type": "Switch",
+                        "pin": "26",
+                        "signal": "high",
+                        "trigger": {
+                            "active": true,
+                            "source": 2,
+                            "type": "=",
+                            "value": "1",
+                            "threshold": ""
+                        }
+                    }
+                ],
+            "schedules": [
+                {
+                    "name": "Summer Week",
+                    "devices": [
+                        "1",
+                        "2",
+                        "3"
+                    ],
+                    "days": [
+                        "1",
+                        "2",
+                        "3",
+                        "4",
+                        "5"
+                    ],
+                    "start": "06:30",
+                    "end": "10:00",
+                    "id": 1
+                    }
+            ]
             }
-            },
-            {
-            "id": "3",
-            "name": "Pool Pump",
-            "type": "Switch",
-            "pin": "25",
-            "signal": "high",
-            "trigger": {
-                "active": true,
-                "source": "2",
-                "type": "=",
-                "value": "1",
-                "threshold": ""
-            }
-            }
-        ]`;
+            `;
     }   
     if(configurationSting.length > 10 && configurationSting[0] !== '$'){
         persistedDevices = JSON.parse(configurationSting);
@@ -130,7 +203,8 @@
             case 'devices':
                 deviceManager.openDeviceView();
                 break;
-            case 'schedule':
+            case 'schedules':
+                deviceManager.openScheduleView();
                 break;
         }
 

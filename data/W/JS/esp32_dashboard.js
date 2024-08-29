@@ -101,6 +101,7 @@ function onRefresh(chart) {
 function getLastValue(deviceId){
     const frameTime = lastLiveDataFrame["time"];
     const frameDevices = lastLiveDataFrame["series"];
+    if(frameDevices === undefined) return;
     const device = frameDevices.find(d => d.id == deviceId);
     if(device === undefined) return;
     return device.value;

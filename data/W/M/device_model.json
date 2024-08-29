@@ -54,7 +54,11 @@
         "Readonly": false,
         "Source": "mqtt.topic",
         "Condition1": "MQTT Publish",
-        "ConditionValue1":  true
+        "ConditionValue1":  true,
+        "Validation": [
+            {"Type": "Required"},
+            {"Type": "MinLength", "Value": 5}
+        ]
     },
     {
         "Name": "Frequency",
@@ -85,13 +89,20 @@
         "Value": "high",
         "Source": "signal",
         "Readonly": false,
-        "Data": [{"name":"Active High", "value":"high"}, {"name": "Active Low", "value":"low"}]                   
+        "Data": [{"name":"Active High", "value":"high"}, {"name": "Active Low", "value":"low"}],
+        "Condition1": "Device Type.group",
+        "ConditionValue1": "Outputs",
+        "Validation": [
+            {"Type": "Required"}
+        ]            
     },
     {
         "Name": "Duration",
         "Type": "Number",
         "Readonly": false,
-        "Source": "duration"
+        "Source": "duration",
+        "Condition1": "Device Type",
+        "ConditionValue1": "Relay" 
     },
     {
         "Name": "Use Trigger",
@@ -105,7 +116,7 @@
     {
         "Name": "Trigger Device",
         "Type": "Lookup",
-        "Source": "trigger.device",
+        "Source": "trigger.source",
         "Readonly": false,        
         "Condition1": "Use Trigger",
         "ConditionValue1": true,

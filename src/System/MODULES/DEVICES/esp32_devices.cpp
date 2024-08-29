@@ -26,6 +26,10 @@ void esp32_devices::onInit()
             case esp32_device_type::Switch:
             case esp32_device_type::Relay:
                 pinMode(_devices[idx].pin, OUTPUT);
+                if(_devices[idx].signal != activeHigh){
+                    digitalWrite(_devices[idx].pin, HIGH);
+                }
+                
                 break;
             case esp32_device_type::Unknown:
 
@@ -125,6 +129,7 @@ void esp32_devices::onLoop()
         switch(_devices[idx].type){            
            
             case esp32_device_type::Switch:
+            case esp32_device_type::Relay:
             {
                 //determine state
                 if(!_devices[idx].useTrigger)
@@ -136,15 +141,22 @@ void esp32_devices::onLoop()
                 if(sourceDeviceStateIdx < 0 || destinationDeviceIdx < 0) 
                     continue; //canot process
 
-                bool currentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+                bool electricCurrentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+                bool currentState = _devices[idx].signal == activeLow ? !electricCurrentState : electricCurrentState;
+                
+                if(_devices[idx].signal == activeLow ){
+                    seriesEntries[destinationDeviceIdx]["value"] = !seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+                }
 
                 //switch should maintain the state it had previously
                 bool shouldBeOn = getDesiredState(
-                    seriesEntries[destinationDeviceIdx]["value"].as<bool>(),
+                    currentState,
                     _devices[idx].triggerType,
                     seriesEntries[sourceDeviceStateIdx]["value"],
                     _devices[idx].triggerValue,
                     _devices[idx].triggerThreshold);
+
+                bool electricShouldBeOn = _devices[idx].signal == activeLow ? !shouldBeOn : shouldBeOn;
 
                 if(!currentState && shouldBeOn)
                     logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
@@ -152,47 +164,63 @@ void esp32_devices::onLoop()
                     logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
 
                 //if desired state is different that current state, change it
-                if(seriesEntries[destinationDeviceIdx]["value"].as<bool>() != shouldBeOn){
-                    device.setValue(shouldBeOn);  
+                if(currentState != shouldBeOn){
+                    //Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
+                    device.setValue(electricShouldBeOn);  
                    if(_devices[idx].mqttPublish && mqtt.enabled())
                         mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
                 }
+
+                if(_devices[idx].type == Relay){
+                    auto deviceRelay = esp32_relay_device(pin, _devices[idx]._lastStartTime);
+                    if(deviceRelay.turnOffIfTime(_devices[idx].duration))
+                    logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+                }
             }            
             break;
-            case esp32_device_type::Relay:
-            {
-                //if relay is on:
-                //   1. we will want to reset the timer if the state says it should be on.
-                //   2. otherwise we check if it should be turned off (timed out)
-                //if relay is off:
-                //   1.  we will turn it on (same as "on 1.") is desired state is to turn on
-                //   2.  otherwise do nothing
-                auto device = esp32_relay_device(pin, _devices[idx]._lastStartTime);
-                auto sourceDeviceStateIdx = findDeviceStateIndex(seriesEntries, _devices[idx].triggerDeviceId);
-                auto destinationDeviceIdx = findDeviceStateIndex(seriesEntries, _devices[idx].id);
+            // case esp32_device_type::Relay:
+            // {
+            //     //if relay is on:
+            //     //   1. we will want to reset the timer if the state says it should be on.
+            //     //   2. otherwise we check if it should be turned off (timed out)
+            //     //if relay is off:
+            //     //   1.  we will turn it on (same as "on 1.") is desired state is to turn on
+            //     //   2.  otherwise do nothing
+            //     auto device = esp32_relay_device(pin, _devices[idx]._lastStartTime);
+            //     auto sourceDeviceStateIdx = findDeviceStateIndex(seriesEntries, _devices[idx].triggerDeviceId);
+            //     auto destinationDeviceIdx = findDeviceStateIndex(seriesEntries, _devices[idx].id);
                 
-                if(sourceDeviceStateIdx < 0 || destinationDeviceIdx < 0) 
-                    continue; //canot process
-                //switch should maintain the state it had previously
-                bool currentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
-                bool shouldBeOn = getDesiredState(
-                    currentState,
-                    _devices[idx].triggerType,
-                    seriesEntries[sourceDeviceStateIdx]["value"],
-                    _devices[idx].triggerValue,
-                    _devices[idx].triggerThreshold
-                );
-                if(!currentState && shouldBeOn)
-                    logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+            //     if(sourceDeviceStateIdx < 0 || destinationDeviceIdx < 0) 
+            //         continue; //canot process
+            //     //switch should maintain the state it had previously
+            //     bool electricCurrentState = seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+            //     bool currentState = _devices[idx].signal == activeLow ? !electricCurrentState : electricCurrentState;
 
-                if(shouldBeOn){
-                    device.setValue(true);
-                    _devices[idx]._lastStartTime = millis();
-                }
+            //     if(_devices[idx].signal == activeLow ){
+            //         seriesEntries[destinationDeviceIdx]["value"] = !seriesEntries[destinationDeviceIdx]["value"].as<bool>();
+            //     }
+
+            //     bool shouldBeOn = getDesiredState(
+            //         currentState,
+            //         _devices[idx].triggerType,
+            //         seriesEntries[sourceDeviceStateIdx]["value"],
+            //         _devices[idx].triggerValue,
+            //         _devices[idx].triggerThreshold
+            //     );
+
+            //     bool electricShouldBeOn = _devices[idx].signal == activeLow ? !shouldBeOn : shouldBeOn;
+
+            //     if(!currentState && shouldBeOn)
+            //         logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+
+            //     if(shouldBeOn){
+            //         device.setValue(electricShouldBeOn);
+            //         _devices[idx]._lastStartTime = millis();
+            //     }
                 
-                if(device.turnOffIfTime(_devices[idx].duration)) //dont do it here, do it in set loop
-                    logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
-            }            
+            //     if(device.turnOffIfTime(_devices[idx].duration))
+            //         logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+            // }            
             break;
             //no output actions for input devices
             case esp32_device_type::AnalogInput:
@@ -325,9 +353,16 @@ int esp32_devices::findDeviceStateIndex(JsonArray deviceStates, int deviceId)
 vector<esp32_device_info> esp32_devices::getDevices()
 {
     //vector<esp32_device_info> devices;
-    StaticJsonDocument<2048> devicesConfig;
-    esp32_config::getConfigSection("devices", &devicesConfig);
+    StaticJsonDocument<2048> configFile;
+    File f = SPIFFS.open(PATH_DEVICE_CONFIG,"r");
+    auto error = deserializeJson(configFile, f);
+    f.close();    
     _devices.clear();
+    if(configFile["devices"].isNull())
+        return _devices;
+        
+    auto devicesConfig = configFile["devices"].as<JsonArray>();    
+    //serializeJson(devicesConfig,Serial);
 
     for(int idx = 0; idx < devicesConfig.size();idx++){
         esp32_device_info deviceConfig;
@@ -350,16 +385,21 @@ vector<esp32_device_info> esp32_devices::getDevices()
             if(deviceConfig.mqttPublish){
                 deviceConfig.mqttTopic = devicesConfig[idx]["mqtt"]["topic"].as<const char*>();
                 deviceConfig.mqttFrequency = devicesConfig[idx]["mqtt"]["frequency"].as<int>();
-            }
-                
+            }   
         }
+        if(devicesConfig[idx]["signal"].isNull())
+            deviceConfig.signal = activeHigh;
+        else{
+            Serial.printf("Device %s is configured for signal: %s\n", deviceConfig.name.c_str(), devicesConfig[idx]["signal"].as<const char *>());
+        }    
+        deviceConfig.signal = (!devicesConfig[idx]["signal"].isNull() && strcmp(devicesConfig[idx]["signal"].as<const char*>(), "low") == 0) ? activeLow : activeHigh;
 
         deviceConfig.type = typeFromTypeName(devicesConfig[idx]["type"]);       
         if(deviceConfig.type == Relay)
             deviceConfig.duration =  devicesConfig[idx]["duration"].isNull() ? 5000 : devicesConfig[idx]["duration"].as<int>() * 1000;
 
         #ifdef DEBUG  
-        Serial.printf("Adding device to list:\n\tID: \t\t%d\n\tName: \t\t%s\n\tType: \t\t%s%s\n\tPin: \t\t%d\n\tHas Trigger: \t%s\n",
+        Serial.printf("Adding device to list:\n\tID: \t\t%d\n\tName: \t\t%s\n\tType: \t\t%s%s\n\tPin: \t\t%d\n\tHas Trigger: \t%s\n\tSignal: \t%s\n",
             deviceConfig.id,    
             deviceConfig.name.c_str(),
             deviceConfig.type == AnalogInput ? "Analog" :
@@ -368,7 +408,8 @@ vector<esp32_device_info> esp32_devices::getDevices()
                 deviceConfig.type == Switch ? "Switch" : "Relay",
             deviceConfig.type == Relay ? string_format("\n\tDuration: 't%d seconds",deviceConfig.duration / 1000).c_str() : "",
             deviceConfig.pin,    
-            deviceConfig.useTrigger ? "Yes" : "No"
+            deviceConfig.useTrigger ? "Yes" : "No" ,           
+            deviceConfig.signal == activeHigh ? "Active High" : "Active Low" 
         );
 
         if(deviceConfig.useTrigger){

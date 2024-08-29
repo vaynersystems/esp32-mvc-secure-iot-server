@@ -61,6 +61,15 @@
 
         for(property of viewModel){
             if(property.Validation !== undefined){
+                //check that field conditions are met
+                if(property.Condition1 !== undefined){
+                    if(viewModel.find(f => f.Name == property.Condition1)?.Value !== property.ConditionValue1)
+                    continue;                    
+                }
+                if(property.Condition2 !== undefined){
+                    if(viewModel.find(f => f.Name == property.Condition2)?.Value !== property.ConditionValue2)
+                    continue;                    
+                }
                 for(var rule of property.Validation){
                     var errorsFoundInField = false;
                     switch(rule.Type){
@@ -316,7 +325,23 @@
                             }
                         });
                     fieldContainerElement.appendChild(fieldInputElement);
-                    break;                
+                    break;  
+                case 'Time':
+                case 'Time':
+                    var fieldInputElement = document.createElement('input');
+                    fieldInputElement.id = 'field-value-' + modelField.Name;
+                    fieldInputElement.type = 'time';
+                    fieldInputElement.value = modelField.Value ?? '';
+                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    fieldInputElement.addEventListener('change',(ev) =>
+                        {
+                            if(onchange !== null && onchange !== undefined){
+                                const changed = _compareToOriginal();
+                                onchange(changed);
+                            }
+                        });
+                    fieldContainerElement.appendChild(fieldInputElement);
+                    break;               
                 case 'File':
                 case 'file':
                     var fieldInputElement = document.createElement('input');
@@ -334,7 +359,18 @@
                 case 'Lookup':
                     var fieldInputElement = document.createElement('select');
                     fieldInputElement.id = 'field-value-' + modelField.Name;
-                    fieldInputElement.addEventListener('change',(ev) => modelField.Value = fieldInputElement.value);
+                    var multiple = modelField.Attributes?.find(a => Object.keys(a) == 'multiple');
+                    if(multiple){
+                        fieldInputElement.title = 'Ctrl + Click to mutli-select ' + modelField.Name;
+                        fieldInputElement.setAttribute('multiple','');
+                        fieldInputElement.size = modelField.Data.length;
+                    }
+                    fieldInputElement.addEventListener('change',(ev) => {
+                        if(modelField.Attributes?.find(a => Object.keys(a) == 'multiple'))
+                            modelField.Value = Array.from(fieldInputElement.selectedOptions).map(s => s.value);
+                        else
+                            modelField.Value = fieldInputElement.value;
+                    });
                     fieldInputElement.addEventListener('change',(ev) =>
                         {
                             if(onchange !== null && onchange !== undefined){
@@ -354,8 +390,15 @@
                         }
 
                     if(modelField.Value !== undefined)
-                        fieldInputElement.value = modelField.Value;
+                        if(multiple)
+                            for(var option of modelField.Value)
+                            Array.from(fieldInputElement.options).find(o => o.value == option).selected = true;
+                        else
+                            fieldInputElement.value = modelField.Value;
+                    else{ //first item will be selected visually. set model to it
+                        modelField.Value = modelField.Data[0].value;
 
+                    }
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
                 case 'LookupGrouped':
@@ -394,6 +437,7 @@
 
                     fieldContainerElement.appendChild(fieldInputElement);
                     break;
+                
             }    
         }
 
@@ -497,8 +541,14 @@
             if( typeof modelProperty === 'object' ){
                 //enumerate children
                 for(childProperty in modelProperty){
-                    var viewModelProperty = viewModel.find(field => field.Source == property + "." + childProperty);  
-                    if(viewModelProperty === undefined) continue; //property not used                   
+                    const fieldSource = isNaN(childProperty) ? property + "." + childProperty : property;
+                    var viewModelProperty = viewModel.find(field => field.Source == fieldSource);  
+                    if(viewModelProperty === undefined) continue; //property not used
+                    
+                    if(viewModelProperty.Attributes !== undefined && viewModelProperty.Attributes !== null && viewModelProperty.Attributes.find(a => a.multiple !== undefined)){
+                        if(viewModelProperty.Value === undefined) viewModelProperty.Value = []; //init multi-select
+                        viewModelProperty.Value.push(sourceModel[property][childProperty]);
+                    } else
                         viewModelProperty.Value = sourceModel[property][childProperty];                    
                 }
             } else{

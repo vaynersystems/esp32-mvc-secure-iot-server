@@ -10,7 +10,7 @@ function showWait(which){
     if(which === undefined || which === null || which === ''){
         const waitElement = document.createElement('wait');
         waitElement.id = 'page-wait';
-        waitElement.addEventListener('close', () => { document.body.removeChild(waitElement)});
+        waitElement.addEventListener('close', () => { waitElement.parent.removeChild(waitElement)});
         document.body.appendChild(waitElement);
         return waitElement;
     }
