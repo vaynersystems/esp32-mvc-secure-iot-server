@@ -1,0 +1,43 @@
+[
+    {
+        "Name": "Username",
+        "Type": "Text",
+        "Value": "",
+        "Readonly": false,
+        "Source": "username",
+        "Validation": [
+            {"Type": "Required"},
+            {"Type": "MinLength", "Value": 5}
+        ]
+    },
+    {
+        "Name": "Old Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "oldPassword",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "New Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "newPassword",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Confirm Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "confirmPassword",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    }    
+]

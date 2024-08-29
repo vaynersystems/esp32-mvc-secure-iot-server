@@ -1,0 +1,157 @@
+[
+    {
+        "Name": "Device Id",
+        "Type": "Number",
+        "Readonly": true,
+        "Source": "id"
+    },
+    {
+        "Name": "Device Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "name"
+    },
+    {
+        "Name": "Device Type",
+        "Type": "LookupGrouped",
+        "Readonly": false,
+        "Value": "DigitalInput",
+        "Data" : [{"name":"Digital Input", "value": "DigitalInput", "group": "Inputs"},{"name": "Analog Input", "value": "AnalogInput", "group": "Inputs"},{ "name": "Thermometer", "value":"Thermometer", "group": "Inputs"}, {"name": "Switch", "value": "Switch", "group": "Outputs"},{"name":"Relay" , "value": "Relay", "group": "Outputs"}],
+        "Source": "type"
+    },
+    {
+        "Name": "Device Pin",
+        "Type": "Lookup",
+        "Readonly": false,
+        "Value": 4,
+        "Data" : [
+            {"name":"D13", "value":13},
+            {"name":"D18", "value":18},
+            {"name":"D19", "value":19},
+            {"name":"D21", "value":21},
+            {"name":"D22", "value":22},
+            {"name":"D23", "value":23},
+            {"name": "D25", "value":25},
+            {"name": "D26", "value":26},
+            {"name": "D27", "value":27},
+            {"name": "D32 (analog)", "value":32},
+            {"name": "D33 (analog)", "value":33},
+            {"name": "D34 (analog)", "value":34},
+            {"name": "D35 (analog)", "value":35}
+        ],
+        "Source": "pin",
+        "Unique": true
+    },
+    {
+        "Name": "MQTT Publish",
+        "Type": "Boolean",
+        "Readonly": false,
+        "Source": "mqtt.publish"
+    },
+    {
+        "Name": "Topic",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "mqtt.topic",
+        "Condition1": "MQTT Publish",
+        "ConditionValue1":  true,
+        "Validation": [
+            {"Type": "Required"},
+            {"Type": "MinLength", "Value": 5}
+        ]
+    },
+    {
+        "Name": "Frequency",
+        "Type": "Lookup",
+        "Source": "mqtt.frequency",
+        "Readonly": false,
+        "Data": [
+            {"name":"1 minute", "value":1},
+            {"name":"2 minutes", "value":2},
+            {"name": "5 minutes", "value":5}, 
+            {"name": "10 minutes", "value":10},
+            {"name": "15 minutes", "value":15},
+            {"name": "30 minutes", "value":30},
+            {"name": "1 hour", "value":60},
+            {"name": "2 hours", "value":120},
+            {"name": "3 hours", "value":180},
+            {"name": "4 hours", "value":240}
+        ],
+
+        "Condition1": "MQTT Publish",
+        "ConditionValue1": true,
+        "Condition2": "Device Type.group",
+        "ConditionValue2": "Inputs"
+    },
+    {
+        "Name": "Device Signal",
+        "Type": "Lookup",
+        "Value": "high",
+        "Source": "signal",
+        "Readonly": false,
+        "Data": [{"name":"Active High", "value":"high"}, {"name": "Active Low", "value":"low"}],
+        "Condition1": "Device Type.group",
+        "ConditionValue1": "Outputs",
+        "Validation": [
+            {"Type": "Required"}
+        ]            
+    },
+    {
+        "Name": "Duration",
+        "Type": "Number",
+        "Readonly": false,
+        "Source": "duration",
+        "Condition1": "Device Type",
+        "ConditionValue1": "Relay" 
+    },
+    {
+        "Name": "Use Trigger",
+        "Type": "Boolean",
+        "Value": false,
+        "Readonly": false,
+        "Source": "trigger.active",
+        "Condition1": "Device Type.group",
+        "ConditionValue1": "Outputs"
+    },
+    {
+        "Name": "Trigger Device",
+        "Type": "Lookup",
+        "Source": "trigger.source",
+        "Readonly": false,        
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Condition2": "Device Type.group",
+        "ConditionValue2": "Outputs"
+    },
+    {
+        "Name": "Trigger Type",
+        "Type": "Lookup",
+        "Source": "trigger.type",
+        "Readonly": false,
+        "Data": [{"name":"=", "value": "="}, {"name": "<", "value": "<"}, {"name": ">", "value": ">"}],
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Condition2": "Device Type.group",
+        "ConditionValue2": "Outputs"
+    },
+    {
+        "Name": "Trigger Value",
+        "Type": "Number",
+        "Source": "trigger.value",
+        "Readonly": false,                    
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Condition2": "Device Type.group",
+        "ConditionValue2": "Outputs"
+    },
+    {
+        "Name": "Trigger Threshold",
+        "Type": "Number",
+        "Source": "trigger.threshold",
+        "Readonly": false,                    
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Condition2": "Device Type.group",
+        "ConditionValue2": "Outputs"
+    }
+]

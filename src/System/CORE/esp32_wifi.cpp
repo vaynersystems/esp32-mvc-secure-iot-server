@@ -47,7 +47,7 @@ bool esp32_wifi::start(){
     
     if(trySTA){
         #ifdef DEBUG
-        Serial.printf("Connecting in STA mode to network %Sn", network.c_str());        
+        Serial.printf("Connecting in STA mode to network %S\n", network.c_str());        
         #endif
         bool isDHCP =  wifiConfig["dhcp"].as<bool>();
         

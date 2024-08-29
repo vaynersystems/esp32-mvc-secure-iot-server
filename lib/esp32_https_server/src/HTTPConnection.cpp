@@ -14,7 +14,7 @@ HTTPConnection::HTTPConnection(ResourceResolver * resResolver):
   _clientState = CSTATE_UNDEFINED;
   _httpHeaders = NULL;
   _defaultHeaders = NULL;
-  _isKeepAlive = true;
+  _isKeepAlive = false;
   _lastTransmissionTS = millis();
   _shutdownTS = 0;
   _wsHandler = nullptr;
@@ -479,14 +479,14 @@ void HTTPConnection::loop() {
               );
             }
             if (std::string("keep-alive").compare(connectionHeaderValue)==0) {
-              HTTPS_LOGD("Keep-Alive activated. FID=%d", _socket);
+              //HTTPS_LOGD("Keep-Alive activated. FID=%d", _socket);
               _isKeepAlive = true;
             } else {
-              HTTPS_LOGD("Keep-Alive disabled. FID=%d", _socket);
+              //HTTPS_LOGD("Keep-Alive disabled. FID=%d", _socket);
               _isKeepAlive = false;
             }
           } else {
-            _isKeepAlive = true;
+            _isKeepAlive = false;
           }
 
           // Create request context

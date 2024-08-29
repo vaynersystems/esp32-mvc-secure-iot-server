@@ -1,0 +1,28 @@
+[
+    {
+        "Name": "Username",
+        "Type": "Text",
+        "Value": "",
+        "Readonly": true,
+        "Source": "username"
+    },
+    {
+        "Name": "Role",
+        "Type": "Lookup",
+        "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}],
+        "Readonly": false,
+        "Source": "role"
+    },
+    {
+        "Name": "Enabled",
+        "Type": "Boolean",
+        "Readonly": false,
+        "Source": "enabled"
+    },    
+    {
+        "Name": "Created On",
+        "Type": "Date",
+        "Readonly": true,
+        "Source": "created"
+    }          
+]    

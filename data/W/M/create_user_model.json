@@ -1,0 +1,47 @@
+[
+    {
+        "Name": "Username",
+        "Type": "Text",
+        "Value": "",
+        "Readonly": false,
+        "Source": "username",
+        "Validation": [
+            {"Type": "Required"},
+            {"Type": "MinLength", "Value": 5}
+        ]
+    },
+    {
+        "Name": "Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "password",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Confirm Password",
+        "Type": "Password",
+        "Value": "",
+        "Readonly": false,
+        "Source": "confirm",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Role",
+        "Type": "Lookup",
+        "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}],
+        "Readonly": false,
+        "Source": "role",
+        "Value": "USER"
+    },
+    {
+        "Name": "Enabled",
+        "Type": "Boolean",
+        "Readonly": false,
+        "Source": "enabled"
+    }   
+]
