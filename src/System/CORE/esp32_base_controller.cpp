@@ -128,7 +128,7 @@ inline std::string esp32_base_controller::GetControllersJSON(HTTPRequest* req){
     }
     //add editor if authorized
     if(strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0){        
-        ctrString += string_format("{\"group\": \"Tools\", \"sort\": \"%d\", \"name\": \"Editor\", \"controller\": \"edit\", \"target\": \"_blank\"}, ", esp32_controller_category::Tools);
+        ctrString += string_format("{\"group\": \"Tools\", \"sort\": \"%d\", \"name\": \"File System\", \"controller\": \"edit\", \"target\": \"_blank\"}, ", esp32_controller_category::Tools);
 
     }
     

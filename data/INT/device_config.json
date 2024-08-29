@@ -1,0 +1,41 @@
+{
+    "devices":
+    [
+      {
+        "id": "1",
+        "name": "Pool thermometer",
+        "type": "Thermometer",
+        "pin": "13",
+        "signal": "high"
+      },
+      {
+        "id": "2",
+        "name": "Heater switch",
+        "type": "Switch",
+        "pin": "6",
+        "signal": "high",
+        "trigger": {
+          "active": true,
+          "source": "1",
+          "type": "<",
+          "value": "75",
+          "threshold": "5"
+        }
+      },
+      {
+        "id": "3",
+        "name": "Pool Pump",
+        "type": "Switch",
+        "pin": "7",
+        "signal": "high",
+        "trigger": {
+          "active": true,
+          "source": "2",
+          "type": "=",
+          "value": "1",
+          "threshold": ""
+        }
+      }
+    ],
+    "schedules": []
+  }

@@ -15,7 +15,8 @@ function getToken(url, user, pass) {
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
             if (request.status == 401 ) {
-                showModal('<p class="error">' + (request.statusText.length > 0 ? request.statusText  : 'Unknown error' ) + '</p>','Authentication Error');
+                const message = '<p class="error">' + (request.statusText.length > 0 ? request.statusText  : 'Unknown error' ) + '</p>';
+                showModal('Authentication Error',message);
                 return;
             }
             var response = request.responseText;

@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const daysDropDownElement = document.getElementById('log-days');
     if(daysDropDownElement === null) return;
     daysDropDownElement.innerHTML = '';
+    days.sort((a,b) => new Date(a.name.replace('SNAPSHOT_','').replace('.log','')) - new Date(b.name.replace('SNAPSHOT_','').replace('.log','')));
     for(const day of days){
         const opt = document.createElement('option');
         opt.value = day.name;

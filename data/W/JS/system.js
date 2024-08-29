@@ -73,8 +73,10 @@ function reset(check){
     var request = new XMLHttpRequest();
     const skipCheck = check !== undefined && check == true ;
 
-    if(!skipCheck)
-        showModal('Are you sure you want to restart the device','Device Restart ', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {resetCall();closeModal();}}]);
+    if(!skipCheck){
+        showModal('Device Restart ','Are you sure you want to restart the device', [{text:'No',action: () => { closeModal();} }, {text:'Yes', action: () => {resetCall();closeModal();}}]);
+    }
+        
     else
         resetCall();
 }

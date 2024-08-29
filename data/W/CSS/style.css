@@ -15,12 +15,17 @@ body {
 
 
 button{
-    background-color: var(--primary-button-background);
-    color:var(--primary-button-color);
-    min-width:90px;
+    background-color: rgb(from var(--primary-button-background) r g b / 20%);
+    color: var(--primary-button-color);
+    min-width: 90px;
+    line-height: 14px;
+    border: navajowhite;
+    margin: 5px;
+    padding: 4px 20px;
+    font-weight: 800;
 }
 button:hover{
-    background-color: #04193a;
+    background-color: rgb(from var(--primary-button-background) r g b / 40%);
     cursor: pointer;
 }
 button[disabled]{
@@ -33,6 +38,10 @@ button[disabled]{
 input,select{
     background: #eaf4ff;
     color:#15133a;
+}
+
+select option:checked{
+    background-color:#ced;
 }
 
 .entry{
@@ -269,14 +278,14 @@ p, div, span, input{
     flex-direction: column;
     justify-content: space-between;
     max-width: 600px;
-    min-height: 250px;    
+    min-height: 150px;    
     text-align: center;
     align-content: center;
     background: var(--primary-control-background);
     color:var(--primary-control-color);
     margin: 15px;
     box-shadow: 6px 6px;
-    
+    width: fit-content;
     margin: auto;
 }
 #system-modal-content .header{
@@ -298,6 +307,9 @@ p, div, span, input{
     flex-grow: 1;
 }
 #system-modal-text{
+    padding: 5px 20px;
+}
+#system-modal-errors{
     padding: 5px 20px;
 }
 #system-modal-actions{
@@ -329,6 +341,7 @@ p, div, span, input{
     grid-template-columns: 10% 25% 25% 15% 25%;
     div{
         padding:4px;     
+        align-items: center;
     }    
 }
 .grid-row{
@@ -360,6 +373,13 @@ p, div, span, input{
     font-size: 16px;
     flex-grow:0;
     line-height: 18px;
+}
+
+.error{
+    color:red;
+    font-size: 12px;
+    display: flex;
+    flex-grow: 1;
 }
 
 @media screen and (max-width: 900px) {

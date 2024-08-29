@@ -1,0 +1,117 @@
+[
+    {
+        "Name": "Schedule Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "name",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+
+    {
+        "Name": "Device Type",
+        "Type": "Lookup",
+        "Source": "devices",
+        "Readonly": false,                
+        "Attributes":[
+            {"multiple":true}
+        ],
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Days",
+        "Type": "Lookup",
+        "Readonly": false,
+        "Source": "days",
+        "Data": [
+            {"name":"Monday", "value": 1},
+            {"name":"Tuesday", "value": 2},
+            {"name":"Wednesday", "value": 3},
+            {"name":"Thursday", "value": 4},
+            {"name":"Friday", "value": 5},
+            {"name":"Saturday", "value": 6},
+            {"name":"Sunday", "value": 7}
+        ],
+        "Attributes":[
+            {"multiple":true}
+        ],
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Turn ON",
+        "Type": "Time",
+        "Source": "start",
+        "Readonly": false,
+        "Validation": [
+            {"Type": "Required"}
+        ]    
+    },
+    {
+        "Name": "Turn OFF",
+        "Type": "Time",
+        "Source": "end",
+        "Readonly": false,
+        "Validation": [
+            {"Type": "Required"}
+        ]  
+    },
+
+    {
+        "Name": "Use Trigger",
+        "Type": "Boolean",
+        "Value": false,
+        "Readonly": false,
+        "Source": "trigger.active"
+    },
+    {
+        "Name": "Trigger Device",
+        "Type": "Lookup",
+        "Source": "trigger.source",
+        "Readonly": false,        
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Validation": [
+            {"Type": "Required"}
+        ] 
+    },
+    {
+        "Name": "Trigger Type",
+        "Type": "Lookup",
+        "Source": "trigger.type",
+        "Readonly": false,
+        "Data": [{"name":"=", "value": "="}, {"name": "<", "value": "<"}, {"name": ">", "value": ">"}],
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Validation": [
+            {"Type": "Required"}
+        ] 
+    },
+    {
+        "Name": "Trigger Value",
+        "Type": "Number",
+        "Source": "trigger.value",
+        "Readonly": false,                    
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Validation": [
+            {"Type": "Required"}
+        ] 
+    },
+    {
+        "Name": "Trigger Threshold",
+        "Type": "Number",
+        "Source": "trigger.threshold",
+        "Readonly": false,                    
+        "Condition1": "Use Trigger",
+        "ConditionValue1": true,
+        "Validation": [
+            {"Type": "Required"}
+        ] 
+    }
+    
+]

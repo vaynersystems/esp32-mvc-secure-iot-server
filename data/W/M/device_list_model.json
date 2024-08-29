@@ -1,0 +1,28 @@
+[
+    {
+        "Name": "Id",
+        "Type": "Number",
+        "Source": "id",
+        "Readonly": true
+    },
+    {
+        "Name": "Name",
+        "Type": "Text",
+        "Source": "name",
+        "Readonly": true
+    },
+    {
+        "Name": "Type",
+        "Type": "Text",        
+        "Value": "DigitalInput",
+        "Source": "type",
+        "Readonly": true
+    },
+    {
+        "Name": "Pin",
+        "Type": "Text",        
+        "Value": "4",
+        "Source": "pin",
+        "Readonly": true
+    }    
+]
