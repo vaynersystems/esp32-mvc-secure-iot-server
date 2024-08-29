@@ -192,18 +192,6 @@
                     <div>Total: $SD_MEMORY_TOTAL</div>
                 </div>
             </div>
-            <div class="detail wide conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">
-                <div class="header-memory">
-                    <div>PSRAM</div>
-                    <div>$PSRAM_MEMORY_PERCENT_USED%</div>
-                </div>   
-                <div class="bar" style="height:28px; --percent: $PSRAM_MEMORY_PERCENT_USED;"></div>
-                <div class="row">
-                    <div>Used: $PSRAM_MEMORY_USED</div>
-                    <div>Free: $PSRAM_MEMORY_FREE</div>
-                    <div>Total: $PSRAM_MEMORY_TOTAL</div>
-                </div>
-            </div>
             <div class="detail wide conditional" style="--available: $SKETCH_MEMORY_AVAILABLE;">
                 <div class="header-memory">
                     <div>SKETCH</div>
@@ -257,7 +245,19 @@
                     <div>Free: <span id="heap-free">$HEAP_MEMORY_FREE</span></div>
                     <div>Total: <span id="heap-total">$HEAP_MEMORY_TOTAL</span></div>
                 </div>
-            </div>        
+            </div>    
+            <div class="detail wide conditional" style="--available: $PSRAM_MEMORY_AVAILABLE;">
+                <div class="header-memory">
+                    <div>PSRAM</div>
+                    <div>$PSRAM_MEMORY_PERCENT_USED%</div>
+                </div>   
+                <div class="bar" style="height:28px; --percent: $PSRAM_MEMORY_PERCENT_USED;"></div>
+                <div class="row">
+                    <div>Used: <span id="psram-used">$PSRAM_MEMORY_USED</span></div>
+                    <div>Free: <span id="psram-free">$PSRAM_MEMORY_FREE</span></div>
+                    <div>Total: <span id=psram-total">$PSRAM_MEMORY_TOTAL</span></div>
+                </div>
+            </div>    
         </div>
     </div>
 </div>
@@ -295,6 +295,18 @@
                     <div class="detail grow conditional">
                         <div class="row grow">
                             <canvas id="heap-chart"></canvas>
+                        </div>  
+                        
+                    </div>           
+                </div>
+            </div>
+
+            <div class="grow" style="--available: $PSRAM_MEMORY_AVAILABLE;">
+                <div class="header-sub">PSRAM</div>    
+                <div class="details grow">
+                    <div class="detail grow conditional">
+                        <div class="row grow">
+                            <canvas id="psram-chart"></canvas>
                         </div>  
                         
                     </div>           

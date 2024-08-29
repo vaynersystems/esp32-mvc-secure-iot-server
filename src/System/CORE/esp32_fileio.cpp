@@ -183,7 +183,11 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     if (routeInfo.isGZ())
         response->setHeader("Content-Encoding", "gzip");
 
-    bool noStore = strstr(file.name(), "list?") != nullptr || strstr(file.path(), PATH_LOGGING_ROOT) != nullptr || routeInfo.isEditorRequest;
+    bool noStore = 
+        strstr(file.name(), "list?") != nullptr 
+        || strstr(file.path(), PATH_LOGGING_ROOT) != nullptr 
+        || routeInfo.isEditorRequest
+        || strstr(file.name(), ".json") != nullptr ;
     response->setHeader("Cache-Control", noStore ? "no-store" : "private, max-age=604800");
     string extension = routeInfo.extension();
     if (routeInfo.isDownload())

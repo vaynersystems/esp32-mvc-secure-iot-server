@@ -1,6 +1,6 @@
 #include "HTTPURLEncodedBodyParser.hpp"
 
-#define CHUNKSIZE 512
+#define CHUNKSIZE 2048
 #define MINCHUNKSIZE 64
 
 namespace httpsserver {
@@ -17,7 +17,13 @@ HTTPURLEncodedBodyParser::HTTPURLEncodedBodyParser(HTTPRequest * req):
   bodyLength = _request->getContentLength();
   if (bodyLength) {
     // We know the body length. We try to read that much and give an error if it fails.
-    bodyBuffer = (char *)malloc(bodyLength+1);
+    esp_chip_info_t info;
+    esp_chip_info(&info);
+    if(info.model == CHIP_ESP32S3)
+        bodyBuffer = (char *)ps_calloc(bodyLength+1, sizeof(uint8_t));
+    else
+        bodyBuffer = (char *)malloc(bodyLength+1);
+    
     if (bodyBuffer == NULL) {
       HTTPS_LOGE("HTTPURLEncodedBodyParser: out of memory");
       return;
@@ -36,7 +42,7 @@ HTTPURLEncodedBodyParser::HTTPURLEncodedBodyParser(HTTPRequest * req):
     }
   } else {
     // We don't know the length. Read as much as possible.
-    bodyBuffer = (char *)malloc(CHUNKSIZE+1);
+    bodyBuffer = (char *)ps_malloc(CHUNKSIZE+1);
     if (bodyBuffer == NULL) {
       HTTPS_LOGE("HTTPURLEncodedBodyParser: out of memory");
       return;

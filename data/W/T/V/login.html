@@ -11,7 +11,7 @@
     .header{
         padding: 10px 20px;
     }
-    .row{
+    #login .row{
         font-size: 12px;
         flex-wrap: wrap;
         padding: 10px 20px;
@@ -49,6 +49,7 @@
     <input id="login-button" type='button' value='Login' onclick='getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value)' />
     <div class="error" id="error"></div>
 </div>
+<script src="/W/JS/esp32_modal.js"></script>
 <script src="/W/JS/auth.js"></script>
 <script type="text/javascript">
     // document.onkeydown = function(key){

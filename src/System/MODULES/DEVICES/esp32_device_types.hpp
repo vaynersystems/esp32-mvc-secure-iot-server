@@ -17,6 +17,11 @@ enum esp32_device_trigger_type{
     Equals = 2
 };
 
+enum esp32_device_sginal{
+    activeLow = 0,
+    activeHigh = 1
+};
+
 class esp32_device_info{
 public:
     int id;
@@ -24,6 +29,7 @@ public:
     string name;
     string mqttTopic;
     int pin;
+    esp32_device_sginal signal = esp32_device_sginal::activeHigh;
     //esp32_device_direction direction;
     bool useTrigger = false;
     bool mqttPublish = false;

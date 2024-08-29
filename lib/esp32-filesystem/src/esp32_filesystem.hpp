@@ -13,6 +13,23 @@ using namespace std;
 using namespace fs;
 
 
+// template <class T>
+// struct PSallocator {
+//   typedef T value_type;
+//   PSallocator() = default;
+//   template <class U> constexpr PSallocator(const PSallocator<U>&) noexcept {}
+//   [[nodiscard]] T* allocate(std::size_t n) {
+//     if(n > std::size_t(-1) / sizeof(T)) throw std::bad_alloc();
+//     if(auto p = static_cast<T*>(heap_caps_malloc(n*sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT))) return p;
+//     throw std::bad_alloc();
+//   }
+//   void deallocate(T* p, std::size_t) noexcept { std::free(p); }
+// };
+// template <class T, class U>
+// bool operator==(const PSallocator<T>&, const PSallocator<U>&) { return true; }
+// template <class T, class U>
+// bool operator!=(const PSallocator<T>&, const PSallocator<U>&) { return false; }
+
 
 class esp32_fs_impl : public VFSImpl
 {
@@ -87,11 +104,15 @@ public:
         //Serial.printf("Opening %s on filesystem %s\n", path, partitionLabel);
         string fileSystemPath = getRelativePath(path);
 
+        #ifdef DEBUG
         if(!exists(fileSystemPath.c_str())){
-            //Serial.printf("Path %s not found on drive %s\n", fileSystemPath.c_str(), partitionLabel);
+            Serial.printf("Path %s not found on drive %s\n", fileSystemPath.c_str(), partitionLabel);
         }
+        #endif
         _workingFile = _fileSystem->open(fileSystemPath.c_str(), mode, create);
-        //Serial.printf("%s %s on filesystem %s with %d bytes\n", _workingFile ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel, _workingFile.size());
+        #ifdef DEBUG
+        Serial.printf("%s %s on filesystem %s with %d bytes\n", _workingFile ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel, _workingFile.size());
+        #endif
         return _workingFile;
     }  
 

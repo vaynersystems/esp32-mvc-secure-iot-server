@@ -1,0 +1,38 @@
+[
+    {
+        "Name": "Device Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "device",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Company Name",
+        "Type": "Text",
+        "Readonly": false,
+        "Source": "company",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Valid From",
+        "Type": "Date",
+        "Readonly": false,
+        "Source": "from",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    },
+    {
+        "Name": "Valid To",
+        "Type": "Date",
+        "Readonly": false,
+        "Source": "to",
+        "Validation": [
+            {"Type": "Required"}
+        ]
+    }               
+]

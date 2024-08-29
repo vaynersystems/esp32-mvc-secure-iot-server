@@ -2,6 +2,7 @@
 #include "system_helper.h"
 #include "base64.hpp"
 #include "esp32_sha256.h"
+#include "string_helper.h"
 //case sensitive char literal to binary
 #define SHORT_FROM_CHAR(c) (c == '1' ? 1 : c == '2' ? 2 : c=='3' ? 3 : c=='4' ? 4 : c=='5' ? 5 : c=='6' ? 6 : c=='7' ? 7 : c=='8' ? 8 : c=='9' ? 9 : c=='A' ? 0xA : c=='B' ? 0xB : c=='C' ? 0xC : c=='D' ? 0xD : c=='E' ? 0xE : c=='F' ? 0xF : 0x0 )
 
@@ -90,7 +91,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role, bool enabled){
     File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
     byte encryptedPass[SHA256_SIZE];
-    char storedPass[64];
+    char storedPass[(SHA256_SIZE*2) + 1];
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
@@ -138,7 +139,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
        
     }
     byte encryptedPass[SHA256_SIZE];
-    char storedPass[64];
+    char storedPass[(SHA256_SIZE*2) + 1]; //2 bytes per hex digit and null terminator
     //get user object, update it, store back
     File file = SPIFFS.open(PATH_AUTH_FILE);
     DynamicJsonDocument doc(2048);
@@ -157,24 +158,21 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
         
              
     encryptPassword(newPassword, encryptedPass);
-    binaryPasswordToString(encryptedPass, storedPass);
-
-    existingUser["password"] = storedPass;    
+    binaryPasswordToString(encryptedPass, storedPass);         
+    existingUser["password"] = storedPass;
 
     //write back
     file = SPIFFS.open(PATH_AUTH_FILE,"w");
     serializeJson(doc, file);
 //    file.flush();
     file.close();
-        
-    
     return ChangePasswordResult::Ok;    
 }
 
 
 JsonObject esp32_authentication::findUser(JsonArray users, const char* userName){
     for(JsonObject seekingUser : users){
-        if(!seekingUser["username"].isNull() && strcmp(seekingUser["username"].as<const char *>(),userName) == 0)
+        if(!seekingUser["username"].isNull() && iequals(seekingUser["username"].as<const char *>(),userName, seekingUser["username"].size()))
             return seekingUser;        
     }
     return JsonObject();

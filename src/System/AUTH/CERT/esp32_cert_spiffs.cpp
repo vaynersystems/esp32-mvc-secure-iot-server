@@ -1,8 +1,10 @@
 #include "esp32_cert_base.hpp"
 #include "esp32_cert_spiffs.hpp"
 #include <string.h>
-extern const char* PUBLIC_TEMP_PATH;
-extern const char* PRIVATE_TEMP_PATH;
+
+extern esp32_file_system filesystem;
+// extern const char* PUBLIC_TEMP_PATH;
+// extern const char* PRIVATE_TEMP_PATH;
 
 bool esp32_cert_spiffs::hasPrivateKey()
 {
@@ -80,30 +82,34 @@ void esp32_cert_spiffs::saveCertificates(){
 bool esp32_cert_spiffs::importFromTemporary()
 {
     logger.logDebug("[CERT_SPIFFS] Importing certificats from temporary storage");
+    auto drive = filesystem.getDisk(0);
 
-    File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "r");
-    File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "r");
+    File pubFile = drive->open(PUBLIC_TEMP_PATH, "r");
+    File priFile = drive->open(PRIVATE_TEMP_PATH, "r");
 
     char *publicKey = new char[pubFile.size()];
     char *privateKey = new char[priFile.size()];
     
     pubFile.readBytes(publicKey, pubFile.size());
-    priFile.readBytes(privateKey, priFile.size());
+    priFile.readBytes(privateKey, priFile.size());    
     
-    /* One option is to set fields if ssl cert is initialized*/
-    // _cert->setCert((unsigned char *)publicKey, publicLength);
-    // _cert->setPK((unsigned char *)privateKey, privateLength);
     auto cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
-    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
-    {
-        _cert = cert;
-        saveCertificates();
-    }
 
     pubFile.close();
     priFile.close();
 
-    SPIFFS.remove(PUBLIC_TEMP_PATH);
-    SPIFFS.remove(PRIVATE_TEMP_PATH);
+    drive->remove(PUBLIC_TEMP_PATH);
+    drive->remove(PRIVATE_TEMP_PATH);
+
+    if(cert->getCertLength() > 0 && cert->getPKLength() > 0)
+    {
+        _cert = cert;
+        saveCertificates();
+        #ifdef DEBUG
+        Serial.printf("Imported certificate with %d bytes of data and %d bytes key\n", cert->getCertLength(), cert->getPKLength());
+        #endif 
+        return true;
+    }
+    return false;
 }
 
