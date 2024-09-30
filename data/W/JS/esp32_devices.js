@@ -143,7 +143,8 @@ class esp32_devices{
                             action: () => {
                                 setTimeout(() => {
                                     reset(true);closeModal(); 
-                                    setTimeout( () => window.location.reload(),10000);
+                                    showWait();
+                                    setTimeout( () => reload,10000);
                                 }, 500);
                             }
                         }
@@ -214,6 +215,11 @@ class esp32_devices{
                     Source: 'trigger.source', 
                     Field: 'Data', 
                     Value: activeConfig.devices.filter(ac => ac.id !== device.id).map(ac => Object.create({'name': ac.name, 'value': ac.id}))
+                },
+                {
+                    Source: 'pin', 
+                    Field: 'Data', 
+                    Value: activeConfig.devices.filter(ac => ac.id !== device.id).map(ac => Object.create({'name': ac.name, 'value': ac.id}))
                 }
             ],
             this.saveDevice,
@@ -252,6 +258,16 @@ class esp32_devices{
     }
 }
 /* END OF DEVICES */
+
+function reload(){
+    fetch('/')
+    .then(() => window.location.reload())
+    .catch( () => setTimeout(() => {
+        reload
+    }, 5000))
+    ;
+}
+
 
 function confirmCancelChanges(cancelCallback){
     const modalComponent = _generateModalComponent(); 

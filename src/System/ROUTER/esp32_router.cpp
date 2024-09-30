@@ -214,6 +214,7 @@ int esp32_router::handlePagePart_Footer(HTTPRequest *req, HTTPResponse *res, Str
 
 int esp32_router::handlePagePart_FromFile(HTTPRequest *req, HTTPResponse *res, String line, const char *searchString, String fileName)
 {
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     int idx = line.indexOf(searchString);
     if (idx >= 0)
     {
@@ -223,9 +224,9 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest *req, HTTPResponse *res, S
         // Serial.printf("\t[PagePart Parser]. Found %s in %s. Filling from %s. \n", searchString, line.c_str(), fileName.c_str());
         res->print(line.substring(0, idx).c_str());
 
-        if (SPIFFS.exists(fileName.c_str()))
+        if (drive->exists(fileName.c_str()))
         {
-            File fPagePart = SPIFFS.open(fileName.c_str());
+            File fPagePart = drive->open(fileName.c_str());
 
             while (fPagePart.available())
             {

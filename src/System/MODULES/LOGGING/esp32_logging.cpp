@@ -42,11 +42,20 @@ void esp32_logging::start()
         
     }
 
+    //ensureLogDirExists();
+
     rotateLogs(syslog);
     rotateLogs(device);
     rotateLogs(snapshot);    
 }
 
+// void esp32_logging::ensureLogDirExists(){
+//     auto disk = filesystem.getDisk(_location);
+//     if(!disk->exists(PATH_LOGGING_ROOT)){
+//         Serial.printf("Logging root %s not found. Creating\n", PATH_LOGGING_ROOT);
+//         disk->create(PATH_LOGGING_ROOT);
+//     }
+// }
 
 
 bool esp32_logging::logInfo(string message, esp32_log_type logType)
@@ -100,10 +109,9 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     if(filename.length() == 0) return false; 
     
     auto fileInfo = esp32_file_info_extended(filename.c_str());
-
-    //Serial.printf("Setting snapshot logfile location to %s\n", fileInfo.fullyQualifiedPath().c_str());
-    
-    //Serial.printf("Log %s %s\n", filename.c_str(), fileInfo.exists() ? "found" : "not found");
+    #ifdef DEBUG_DEVICE
+    Serial.printf("Logging snapshot %s\n", snapshotString.c_str());
+    #endif
   
     if(! fileInfo.exists()){ //new log file
         //run cleanup
@@ -175,9 +183,8 @@ string esp32_logging::getLogFilename(esp32_log_type logType)
    
     if(timeinfo.tm_year == 70)
         return ""; // clock not initialized
-    return string_format("/%s%s/%s_%04d-%02d-%02d.log",
-        //_location == drive_SPIFFS ? "/spiffs" : "/sd",
-        drive->label(), PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+    return string_format("%s/%s_%04d-%02d-%02d.log",
+         PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
 
 }
 
@@ -186,9 +193,20 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     if(_loggingLevel < entryType) return false;
     auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
    
-   // auto logLocation = fs();
+    //verify adequate space
+    auto bytesFree = drive->info().size() - drive->info().used();
+    string bytesFreeString;
+    esp32_fileio::PrettyFormat(bytesFree,&bytesFreeString);
+    #ifdef DEBUG
+    Serial.printf("Found %s free bytes while logging to %s.\n",bytesFreeString.c_str(), drive->label());
+    Serial.printf("Logging message: %s\n", message);
+    #endif
+    if(bytesFree < MIN_LOG_BYTES)
+    {
+        Serial.printf("Insufficient space on device to log. Quitting");
+        return false;
+    }
 
-    //auto logLocation = _location == drive_SPIFFS ? (FS)SPIFFS : (FS)SD;
     string filename = getLogFilename(log);  
     struct tm timeinfo = getDate();
     if(filename.length() == 0) return false; 
@@ -200,7 +218,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     //Serial.printf("Log %s %s\n", filename.c_str(), logFileExists ? "found" : "not found");
   
     if(!logFileExists){ //new log file
-        //Serial.println("Log file not found. Creating");
+        Serial.println("Log file not found. Creating");
         //esp32_fileio::CreateFile(filename.c_str());
         File logFile = drive->open(filename.c_str(),"w",true);
         logFile.printf("[\n\t {\"time\":\"%02d:%02d:%02d\", \"type\": \"%s\", \"message\": \"%s\"}\n]",
@@ -215,12 +233,12 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
         rotateLogs(log);
         
     } else{
-        //Serial.println("Log file found. Opening");
+        Serial.println("Log file found. Opening");
         File logFile = drive->open(filename.c_str(),"r+w");
         if(!logFile) return false;      
         int fileSize = logFile.size();
         int seekPos = fileSize > 0 ? fileSize - 1 : 0;
-        //Serial.printf("Seeking from position %d to position %d of %d in daily %s file .\n", logFile.position(), seekPos, fileSize, logTypes[log]);
+        Serial.printf("Seeking from position %d to position %d of %d in daily %s file .\n", logFile.position(), seekPos, fileSize, logTypes[log]);
         bool seekWorked = logFile.seek(seekPos, SeekMode::SeekSet);
         if(!seekWorked){
             #ifdef DEBUG

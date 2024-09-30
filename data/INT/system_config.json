@@ -6,43 +6,6 @@
     "password": "4409420820"
   },
   "type": "esp32-config",
-  "devices": [
-    {
-      "id": "1",
-      "name": "Pool thermometer",
-      "type": "Thermometer",
-      "pin": "32",
-      "signal": "high"
-    },
-    {
-      "id": "2",
-      "name": "Heater switch",
-      "type": "Switch",
-      "pin": "26",
-      "signal": "high",
-      "trigger": {
-        "active": true,
-        "source": "1",
-        "type": "<",
-        "value": "75",
-        "threshold": "5"
-      }
-    },
-    {
-      "id": "3",
-      "name": "Pool Pump",
-      "type": "Switch",
-      "pin": "25",
-      "signal": "high",
-      "trigger": {
-        "active": true,
-        "source": "2",
-        "type": "=",
-        "value": "1",
-        "threshold": ""
-      }
-    }
-  ],
   "preferences": {
     "lastPage": "logging"
   },
@@ -55,7 +18,8 @@
     "logging": {
       "frequency": "300",
       "retention": "2",
-      "level": 2
+      "level": 2,
+      "location": "0"
     },
     "enableSSL": true,
     "enableMDNS": true
@@ -65,6 +29,5 @@
     "certificates": {
       "source": "nvs"
     }
-  },
-  "schedules": []
+  }
 }
