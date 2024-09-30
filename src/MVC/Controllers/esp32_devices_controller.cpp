@@ -1,5 +1,5 @@
 #include "esp32_devices_controller.hpp"
-esp32_pin_manager pinManager;
+extern esp32_pin_manager pinManager;
 
 DerivedController<esp32_devices_controller> esp32_devices_controller::reg("esp32_devices");
 
@@ -7,7 +7,8 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
 
     title = "Device Configuration Page";
 
-    File f = SPIFFS.open(PATH_DEVICE_CONFIG,"r+w");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File f = drive->open(PATH_DEVICE_CONFIG,"r");
     if(!f){
         Serial.printf("Failed to open config file on spiffs\n");
         return;
@@ -21,6 +22,7 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
         configData.append(buff,bytesRead);
         totalBytesRead += bytesRead;
     } while(bytesRead > 0);
+    f.close();
 
     //Serial.printf("Read %d bytes from %s:\n\t%s\n", totalBytesRead, PATH_DEVICE_CONFIG, configData.c_str());
     controllerTemplate.SetTemplateVariable(F("$_DEVICE_DATA"), configData.c_str());
@@ -86,7 +88,8 @@ bool esp32_devices_controller::HasAction(const char * action){
 /// @param req 
 /// @param res 
 void esp32_devices_controller::LoadDeviceData(HTTPRequest* request, HTTPResponse* response) {
-    File f = SPIFFS.open(PATH_DEVICE_CONFIG,"r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File f = drive->open(PATH_DEVICE_CONFIG,"r");
     byte buff[32];
     int bytesToRead = 0;
     while(true){
@@ -137,12 +140,23 @@ bool esp32_devices_controller::SaveDeviceData(HTTPRequest* request, HTTPResponse
                 }
             }
         }
-        auto drive = filesystem.getDisk(0);
-        File f = drive->open(PATH_DEVICE_CONFIG, "w");
-        serializeJson(doc,f);
-        f.close();
-        response->setStatusCode(200);
-        logger.logInfo(string_format("%s saved configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+        auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+        File f = drive->open(PATH_DEVICE_CONFIG, FILE_WRITE);
+        if(f.available()){
+            serializeJson(doc,f);
+            f.close();
+            response->setStatusCode(200);
+            logger.logInfo(string_format("%s saved configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+        } else{
+            response->setStatusCode(500);
+            // String errorText = "Error saving configuration: ";
+            // errorText += error.c_str();
+            response->setStatusText("Failed to open configuration file");
+            #ifdef DEBUG
+            Serial.printf(error.c_str());
+            #endif
+            return false;
+        }
     } else{
         response->setStatusCode(500);
         // String errorText = "Error saving configuration: ";

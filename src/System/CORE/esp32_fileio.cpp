@@ -22,7 +22,8 @@ bool esp32_fileio::start(){
     // commenting out the below code would remove this usage.
     bool sdConnected = false;
     while(retries++ < 3 && !sdConnected)
-        sdConnected = SD.begin(CS);
+          sdConnected = SD.begin(CS,SPI,1000000);
+//        sdConnected = SD.begin(CS,SPI,4000000, "/sd", 5U, true);
         //return;
     if(!sdConnected) {
         #ifdef DEBUG
@@ -120,6 +121,9 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
 size_t esp32_fileio::UpdateFile(const char *filename, const char *message, bool createIfNotFound, int seek )
 {
     //TODO: consider testing for internal, otherwise prefix spiffs public path if uploading to spiffs
+    #ifdef DEBUG_FILESYSTEM
+    Serial.printf("Updating file %s\n", filename);
+    #endif
     auto routeInfo = esp32_route_file_info<esp32_file_info>(filename);
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.path().c_str()) && !createIfNotFound)

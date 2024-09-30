@@ -12,6 +12,7 @@
 #include <System/CORE/esp32_config.h>
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
 #include "System/MODULES/MQTT/esp32_mqtt_client.hpp"
+#include "System/MODULES/PINS/esp32_pin_manager.hpp"
 
 #include "ArduinoJson.h"
 #include <system_helper.h>
@@ -24,7 +25,7 @@ using namespace std;
 extern DallasTemperature sensors;
 extern esp32_logging logger;
 extern esp32_mqtt_client mqtt;
-
+extern esp32_pin_manager pinManager;
 class esp32_devices{
 
 public:
@@ -38,12 +39,28 @@ public:
 
     StaticJsonDocument<512>* getLastSnapshot();
 
+    vector<esp32_device_info> getDevices();
+    void getDeviceState(int deviceId, JsonObject object);
+    bool setDeviceState(int deviceId, bool value);
+
+
+    static esp32_device_type typeFromTypeName(const char * typeName);
+    static esp32_device_trigger_type triggerTypeFromName(const char * triggerTypeName);
+
+    static bool getDesiredState(
+        bool currentState,
+        esp32_device_trigger_type triggerType, 
+        JsonVariant value, 
+        double triggerValue, 
+        unsigned long triggerThreshold
+    );
+
 protected:
     bool loadDeviceConfiguration();
 
     
 private:
-    vector<esp32_device_info> getDevices();
+    vector<esp32_device_info> _getDevices();
     vector<esp32_device_info> _devices;
     unsigned long _lastSnapshotTime = 0, _lastSnapshotStoreTime = 0;
 
@@ -52,16 +69,8 @@ private:
     static JsonObject findDeviceState(JsonArray deviceStates, int deviceId);
     static int findDeviceStateIndex(JsonArray deviceStates, int deviceId);
 
-    bool getDesiredState(
-        bool currentState,
-        esp32_device_trigger_type triggerType, 
-        JsonVariant value, 
-        double triggerValue, 
-        unsigned long triggerThreshold
-    );
+    
 
-    static esp32_device_type typeFromTypeName(const char * typeName);
-    static esp32_device_trigger_type triggerTypeFromName(const char * triggerTypeName);
 
     static bool isLessThan(bool currentState, JsonVariant value, double triggerValue, unsigned long triggerThreshold);
     static bool isGreaterThan(bool currentState, JsonVariant value, double triggerValue, unsigned long triggerThreshold);

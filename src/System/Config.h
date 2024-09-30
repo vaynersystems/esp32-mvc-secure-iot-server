@@ -1,27 +1,33 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.40"
-#define SYSTEM_DRIVE "" //"/spiffs"
-#define PATH_SITE_ROOT SYSTEM_DRIVE "/W"
-#define PATH_INTERNAL_ROOT SYSTEM_DRIVE "/INT"
-#define PATH_LOGGING_ROOT SYSTEM_DRIVE "/LOG"
-#define PATH_TEMP_ROOT SYSTEM_DRIVE "/TMP"
+#define FIRMWARE_VERSION "0.4.5"
+
+//paths
+#define SYSTEM_DRIVE "spiffs"
+#define PATH_SITE_ROOT "/" SYSTEM_DRIVE "/W"
+#define PATH_INTERNAL_ROOT "/" SYSTEM_DRIVE "/INT"
+#define PATH_LOGGING_ROOT "/LOG"
+#define PATH_TEMP_ROOT "/" SYSTEM_DRIVE "/TMP"
+#define PATH_AUTH_FILE "/" SYSTEM_DRIVE "/INT/authorized.dat"
+#define PATH_SYSTEM_CONFIG "/" SYSTEM_DRIVE "/INT/system_config.json"
+#define PATH_DEVICE_CONFIG "/" SYSTEM_DRIVE "/INT/device_config.json"
+#define PATH_PUBLIC_PAGES "/" SYSTEM_DRIVE "/INT/public_pages.txt"
+
+#define PUBLIC_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/public.cer"
+#define PRIVATE_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/private.key"
 
 #define ENABLE_EDITOR 1
-
 #define SOCKET_MAX 5
-//#define DEBUG
-//#define DEBUG_SECURITY
-#define PATH_AUTH_FILE SYSTEM_DRIVE "/INT/authorized.dat"
-#define PATH_SYSTEM_CONFIG SYSTEM_DRIVE "/INT/system_config.json"
-#define PATH_DEVICE_CONFIG SYSTEM_DRIVE "/INT/device_config.json"
-#define PATH_PUBLIC_PAGES SYSTEM_DRIVE "/INT/public_pages.txt"
+#define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
+
+//debug info
+#define DEBUG
+//#define DEBUG_DEVICE 1
+// #define DEBUG_SECURITY
+//#define DEBUG_FILESYSTEM 1
 
 
-#define PUBLIC_TEMP_PATH SYSTEM_DRIVE "/TMP/public.cer"
-#define PRIVATE_TEMP_PATH SYSTEM_DRIVE "/TMP/private.key"
-
-
+//content parser configuration
 #define HTML_REF_CONST_TITLE "$title"
 #define HTML_REF_CONST_HEAD "$doc_head"
 #define HTML_REF_CONST_HEADER "$header"
