@@ -29,13 +29,13 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         string response;
         
         response = "[";
-        for(int idx = 0; idx < files.size(); idx++){
-            if(idx > 0) response += ",";
-            Serial.printf("Adding file %s to historic files controller logdays\n", files[idx].name().c_str());
-            response += string_format("{\"name\": \"%s\"}",files[idx].name().c_str()).c_str();
+        int jsonIdx = 0;
+        for(int idx = 0; idx < files.size(); idx++){  
+            if(files[idx].size() > 0)         
+                response += string_format("%s{\"name\": \"%s\"}",jsonIdx++ == 0 ? "": ", ", files[idx].name().c_str()).c_str();
         }
         response += "]";
-        //Serial.printf("Found the following log files \n%s\n", response.c_str());
+        Serial.printf("Found the following log files \n%s\n", response.c_str());
         controllerTemplate.SetTemplateVariable(F("$_LOGDAYS"),response.c_str() );
     }
     esp32_base_controller::Index(req,res);      
@@ -94,9 +94,15 @@ void esp32_historic_controller::Logs(HTTPRequest* req, HTTPResponse* res){
     File f = disk->open(filename.c_str());
 
     if(!f){
-        //Serial.println("Error opening file!");
+        #ifdef DEBUG_FILESYSTEM
+        Serial.printf("Error opening file %s!\n", filename.c_str());
+        #endif
         return;
-    } else Serial.printf("Opened file %s (%d bytes)\n", filename.c_str(), f.size());
+    } else {
+        #ifdef DEBUG_FILESYSTEM
+        Serial.printf("Opened file %s (%d bytes)\n", filename.c_str(), f.size());
+        #endif
+    }
     char buf[512];
     while(f.available()){
         int bytesRead = f.readBytes(buf,512);

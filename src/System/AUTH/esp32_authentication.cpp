@@ -15,10 +15,11 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     esp32_user_auth_info info;
     bool firstUser = false;
     // Read the file
-    auto filename = std::string(PATH_AUTH_FILE);   
+    auto filename = std::string(PATH_AUTH_FILE);  
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     
     // Check if the file exists
-    if (!SPIFFS.exists(filename.c_str()))
+    if (!drive->exists(filename.c_str()))
     {     
         #ifdef DEBUG
         Serial.println("Authorization file does not exist..");
@@ -67,7 +68,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         delete[] requestPasswordHash;
         delete[] requestPassEncrypted;
 
-        File file = SPIFFS.open(filename.c_str());
+        File file = drive->open(filename.c_str());
         DynamicJsonDocument d(2048);
         DeserializationError error = deserializeJson(d,file);        
         file.close();
@@ -89,7 +90,8 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     
 }
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role, bool enabled){
-    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File authFile = drive->open(PATH_AUTH_FILE,"r");    
     byte encryptedPass[SHA256_SIZE];
     char storedPass[(SHA256_SIZE*2) + 1];
     DynamicJsonDocument doc(1024); 
@@ -119,7 +121,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     //TODO: password complexity and validation
     
     
-    authFile = SPIFFS.open(PATH_AUTH_FILE, "w");
+    authFile = drive->open(PATH_AUTH_FILE, "w");
     serializeJson(doc, authFile);
     authFile.flush();
     authFile.close();
@@ -127,13 +129,14 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
 }
 
 ChangePasswordResult esp32_authentication::changePassword(const char* username, const char* oldPassword, const char* newPassword){
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
     //Serial.printf("Request to save password for user %s.\n\t old: %s new: ...\n", username,oldPassword,newPassword);
      if(strcmp(oldPassword,newPassword) == 0)
         return ChangePasswordResult::SamePassword;
     // Read the file
     // Check if the file exists
-    if (!SPIFFS.exists(PATH_AUTH_FILE))
+    if (!drive->exists(PATH_AUTH_FILE))
     {     
         return ChangePasswordResult::AuthSystemError;
        
@@ -141,7 +144,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
     byte encryptedPass[SHA256_SIZE];
     char storedPass[(SHA256_SIZE*2) + 1]; //2 bytes per hex digit and null terminator
     //get user object, update it, store back
-    File file = SPIFFS.open(PATH_AUTH_FILE);
+    File file = drive->open(PATH_AUTH_FILE);
     DynamicJsonDocument doc(2048);
     DeserializationError error = deserializeJson(doc,file);
     file.close();
@@ -162,7 +165,7 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
     existingUser["password"] = storedPass;
 
     //write back
-    file = SPIFFS.open(PATH_AUTH_FILE,"w");
+    file = drive->open(PATH_AUTH_FILE,"w");
     serializeJson(doc, file);
 //    file.flush();
     file.close();
@@ -181,6 +184,7 @@ JsonObject esp32_authentication::findUser(JsonArray users, const char* userName)
 
 
 bool esp32_authentication::verifyPassword(const char* username, const char* password){
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     
     byte requestPasswordHash[SHA256_SIZE];
     byte storedPasswordHash[SHA256_SIZE];
@@ -192,7 +196,7 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
         encryptPassword(password, requestPasswordHash);
 
     //passwords are stored in hashed format
-    File authFile = SPIFFS.open(PATH_AUTH_FILE,"r");    
+    File authFile = drive->open(PATH_AUTH_FILE,"r");    
     // 
     DynamicJsonDocument doc(1024); 
     DeserializationError error = deserializeJson(doc, authFile);

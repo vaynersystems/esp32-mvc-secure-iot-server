@@ -6,20 +6,21 @@
 #include "System/AUTH/esp32_sha256.h"
 
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
+#include "System/MODULES/DEVICES/esp32_scheduling_manager.hpp"
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
 #include <esp_task_wdt.h>
+#include <Wire.h>  // I2C library
 
 esp32_server server;
 esp32_wifi wifi;
 esp32_fileio disk;
 esp32_devices deviceManager;
+esp32_scheduling_manager scheduleManager;
 esp32_logging logger;
 esp32_mqtt_client mqtt;
+esp32_pin_manager pinManager;
 DallasTemperature sensors;
-#include <Wire.h>  // I2C library
-#include <LiquidCrystal_I2C.h>  // I2C LCD library
 
-LiquidCrystal_I2C lcd;
 
 TaskHandle_t* serverTaskHandle;
 TaskHandle_t* deviceTaskHandle;
@@ -33,7 +34,7 @@ void onShutdown();
 #if CONFIG_FREERTOS_UNICORE
     #define ARDUINO_RUNNING_CORE 0
 #else
-    #define ARDUINO_RUNNING_CORE 1
+    #define ARDUINO_RUNNING_CORE CONFIG_ARDUINO_RUNNING_CORE
 #endif
 #define REPORT_FREQUENCY 5000000 // 5 seconds
 // DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
@@ -75,11 +76,13 @@ unsigned long deviceLoopTime = 0;
 void deviceTask(void* params) {
     
     deviceManager.onInit();
+    scheduleManager.onInit();
 
     while(true){
         // #ifdef DEBUG
         // deviceLoopTime = millis();
         // #endif
+        scheduleManager.onLoop();
         deviceManager.onLoop();
 
         // #ifdef DEBUG
@@ -108,52 +111,52 @@ void onShutdown(){
 void setup() {
     
     // Initialize LCD
-    lcd.begin();
-    lcd.print(F("Starting Controller...")); //(F()) saves string to flash & keeps dynamic memory free
+    //lcd.begin();
+    //lcd.print(F("Starting Controller...")); //(F()) saves string to flash & keeps dynamic memory free
     delay(2000);
 
-    lcd.clear(); 
+    //lcd.clear(); 
 
     //debug logging
-    lcd.print(F("Starting Serial logging.."));
+    //lcd.print(F("Starting Serial logging.."));
     Serial.begin(115200);
-    lcd.clear(); 
+    //lcd.clear(); 
 
     
     //esp32 filesystem manager
-    lcd.print(F("Starting disk management.."));
+    //lcd.print(F("Starting disk management.."));
     disk.start();    
-    lcd.clear(); 
+    //lcd.clear(); 
     // //Connect to wifi
-    lcd.print(F("Connecting to Wifi.."));
+    //lcd.print(F("Connecting to Wifi.."));
     wifi.start();   
-    lcd.clear(); 
+    //lcd.clear(); 
     // //start logger
-    lcd.print(F("Starting logger.."));
+    //lcd.print(F("Starting logger.."));
     logger.start();
-    lcd.clear(); 
+    //lcd.clear(); 
     
-    lcd.print(F("Creating Server Task"));
+    //lcd.print(F("Creating Server Task"));
     //Create Server
     xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
-    lcd.clear(); 
+    //lcd.clear(); 
 
-    lcd.print(F("Creating Device Task"));
+    //lcd.print(F("Creating Device Task"));
     //Create Device Manager
     xTaskCreatePinnedToCore(deviceTask, "devicemanager",DEVICE_MANAGER_STACK_SIZE, NULL, 2, deviceTaskHandle, ARDUINO_RUNNING_CORE);
-    lcd.clear(); 
+    //lcd.clear(); 
 
-    lcd.print(F("Creating MQTT Task"));
+    //lcd.print(F("Creating MQTT Task"));
     //Create MQTT Client
     xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
-    lcd.clear(); 
+    //lcd.clear(); 
     //example use of psram
     //byte* psram = (uint8_t*)ps_calloc(100000, sizeof(uint32_t));
     esp_register_shutdown_handler(onShutdown);
 
     logger.logInfo("System started");
-    lcd.clear(); 
-    lcd.print("System started");
+    //lcd.clear(); 
+    //lcd.print("System started");
 
 }
 int64_t lastReportMain = 0;
@@ -182,9 +185,9 @@ void loop() {
         );
         lastReportMain = esp_timer_get_time(); 
 
-        lcd.clear();
-        lcd.setCursor(0, 0);  // Set cursor to row 0, column 0
-        lcd.printf("Uptime %d seconds", millis() / 1000);  // Display static text
+        //lcd.clear();
+        //lcd.setCursor(0, 0);  // Set cursor to row 0, column 0
+        //lcd.printf("Uptime %d seconds", millis() / 1000);  // Display static text
         
 
     }

@@ -12,7 +12,7 @@ public:
     inline virtual bool isIndexImplemented(){ return true;}
 
     virtual esp32_controller_category GetCategory(){
-        return esp32_controller_category::Site;
+        return esp32_controller_category::System;
     }
     virtual const char* GetName(){
         return "System Information";
