@@ -4,6 +4,7 @@
 #include "esp32_filesystem_objects.h"
 #include "FS.h"
 #include "vfs_api.h"
+#include "SD_MMC.h"
 
 class esp32_file_drive: public FS {
 public:
@@ -18,7 +19,9 @@ public:
         const char * directory = "/",
         Print* writeTo = &Serial,
         esp32_file_format format = esp32_file_format::TEXT,
-        const char* searchString = ""
+        const char* searchString = "",
+        int maxFilesPerDirectory = 500,
+        int maxLevels = 1
     );
 
     int search(vector<esp32_file_info> &files, const char* directory = "/", const char * searchString = "");
@@ -60,14 +63,16 @@ public:
     }
 
     virtual File open(const char * path, const char* mode = FILE_READ, bool create = false){
-        auto fileInfo = esp32_file_info(path);
+        
+        ESP_LOGI("ESP32 Drive", "Opening %s on filesystem %s\n", path, partitionLabel);
+        string fileSystemPath = getRelativePath(path);
+        
+        string fqPath = getAbsolutePath(fileSystemPath.c_str());
+        auto fileInfo = esp32_file_info(getAbsolutePath(fileSystemPath.c_str()).c_str());
 
         if(fileInfo.drive() != _index){
-            Serial.printf("Incorrect drive %s chosen to open file %s\n", partitionLabel, path);
+            Serial.printf("Incorrect drive %s chosen to open file %s. Expected: %d, Actual: %d\n", partitionLabel, path, _index, fileInfo.drive());
         }
-        //Serial.printf("Opening %s on filesystem %s\n", path, partitionLabel);
-        string fileSystemPath = getRelativePath(path);
-
         
 
         #ifdef DEBUG_FILESYSTEM
@@ -79,7 +84,7 @@ public:
         auto file = _fileSystem->open(fileSystemPath.c_str(), mode, create);
         
         #ifdef DEBUG_FILESYSTEM
-        Serial.printf("%s %s on filesystem %s with %d bytes\n", file ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel, file.size());
+        Serial.printf("%s %s on filesystem %s with %d bytes\n", file ? "Opened" : "Failed to open", fileSystemPath.c_str(), partitionLabel,file ? file.size() : 0);
         #endif
         return file;
         //return _workingFile;
@@ -117,6 +122,8 @@ private:
     esp32_drive_type _type;
     int _index;
     int _openFiles = 0;
+    int _max_files_per_dir = 50;
+    int _max_listing_levels = 5;
     //File _workingFile;
 };
 #endif

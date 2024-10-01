@@ -24,6 +24,10 @@ esp32_drive_info esp32_file_drive::info(){
         auto *fs = (SDFS*)this->_fileSystem;
         return esp32_drive_info(_type, fs->totalBytes(), fs->usedBytes());
         
+    }  else if(_type == dt_SDMMC)    {
+        auto *fs = (SDMMCFS*)this->_fileSystem;
+        return esp32_drive_info(_type, fs->totalBytes(), fs->usedBytes());
+        
     }else {
         log_e("Error occured, %s has an unknown file system type", this->label());
     }
@@ -33,9 +37,13 @@ void esp32_file_drive::list(
     const char * directory, 
     Print* writeTo,
     esp32_file_format format,
-    const char* searchString
+    const char* searchString,
+    int maxFilesPerDirectory,
+    int maxLevels 
 )
 {
+    _max_files_per_dir = maxFilesPerDirectory;
+    _max_listing_levels = maxLevels;
     char time_buf[20];
     //time_t tm;
     vector<esp32_file_info_extended> files;
@@ -133,14 +141,19 @@ int esp32_file_drive::search(vector<esp32_file_info_extended> &files, const char
     byte levels = 0;
     for(int idx=0;idx<strlen(directory);idx++)
         if(directory[idx] == '/') levels++;
-    if(levels > 5) return 0; // if its nested more than 5 levels, escape
+    if(levels > _max_listing_levels) return 0; // if its nested more than 5 levels, escape
+    ESP_LOGI("ESP32 FS", "Searching for %s in %s", strlen(searchString) == 0 ? "*" : searchString, directory);
     auto root = _fileSystem->open(_type == esp32_drive_type::dt_SPIFFS ? "/" : directory);
     if(!root){
         return 0;
-    } 
+    }     
     File pointerFile;
     pointerFile = root.openNextFile();
     do{
+        if(filesfound > _max_files_per_dir){
+            files.push_back(esp32_file_info_extended(" this dir has more files", pointerFile.path(), 0, pointerFile.getLastWrite()));
+            break;
+        }
         if(pointerFile){            
             if(strstr(pointerFile.path(), directory) == pointerFile.path() //begining match
             
@@ -155,8 +168,10 @@ int esp32_file_drive::search(vector<esp32_file_info_extended> &files, const char
                 if(pointerFile.isDirectory())
                     search(files, pointerFile.path(), searchString);
                
-                else
+                else{
                     files.push_back(esp32_file_info_extended(this->label(), pointerFile.path(), pointerFile.size(), pointerFile.getLastWrite()));
+                    filesfound++;
+                }
             
             }
             

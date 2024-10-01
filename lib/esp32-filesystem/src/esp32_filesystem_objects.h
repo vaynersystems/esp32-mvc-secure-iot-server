@@ -40,7 +40,8 @@ enum esp32_file_format {
 enum esp32_drive_type{
     dt_Invalid = -1,
     dt_SPIFFS = 0,
-    dt_SD = 1
+    dt_SD = 1,
+    dt_SDMMC = 2
 };
 
 struct esp32_drive_info{
