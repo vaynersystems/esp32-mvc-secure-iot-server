@@ -33,6 +33,9 @@ void esp32_logging::start()
             #ifdef DEBUG
             if(_location == dt_SD){
                 Serial.println("Setting SD as log location");
+            } else
+            if(_location == dt_SDMMC){
+                Serial.println("Setting SD MMC as log location");
             } else{                
                 Serial.println("Setting SPIFFS as log location");
             }
@@ -106,9 +109,11 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     //auto logLocation = fs();
 
     string filename = getLogFilename(esp32_log_type::snapshot);  
+    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!  
     if(filename.length() == 0) return false; 
+    auto fileAbsolute = drive->getAbsolutePath(filename.c_str());
     
-    auto fileInfo = esp32_file_info_extended(filename.c_str());
+    auto fileInfo = esp32_file_info_extended(fileAbsolute.c_str());
     #ifdef DEBUG_DEVICE
     Serial.printf("Logging snapshot %s\n", snapshotString.c_str());
     #endif
@@ -116,10 +121,10 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     if(! fileInfo.exists()){ //new log file
         //run cleanup
         rotateLogs(esp32_log_type::snapshot);
-        esp32_fileio::UpdateFile(filename.c_str(), string_format("[\n\t%s\n]",snapshotString.c_str()).c_str(),true);
+        esp32_fileio::UpdateFile(fileAbsolute.c_str(), string_format("[\n\t%s\n]",snapshotString.c_str()).c_str(),true);
        
     } else{
-        esp32_fileio::UpdateFile(filename.c_str(), string_format("\n\t,%s\n]",snapshotString.c_str()).c_str(),true, -2);        
+        esp32_fileio::UpdateFile(fileAbsolute.c_str(), string_format("\n\t,%s\n]",snapshotString.c_str()).c_str(),true, -2);        
     }
     
     return true;
@@ -133,7 +138,7 @@ bool esp32_logging::log(string message, esp32_log_type logType, esp32_log_level 
 int esp32_logging::rotateLogs(esp32_log_type logType)
 {
     vector<esp32_file_info_extended> files;
-    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!   
+    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!   
     auto logsFound = drive->search(files,PATH_LOGGING_ROOT, logTypes[logType]);
     
     if(logsFound == 0 || _retentionDays == 0) return 0; //configured for no rotation 
@@ -166,7 +171,7 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
 void esp32_logging::removeAllLogs()
 {
     vector<esp32_file_info> files;
-    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
     auto logsFound = drive->search(files,PATH_LOGGING_ROOT);
 
     if(logsFound == 0) return;
@@ -179,7 +184,7 @@ void esp32_logging::removeAllLogs()
 string esp32_logging::getLogFilename(esp32_log_type logType)
 {
     struct tm timeinfo = getDate();
-    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
    
     if(timeinfo.tm_year == 70)
         return ""; // clock not initialized
@@ -191,14 +196,14 @@ string esp32_logging::getLogFilename(esp32_log_type logType)
 bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level entryType)
 {
     if(_loggingLevel < entryType) return false;
-    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
+    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
    
     //verify adequate space
     auto bytesFree = drive->info().size() - drive->info().used();
     string bytesFreeString;
     esp32_fileio::PrettyFormat(bytesFree,&bytesFreeString);
     #ifdef DEBUG
-    Serial.printf("Found %s free bytes while logging to %s.\n",bytesFreeString.c_str(), drive->label());
+    Serial.printf("Found %s free bytes while logging to [%d]%s.\n",bytesFreeString.c_str(), drive->index(), drive->label());
     Serial.printf("Logging message: %s\n", message);
     #endif
     if(bytesFree < MIN_LOG_BYTES)

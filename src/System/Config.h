@@ -1,6 +1,7 @@
 #pragma once
 
 #define FIRMWARE_VERSION "0.4.5"
+#define PROGRAM_TAG "esp32-mvc"
 
 //paths
 #define SYSTEM_DRIVE "spiffs"
@@ -16,6 +17,13 @@
 #define PUBLIC_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/public.cer"
 #define PRIVATE_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/private.key"
 
+
+/* SD */
+typedef enum {sd_spi, sd_mmc} sd_type;
+#define USE_SD
+#define SD_TYPE sd_type::sd_mmc
+//#define SD_DISK ((SD_TYPE == sd_spi) ? SD : SD_MMC)
+
 #define ENABLE_EDITOR 1
 #define SOCKET_MAX 5
 #define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
@@ -24,7 +32,7 @@
 #define DEBUG
 //#define DEBUG_DEVICE 1
 // #define DEBUG_SECURITY
-//#define DEBUG_FILESYSTEM 1
+#define DEBUG_FILESYSTEM 1
 
 
 //content parser configuration

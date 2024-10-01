@@ -12,6 +12,7 @@ void esp32_file_system::addDisk(FS &disk, const char* label, esp32_drive_type ty
             return;
         }
     }
+    Serial.printf("Adding disk %s at index %d\n", label, _disks.size());
     
     _disks.push_back(esp32_file_drive(disk, label,_disks.size(),type));
 }
@@ -29,7 +30,9 @@ esp32_file_drive* esp32_file_system::getDisk(int index)
 esp32_file_drive* esp32_file_system::getDisk(const char *driveName)
 {
     for(int idx = 0; idx < _disks.size();idx++){
-        if(strcmp(_disks[idx].label(), driveName) == 0){            
+        ESP_LOGD("ESP32 FS", "%d comparing %s to %s", idx, _disks[idx].label(), driveName);
+        if(strcmp(_disks[idx].label(), driveName) == 0){        
+            ESP_LOGD("ESP32 FS","Disk found at index %d", idx);    
             return &_disks[idx];
         }
     }
