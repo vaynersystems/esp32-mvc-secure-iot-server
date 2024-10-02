@@ -31,13 +31,17 @@ static const esp32_pin _esp32_s3_pins[] = {
         esp32_pin(17),
         esp32_pin(18),
         esp32_pin(21, false),
+        #if SD_TYPE != sd_mmc
         esp32_pin(38, false),
         esp32_pin(39, false),
         esp32_pin(40, false),
         esp32_pin(41, false),
         esp32_pin(42, false),
         esp32_pin(47),
+        #endif
+        esp32_pin(45),
         esp32_pin(48),
+        
 };
 
 static const esp32_pin _esp32_d0wdq6_pins[] = {

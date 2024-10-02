@@ -621,3 +621,5 @@ esp32_device_trigger_type esp32_devices::triggerTypeFromName(const char *trigger
         return  GreaterThan;
     return esp32_device_trigger_type::Equals; //default
 }
+
+DallasTemperature sensors;

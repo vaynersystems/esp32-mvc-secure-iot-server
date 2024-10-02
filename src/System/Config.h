@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.4.5"
+#define FIRMWARE_VERSION "0.5.0"
 #define PROGRAM_TAG "esp32-mvc"
 
 //paths
@@ -21,7 +21,7 @@
 /* SD */
 typedef enum {sd_spi, sd_mmc} sd_type;
 #define USE_SD
-#define SD_TYPE sd_type::sd_mmc
+#define SD_TYPE sd_mmc
 //#define SD_DISK ((SD_TYPE == sd_spi) ? SD : SD_MMC)
 
 #define ENABLE_EDITOR 1
@@ -33,7 +33,7 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 // #define DEBUG_DEVICE 1
 // #define DEBUG_SECURITY
 // #define DEBUG_FILESYSTEM 1
-
+#define DEBUG_LCD
 
 //content parser configuration
 #define HTML_REF_CONST_TITLE "$title"
@@ -47,4 +47,8 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define HEADER_GROUP    "X-GROUP"
 #define HEADER_AUTH "Authorization"
 #define HEADER_COOKIE "Cookie"
+
+/* PINS */
+#define PIN_SDA 10
+#define PIN_SCL 21
 

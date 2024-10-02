@@ -6,12 +6,14 @@ const deviceScheduleListViewModelPath = '/W/M/schedule_list_model.json';
 /* DEVICES */
 var activeConfig;
 var persistedConfig;
+var pins;
 //persistedDevices defined elsewhere
 class esp32_devices{
     
-    loadDevices(devices){
+    loadDevices(devices, hwPins){
         persistedConfig = devices;
         activeConfig = devices;
+        pins = hwPins;
     }
     openDeviceView(){
         //has data
@@ -219,7 +221,7 @@ class esp32_devices{
                 {
                     Source: 'pin', 
                     Field: 'Data', 
-                    Value: activeConfig.devices.filter(ac => ac.id !== device.id).map(ac => Object.create({'name': ac.name, 'value': ac.id}))
+                    Value: pins.filter(ac => ac.pin !== device.pin).map(ac => Object.create({'name': ac.pin, 'value': ac.pin}))
                 }
             ],
             this.saveDevice,
