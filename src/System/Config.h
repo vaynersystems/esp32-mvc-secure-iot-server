@@ -29,10 +29,10 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
 
 //debug info
-#define DEBUG
-//#define DEBUG_DEVICE 1
+// #define DEBUG
+// #define DEBUG_DEVICE 1
 // #define DEBUG_SECURITY
-#define DEBUG_FILESYSTEM 1
+// #define DEBUG_FILESYSTEM 1
 
 
 //content parser configuration
