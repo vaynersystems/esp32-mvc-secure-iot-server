@@ -78,8 +78,8 @@
 </div>    
 </div>
 <script type="text/javascript">
-    let deviceConfig = '$_DEVICES';
-    let logDays = '$_LOGDAYS';
-    if(deviceConfig[0] !== '$') devices = JSON.parse(deviceConfig);
+    let deviceConfig = `$_DEVICES`;
+    let logDays = `$_LOGDAYS`;
+    if(deviceConfig[0] !== '$') devices = JSON.parse(deviceConfig).devices;
     if(logDays[0] !== '$') days = JSON.parse(logDays);
 </script>

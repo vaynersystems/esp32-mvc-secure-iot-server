@@ -202,10 +202,10 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     auto bytesFree = drive->info().size() - drive->info().used();
     string bytesFreeString;
     esp32_fileio::PrettyFormat(bytesFree,&bytesFreeString);
-    #ifdef DEBUG
-    Serial.printf("Found %s free bytes while logging to [%d]%s.\n",bytesFreeString.c_str(), drive->index(), drive->label());
-    Serial.printf("Logging message: %s\n", message);
-    #endif
+   
+    ESP_LOGD(PROGRAM_TAG, "Found %s free bytes while logging to [%d]%s.\n",bytesFreeString.c_str(), drive->index(), drive->label());
+    ESP_LOGD(PROGRAM_TAG, "Logging message: %s\n", message);
+  
     if(bytesFree < MIN_LOG_BYTES)
     {
         Serial.printf("Insufficient space on device to log. Quitting");
@@ -223,7 +223,7 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     //Serial.printf("Log %s %s\n", filename.c_str(), logFileExists ? "found" : "not found");
   
     if(!logFileExists){ //new log file
-        Serial.println("Log file not found. Creating");
+        ESP_LOGD(PROGRAM_TAG, "Log file not found. Creating");
         //esp32_fileio::CreateFile(filename.c_str());
         File logFile = drive->open(filename.c_str(),"w",true);
         logFile.printf("[\n\t {\"time\":\"%02d:%02d:%02d\", \"type\": \"%s\", \"message\": \"%s\"}\n]",
@@ -238,12 +238,12 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
         rotateLogs(log);
         
     } else{
-        Serial.println("Log file found. Opening");
+        ESP_LOGD(PROGRAM_TAG, "Log file found. Opening");
         File logFile = drive->open(filename.c_str(),"r+w");
         if(!logFile) return false;      
         int fileSize = logFile.size();
         int seekPos = fileSize > 0 ? fileSize - 1 : 0;
-        Serial.printf("Seeking from position %d to position %d of %d in daily %s file .\n", logFile.position(), seekPos, fileSize, logTypes[log]);
+        ESP_LOGD(PROGRAM_TAG, "Seeking from position %d to position %d of %d in daily %s file .\n", logFile.position(), seekPos, fileSize, logTypes[log]);
         bool seekWorked = logFile.seek(seekPos, SeekMode::SeekSet);
         if(!seekWorked){
             #ifdef DEBUG

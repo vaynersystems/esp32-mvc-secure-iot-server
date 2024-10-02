@@ -60,7 +60,7 @@ void serverTask(void* params) {
             esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPSPretty);
             esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKPretty);
             
-            Serial.printf("[SERVER] Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
+            ESP_LOGI(PROGRAM_TAG, "[SERVER] Free heap: %s\t stack: %s\n", freeBytesHEAPSPretty.c_str(), freeBytesSTACKPretty.c_str());
             lastreportServer = esp_timer_get_time(); 
         }
         #endif
@@ -167,21 +167,12 @@ void loop() {
 
        
         auto stackFreeBytes = uxTaskGetStackHighWaterMark(NULL); 
-        // auto stackServerFreeBytes = uxTaskGetStackHighWaterMark(serverTaskHandle); 
-        // auto stackDeviceFreeBytes = uxTaskGetStackHighWaterMark(deviceTaskHandle); 
-        // auto stackMQTTFreeBytes = uxTaskGetStackHighWaterMark(mqttClientTaskHandle); 
         esp32_fileio::PrettyFormat((size_t)esp_get_free_heap_size(), &freeBytesHEAPPretty);
         esp32_fileio::PrettyFormat(stackFreeBytes, &freeBytesSTACKmPretty);
-        // esp32_fileio::PrettyFormat(stackServerFreeBytes, &freeBytesSTACKServerPretty);
-        // esp32_fileio::PrettyFormat(stackDeviceFreeBytes, &freeBytesSTACKDevicePretty);
-        // esp32_fileio::PrettyFormat(stackMQTTFreeBytes, &freeBytesSTACKMQTTPretty);
         
-        Serial.printf("[MAIN] Free heap: %s\tmain stack: %s\n", // \n\tserver stack: %s\n\tdevice stack: %s\n\tmqtt stack: %s
+        ESP_LOGI(PROGRAM_TAG, "[MAIN] Free heap: %s\tmain stack: %s\n", 
             freeBytesHEAPPretty.c_str(), 
             freeBytesSTACKmPretty.c_str()
-            // freeBytesSTACKServerPretty.c_str(),
-            // freeBytesSTACKDevicePretty.c_str(),
-            // freeBytesSTACKMQTTPretty.c_str()
         );
         lastReportMain = esp_timer_get_time(); 
 
