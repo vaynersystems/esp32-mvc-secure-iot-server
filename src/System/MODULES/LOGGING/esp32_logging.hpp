@@ -7,6 +7,8 @@
 #include <System/Config.h>
 #include <System/CORE/esp32_config.h>
 #include "esp32_filesystem.hpp"
+#include "System/MODULES/LCD/esp32_lcd.hpp"
+extern esp32_lcd lcd;
 
 using namespace std;
 enum esp32_log_type{

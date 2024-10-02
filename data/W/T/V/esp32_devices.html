@@ -125,6 +125,12 @@
     var persistedConfig = '';
     var persistedDevices;
 
+    pinsString = `$_PIN_DATA`;
+    if(pinsString[0] == '$'){
+        pinsString = `[{name: "Pin 1", value: "1"}]`
+    }
+    devicePins = JSON.parse(pinsString);
+
     configurationSting = `$_DEVICE_DATA`; 
     if(configurationSting[0] == '$'){
         configurationSting = `{
@@ -191,7 +197,7 @@
     }   
     if(configurationSting.length > 10 && configurationSting[0] !== '$'){
         persistedDevices = JSON.parse(configurationSting);
-        deviceManager.loadDevices(persistedDevices);
+        deviceManager.loadDevices(persistedDevices, devicePins);
     }
 
     var links = document.querySelectorAll('.config-menu li');

@@ -24,7 +24,6 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
     } while(bytesRead > 0);
     f.close();
 
-    //Serial.printf("Read %d bytes from %s:\n\t%s\n", totalBytesRead, PATH_DEVICE_CONFIG, configData.c_str());
     controllerTemplate.SetTemplateVariable(F("$_DEVICE_DATA"), configData.c_str());
 
     auto pins = pinManager.getControllerPins();

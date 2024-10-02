@@ -17,6 +17,9 @@ void esp32_logging::start()
     logEntryTypes[error] = "ERROR";
     logEntryTypes[debug] = "DEBUG";
 
+    //start logger
+    lcd.setDetails("Starting logger...");
+
     StaticJsonDocument<1024> systemConfig;
     esp32_config::getConfigSection("system", &systemConfig);   
     if(!systemConfig[loggingSection].isNull()){
