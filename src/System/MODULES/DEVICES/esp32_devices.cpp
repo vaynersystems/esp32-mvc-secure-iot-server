@@ -65,8 +65,11 @@ void esp32_devices::onInit()
                     _devices[idx].name.c_str(), _devices[idx].pin
                 );
                 break;
-        }       
+        }     
+        lcd.addMessage(_devices[idx].name.c_str(),string_format("DEV%d",_devices[idx].id).c_str());        
+    
     }
+    
     #ifdef DEBUG
     Serial.println(F("Done initializing devices"));
     #endif
@@ -141,7 +144,7 @@ void esp32_devices::onLoop()
         }
 
         #ifdef DEBUG_DEVICE
-        Serial.printf("Main device loop. Checking device %s state\n", _devices[idx].name.c_str());
+        ESP_LOGD(PROGRAM_TAG, "Main device loop. Checking device %s state\n", _devices[idx].name.c_str());
         #endif
         //switch should maintain the state it had previously
         bool shouldBeOn = getDesiredState(
@@ -154,7 +157,7 @@ void esp32_devices::onLoop()
         bool electricShouldBeOn = _devices[idx].signal == activeLow ? !shouldBeOn : shouldBeOn;
 
         #ifdef DEBUG_DEVICE
-        Serial.printf("Main device loop. Checking device %s state\n\tActive %s\n\tElectric Is On: %s\n\tIs On: %s\n\tShould Be On: %s\n\tElectric Should Be On: %s\n",
+        ESP_LOGD(PROGRAM_TAG,"Main device loop. Checking device %s state\n\tActive %s\n\tElectric Is On: %s\n\tIs On: %s\n\tShould Be On: %s\n\tElectric Should Be On: %s\n",
             _devices[idx].name.c_str(), 
             _devices[idx].signal == esp32_device_signal::activeHigh ? "HIGH" : "LOW",
             electricCurrentState ? "ON" : "OFF", currentState ? "ON" : "OFF", shouldBeOn ? "ON" : "OFF", electricShouldBeOn ? "ON" : "OFF");
@@ -379,6 +382,54 @@ int esp32_devices::findDeviceStateIndex(JsonArray deviceStates, int deviceId)
     return -1;
 }
 
+// const char * esp32_devices::getDeviceState(int deviceId){
+//     for(int deviceIdx = 0; deviceIdx < _devices.size(); deviceIdx++){
+//         if(_devices[deviceIdx].id == deviceId){
+//             switch(_devices[deviceIdx].type){
+//                 case esp32_device_type::AnalogInput:
+//                 {
+//                     auto device = esp32_analog_input_device(_devices[deviceIdx].pin);
+//                     return string_format( "%ul",device.getValue()).c_str();
+//                     //return returnValue;                
+                    
+//                 }
+//                 break;
+//                 case esp32_device_type::DigitalInput:
+//                 {
+//                     auto device = esp32_digital_input_device(_devices[deviceIdx].pin);
+//                     return string_format( "%d",device.getValue()).c_str();
+//                     //return returnValue; 
+//                 }
+                    
+//                 break;
+//                 case esp32_device_type::Thermometer:{
+//                     auto device = esp32_thermometer_device(_devices[deviceIdx].pin);                               
+//                     return string_format( "%.2f",device.getValue()).c_str();
+//                     //return returnValue;      
+//                 }          
+//                 break;
+//                 case esp32_device_type::Switch:
+//                 {
+//                     auto device = esp32_switch_device(_devices[deviceIdx].pin);
+//                     return device.getValue() ? "On" : "Off";
+//                     //return returnValue; 
+//                 }            
+//                 break;
+//                 case esp32_device_type::Relay:
+//                 {
+//                     auto device = esp32_relay_device(_devices[deviceIdx].pin);
+//                     return device.getValue() ? "On" : "Off";
+//                     //return returnValue; 
+//                 }            
+//                 break;
+//                 case esp32_device_type::Unknown:            
+//                     continue;
+//                 break;
+//             }
+//             break;
+//         }
+//     }
+// }
 void esp32_devices::getDeviceState(int deviceId, JsonObject object){
     
     for(int deviceIdx = 0; deviceIdx < _devices.size(); deviceIdx++){
@@ -567,7 +618,7 @@ vector<esp32_device_info> esp32_devices::_getDevices()
     return _devices;
 }
 
-StaticJsonDocument<512> *esp32_devices::getLastSnapshot()
+StaticJsonDocument<1024> *esp32_devices::getLastSnapshot()
 {
     return &_snapshot;
 }

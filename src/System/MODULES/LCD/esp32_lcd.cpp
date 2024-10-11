@@ -1,14 +1,133 @@
 #include "esp32_lcd.hpp"
+#include <WiFi.h>
+
+#include "System/MODULES/DEVICES/esp32_devices.hpp"
+extern esp32_devices deviceManager;
 
 void esp32_lcd::begin(int sda, int scl)
 {
     _lcd.begin(LCD_WIDTH,2,LCD_5x8DOTS, sda, scl);
     _lcd.clear();        
     //Serial.println("Initialized LCD");
+    _messages.push_back(esp32_lcd_message("IP Address:","IP"));
+    _messages.push_back(esp32_lcd_message("Time:", "TIME"));    
 }
 
 void esp32_lcd::loop()
 {
+    //if in text mode, timeout to message mode after [configured time] of inactivitiy
+    if(_mode != elm_messages && _lastTextTime + _textTimeout < millis()){
+        _mode = elm_messages;
+    }
+
+
+    if(_mode == elm_messages){
+        //go to next message if time
+        if(_lastMessageTime + _messageTimeout < millis()){
+            //Serial.printf("Printing the %d%s message\n", _messageIdx + 1, _messageIdx + 1 == 1 ? "st" : _messageIdx + 1 == 2 ? "nd": _messageIdx + 1 == 3 ? "rd" : "th" );
+            auto parts = explode(string(_messages[_messageIdx].messageText), ":", true);
+            clear();
+            setTitle( parts[0].c_str(), elm_messages);
+            Serial.printf("Checking parameter value [%s]\n",_messages[_messageIdx].messageParam.c_str());
+            if (strcmp(_messages[_messageIdx].messageParam.c_str(), "IP") == 0)
+            {
+                setDetails(WiFi.localIP().toString().c_str(), elm_messages);                
+            } 
+            else if(strcmp(_messages[_messageIdx].messageParam.c_str(), "TIME") == 0){  
+                setDetails(getCurrentTime().c_str(), elm_messages);
+            }
+            else {
+                int paramLength = _messages[_messageIdx].messageParam.length();
+                if(paramLength >= 4){                   
+                    
+                    if(strcmp(_messages[_messageIdx].messageParam.substr(0,3).c_str(), "DEV") == 0){  
+                        int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(3));
+
+                        // auto doc =  deviceManager.getLastSnapshot();
+                        // auto series = ((*doc)["series"]).to<JsonArray>();
+                        // if(series.isNull()){
+                        //     Serial.printf("Series is null!!!");
+                        //     return;
+                        // }
+
+                        // for(auto deviceEntry : series){
+                        //     if(deviceEntry["id"] == deviceId){
+                        //         Serial.printf("DEVICE %d FOUND!! with value %s\n", deviceId, deviceEntry["value"].as<const char*>());
+
+                        //     }
+                        // }
+                        
+                        /*
+                        auto series = deviceManager.getSeries();
+                        if(series.isNull()){
+                            Serial.println("Series is null!");
+                            return;
+                        }
+                        serializeJson(series, Serial);
+                        auto deviceEntry = esp32_devices::findDeviceState(series,deviceId);
+                        if(deviceEntry.isNull()){
+                            Serial.println("Device entry is null!");
+                            return;
+                        }
+                        else{
+                            Serial.printf("Device %s value: %s\n", _messages[_messageIdx].messageText, deviceEntry["value"].as<const char *>());
+                        }
+                        */
+
+                        //deviceManager.getDeviceState(deviceId, o);
+                        // auto snapshotFile = deviceManager.getLastSnapshot();
+                        // JsonArray devicesInSnapshot = (*snapshotFile)["series"].to<JsonArray>();
+                        // serializeJson(*snapshotFile, Serial);
+                        // Serial.printf("Found %d devices in snapshot", devicesInSnapshot.size());
+                        // serializeJson(devicesInSnapshot, Serial);
+
+                        // for(int deviceIdx = 0; deviceIdx < devicesInSnapshot.size(); deviceIdx++){
+                        //     if(devicesInSnapshot[deviceIdx]["id"].isNull()) continue;
+                        //     Serial.printf("Checking if list device %d is equal to %d\n", devicesInSnapshot[deviceIdx]["id"].as<int>(), deviceId);
+                        //     if(devicesInSnapshot[deviceIdx]["id"].as<int>() == deviceId)  
+                        //     {
+                        //         Serial.printf("Found device with value %s\n",  devicesInSnapshot[deviceIdx]["value"].as<const char*>());
+                        //         setDetails(devicesInSnapshot[deviceIdx]["value"].as<const char*>(), elm_messages);
+                        //     }
+                        // }
+                        
+                        /* //Get state directly from device
+                        string state = "";
+                        state = deviceManager.getDeviceState(deviceId);
+                        setDetails(state.c_str(), elm_messages);
+                        Serial.printf("Got device state for device %d parsed from %s: %s\n", deviceId, _messages[_messageIdx].messageParam.c_str(), state.c_str());
+                        */
+
+                        // //deviceManager.getDeviceState(deviceId, o);
+                        
+                        auto snapshotFile = deviceManager.getLastSnapshot();
+                        JsonArray devicesInSnapshot = (*snapshotFile)["series"].as<JsonArray>();
+
+                        for(int deviceIdx = 0; deviceIdx < devicesInSnapshot.size(); deviceIdx++){
+                            //auto device = deviceManager.getDevices().at(deviceIdx)
+                            if(devicesInSnapshot[deviceIdx]["id"].isNull()) continue;
+                            Serial.printf("Checking if list device %d is equal to %d\n", devicesInSnapshot[deviceIdx]["id"].as<int>(), deviceId);
+                            if(devicesInSnapshot[deviceIdx]["id"].as<int>() == deviceId)  
+                            {
+                                Serial.printf("Found device with value %s\n",  devicesInSnapshot[deviceIdx]["value"]);
+                                
+                                setDetails(devicesInSnapshot[deviceIdx]["value"], elm_messages);
+                            }
+                        }
+                        
+                        
+                    }
+                }
+
+               
+            }
+
+            _messageIdx ++;
+            if(_messageIdx >= _messages.size()) _messageIdx = 0;
+
+            _lastMessageTime = millis();
+        }
+    }
     //time to scroll?
     //Serial.printf("Checking if time %lu is time to scroll at %lu\n", _lastScrollTime + _scrollSpeed, millis());
     if(_lastScrollTime + _scrollSpeed > millis())
@@ -34,10 +153,10 @@ void esp32_lcd::loop()
         int charsWritten = charsLeft - _offset;
         //Serial.printf("Wrote %d chars to lcd details (all)\n", charsWritten);
         
-        if(LCD_WIDTH - charsWritten > _spaceBetweenMessage){
+        if(LCD_WIDTH - charsWritten > _spaceBetweenText){
             //enough room to wrap around
-            _lcd.print(string(_spaceBetweenMessage, ' ').c_str());
-            int screenOffset = charsWritten + _spaceBetweenMessage;
+            _lcd.print(string(_spaceBetweenText, ' ').c_str());
+            int screenOffset = charsWritten + _spaceBetweenText;
             //_lcd.setCursor(screenOffset,1);
             //Serial.printf("Writing %d additional chars from beggining at position %d\n", LCD_WIDTH - screenOffset, screenOffset);
             _lcd.print(_details.substr(0, LCD_WIDTH - screenOffset).c_str());
@@ -52,15 +171,17 @@ void esp32_lcd::loop()
     
 }
 
-void esp32_lcd::setTitle(const char *text)
+void esp32_lcd::setTitle(const char *text, esp32_lcd_mode mode)
 {
+    _mode = mode;
     _title = text;
     _lcd.setCursor(0,0);
     _lcd.print(text);
 }
 
-void esp32_lcd::setDetails(const char *text)
+void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode)
 {
+    _mode = mode;
     _details = text;
     _offset = 0;
     _lcd.setCursor(0,1);    
@@ -68,16 +189,22 @@ void esp32_lcd::setDetails(const char *text)
     _lastScrollTime = millis();
 }
 
-void esp32_lcd::set(const char *title, const char *details)
+void esp32_lcd::set(const char *title, const char *details, esp32_lcd_mode mode)
 {
     _lcd.clear();
-    setTitle(title);
-    setDetails(details);
+    setTitle(title, mode);
+    setDetails(details, mode);
 }
 
 void esp32_lcd::clear()
 {
     _lcd.clear();
+}
+
+void esp32_lcd::addMessage(const char *message, const char *parameter)
+{
+    //TODO: validate message and parameter
+    _messages.push_back(esp32_lcd_message(message, parameter));    
 }
 
 // size_t esp32_lcd::write(uint8_t byte)

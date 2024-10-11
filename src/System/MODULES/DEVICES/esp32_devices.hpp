@@ -37,9 +37,10 @@ public:
 
     void onDestroy();
 
-    StaticJsonDocument<512>* getLastSnapshot();
+    StaticJsonDocument<1024>* getLastSnapshot();
 
     vector<esp32_device_info> getDevices();
+    //const char * getDeviceState(int deviceId);
     void getDeviceState(int deviceId, JsonObject object);
     bool setDeviceState(int deviceId, bool value);
 
@@ -55,6 +56,12 @@ public:
         unsigned long triggerThreshold
     );
 
+    // JsonArray getSeries(){
+    //     if(_snapshot.isNull())
+    //         return JsonArray();
+        
+    //     return _snapshot["Series"].to<JsonArray>();
+    // }
 protected:
     bool loadDeviceConfiguration();
 
@@ -79,8 +86,8 @@ private:
     /* For temperature sensors*/
     OneWire oneWire;
     
-    StaticJsonDocument<512> _snapshot;
-    StaticJsonDocument<512> _scratchpad;
+    StaticJsonDocument<1024> _snapshot;
+    StaticJsonDocument<1024> _scratchpad;
     
 };
 

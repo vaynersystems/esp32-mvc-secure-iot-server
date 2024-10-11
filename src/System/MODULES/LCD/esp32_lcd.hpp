@@ -2,12 +2,38 @@
 #define ESP32_LCD_H
 
 #include "System/Config.h"
+#include "ArduinoJson.h"
+
 #include "LiquidCrystal_I2C.h"
+#include "string_helper.h"
+#include "system_helper.h"
 #include <string>
+#include <vector>
 #include <Wire.h>  // I2C library
+
+
 
 using namespace std;
 #define LCD_WIDTH 16
+
+enum esp32_lcd_mode{
+    elm_text = 1,
+    elm_messages = 2,
+    elm_menu = 3
+};
+
+struct esp32_lcd_message{
+    string messageText;
+    string messageParam;
+    esp32_lcd_message(const char * message, const char* param){
+        messageText = message;
+        messageParam = param;
+    }
+    esp32_lcd_message(string message, string param){
+        messageText = message;
+        messageParam = param;
+    }
+};
 
 class esp32_lcd{
     public:
@@ -15,33 +41,29 @@ class esp32_lcd{
     void begin(int sda, int scl);
     void loop();
 
-    void setTitle(const char * text);
-    void setDetails(const char * text);
-    void set(const char *title, const char * details = "");
+    void setTitle(const char * text, esp32_lcd_mode mode = elm_text);
+    void setDetails(const char * text, esp32_lcd_mode mode = elm_text);
+    void set(const char *title, const char * details = "", esp32_lcd_mode mode = elm_text);
     void setScroll(bool shouldScroll);
     void clear();
 
-    // size_t write(uint8_t);
-    // size_t print(const String &);
-    // size_t print(const char*);
-    // size_t print(char);
-    // size_t print(unsigned char, int = DEC);
-    // size_t print(int, int = DEC);
-    // size_t print(unsigned int, int = DEC);
-    // size_t print(long, int = DEC);
-    // size_t print(unsigned long, int = DEC);
-    // size_t print(long long, int = DEC);
-    // size_t print(unsigned long long, int = DEC);
-    // size_t print(double, int = 2);
+    void addMessage(const char* message, const char* parameter);
+
+    
 
     private:
 
     bool _scrollEnabled = true;
     string _title = "", _details = "";
-    unsigned long _lastScrollTime = 0;
+    unsigned long _lastScrollTime = 0, _lastTextTime = 0, _lastMessageTime = 0;
     LiquidCrystal_I2C _lcd;
     int _offset = 0;
-    unsigned long _scrollSpeed = 500;
-    int _spaceBetweenMessage = 3;
+    unsigned long _scrollSpeed = 500, _textTimeout = 8000, _messageTimeout = 7000;
+    int _spaceBetweenText = 3;
+    esp32_lcd_mode _mode;
+    vector<esp32_lcd_message> _messages;
+    int _messageIdx = 0;
+
+
 };
 #endif
