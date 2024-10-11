@@ -43,5 +43,6 @@ private:
     );
     bool loadScheduleConfiguration();
     vector<esp32_schedule> _schedules;
+    //vector<esp32_device_info> devices = deviceManager.getDevices();
 };
 #endif

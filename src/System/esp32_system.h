@@ -133,8 +133,8 @@ void esp32_system_start(){
     //byte* psram = (uint8_t*)ps_calloc(100000, sizeof(uint32_t));
     esp_register_shutdown_handler(onShutdown);
 
-    logger.logInfo("System started");
+    logger.logInfo("System started @");
     
-    lcd.set("System started","");
+    lcd.set("System started",getCurrentTime().c_str());
 
 }
