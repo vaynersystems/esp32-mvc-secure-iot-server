@@ -44,7 +44,7 @@ extern const int SERVER_STACK_SIZE = 1024*24;
 extern const int LCD_STACK_SIZE = 1024*8;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
-const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS;
+const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS, lcdDelay = 1000 / portTICK_PERIOD_MS;
 
 //for starting and looping server task
 void serverTask(void* params) {
@@ -65,7 +65,7 @@ void lcdTask(void* params){
     lcd.setTitle("Starting ESP32..");
     while(true){
         lcd.loop();        
-        vTaskDelay(deviceDelay);
+        vTaskDelay(lcdDelay);
     }    
 }
 

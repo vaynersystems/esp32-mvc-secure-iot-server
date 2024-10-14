@@ -7,7 +7,7 @@ public:
     inline  bool getValue()
     {
         bool value = digitalRead(_pin);
-        #ifdef DEBUG_DEVICE
+         #if DEBUG_DEVICE > 1
             Serial.printf("%s on pin %d reading: %d\n", "Digital Input", _pin, value);
         #endif
         return value;
@@ -15,7 +15,7 @@ public:
 
     inline void setValue(bool value)
     {
-        #ifdef DEBUG_DEVICE
+         #if DEBUG_DEVICE > 1
             Serial.printf("Setting %s on pin %d reading: %d\n", "Digital Input", _pin, value);
         #endif
         digitalWrite(_pin, value);

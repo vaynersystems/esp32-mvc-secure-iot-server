@@ -224,6 +224,12 @@ bool esp32_devices::getDesiredState(
     unsigned long triggerThreshold
 ){
     bool shouldBeOn = currentState; // switch value is a boolean, safe to cast
+
+    #if DEBUG_DEVICE > 1
+    Serial.printf("Getting desired state with current target state %s, trigger type %s with trigger value %f and threshold %f\n",
+        currentState ? "ON" : "OFF", triggerType == LessThan ? "<" : triggerType == GreaterThan ? ">" : "=", triggerValue, triggerThreshold
+    );
+    #endif
     switch (triggerType)
     {
         case esp32_device_trigger_type::LessThan:{
@@ -434,6 +440,9 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
     
     for(int deviceIdx = 0; deviceIdx < _devices.size(); deviceIdx++){
         if(_devices[deviceIdx].id == deviceId){
+            #if DEBUG_DEVICE > 1
+            Serial.printf("Getting device [%d]%s state:\n\t", _devices[deviceIdx].id, _devices[deviceIdx].name.c_str());
+            #endif
             switch(_devices[deviceIdx].type){
                 case esp32_device_type::AnalogInput:
                 {
@@ -477,14 +486,7 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
             }
             break;
         }
-    }
-    
-    // if(!_snapshot.isNull()){
-    //     for(int idx = 0; idx < _snapshot.size(); idx++){
-    //         if(_snapshot[idx]["id"].as<int>() == deviceId )
-    //         return _snapshot[idx]["id"]["value"];
-    //     }
-    // }
+    }    
 }
 
 bool esp32_devices::setDeviceState(int deviceId, bool value){

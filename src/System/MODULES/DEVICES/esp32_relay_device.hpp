@@ -12,7 +12,7 @@ public:
         //pinMode(_pin,INPUT);
         auto result = digitalRead(_pin);
         //pinMode(_pin,OUTPUT);
-        #ifdef DEBUG_DEVICE
+         #if DEBUG_DEVICE > 1
         Serial.printf("Reading relay on pin %d: %s\n", _pin,  result ? "HIGH" : "LOW");
         #endif
         return result;
@@ -20,7 +20,7 @@ public:
 
     inline void setValue(bool value)
     {
-        #ifdef DEBUG_DEVICE
+         #if DEBUG_DEVICE > 1
             Serial.printf("Setting %s on pin %d reading: %d\n", "Relay", _pin, value);
         #endif
         digitalWrite(_pin, value);

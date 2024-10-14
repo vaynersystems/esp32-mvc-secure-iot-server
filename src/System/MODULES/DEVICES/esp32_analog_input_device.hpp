@@ -12,7 +12,7 @@ public:
     inline uint16_t getValue()
     {
         uint16_t value = analogRead(_pin);
-        #ifdef DEBUG_DEVICE
+        #if DEBUG_DEVICE > 1
             Serial.printf("%s on pin %d reading: %f\n", "Analog Input", _pin, value);
         #endif
         return value;
@@ -20,7 +20,7 @@ public:
 
     inline void setValue(uint16_t value)
     {
-        #ifdef DEBUG_DEVICE
+         #if DEBUG_DEVICE > 1
             Serial.printf("Setting %s on pin %d reading: %f\n", "Analog Input", _pin, value);
         #endif
         analogWrite(_pin, value);
