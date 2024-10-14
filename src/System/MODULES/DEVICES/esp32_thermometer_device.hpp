@@ -12,7 +12,7 @@ public:
         //sensors.requestTemperaturesByIndex(0);
         double tempF = sensors.getTempFByIndex(0);
         auto tempRounded = round(tempF * 100) / 100;
-        #ifdef DEBUG_DEVICE
+        #if DEBUG_DEVICE > 1
             Serial.printf("%s on pin %d reading: %f\n", "Thermometer", _pin, tempRounded);
         #endif
         return  round(tempF * 100) / 100; //round to 2 significant digit

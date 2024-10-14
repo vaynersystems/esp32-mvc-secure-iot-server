@@ -42,63 +42,6 @@ void esp32_lcd::loop()
                     
                     if(strcmp(_messages[_messageIdx].messageParam.substr(0,3).c_str(), "DEV") == 0){  
                         int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(3));
-
-                        // auto doc =  deviceManager.getLastSnapshot();
-                        // auto series = ((*doc)["series"]).to<JsonArray>();
-                        // if(series.isNull()){
-                        //     Serial.printf("Series is null!!!");
-                        //     return;
-                        // }
-
-                        // for(auto deviceEntry : series){
-                        //     if(deviceEntry["id"] == deviceId){
-                        //         Serial.printf("DEVICE %d FOUND!! with value %s\n", deviceId, deviceEntry["value"].as<const char*>());
-
-                        //     }
-                        // }
-                        
-                        /*
-                        auto series = deviceManager.getSeries();
-                        if(series.isNull()){
-                            Serial.println("Series is null!");
-                            return;
-                        }
-                        serializeJson(series, Serial);
-                        auto deviceEntry = esp32_devices::findDeviceState(series,deviceId);
-                        if(deviceEntry.isNull()){
-                            Serial.println("Device entry is null!");
-                            return;
-                        }
-                        else{
-                            Serial.printf("Device %s value: %s\n", _messages[_messageIdx].messageText, deviceEntry["value"].as<const char *>());
-                        }
-                        */
-
-                        //deviceManager.getDeviceState(deviceId, o);
-                        // auto snapshotFile = deviceManager.getLastSnapshot();
-                        // JsonArray devicesInSnapshot = (*snapshotFile)["series"].to<JsonArray>();
-                        // serializeJson(*snapshotFile, Serial);
-                        // Serial.printf("Found %d devices in snapshot", devicesInSnapshot.size());
-                        // serializeJson(devicesInSnapshot, Serial);
-
-                        // for(int deviceIdx = 0; deviceIdx < devicesInSnapshot.size(); deviceIdx++){
-                        //     if(devicesInSnapshot[deviceIdx]["id"].isNull()) continue;
-                        //     Serial.printf("Checking if list device %d is equal to %d\n", devicesInSnapshot[deviceIdx]["id"].as<int>(), deviceId);
-                        //     if(devicesInSnapshot[deviceIdx]["id"].as<int>() == deviceId)  
-                        //     {
-                        //         Serial.printf("Found device with value %s\n",  devicesInSnapshot[deviceIdx]["value"].as<const char*>());
-                        //         setDetails(devicesInSnapshot[deviceIdx]["value"].as<const char*>(), elm_messages);
-                        //     }
-                        // }
-                        
-                        /* //Get state directly from device
-                        string state = "";
-                        state = deviceManager.getDeviceState(deviceId);
-                        setDetails(state.c_str(), elm_messages);
-                        Serial.printf("Got device state for device %d parsed from %s: %s\n", deviceId, _messages[_messageIdx].messageParam.c_str(), state.c_str());
-                        */
-
-                        // //deviceManager.getDeviceState(deviceId, o);
                         
                         auto snapshotFile = deviceManager.getLastSnapshot();
                         JsonArray devicesInSnapshot = (*snapshotFile)["series"].as<JsonArray>();
@@ -106,12 +49,48 @@ void esp32_lcd::loop()
                         for(int deviceIdx = 0; deviceIdx < devicesInSnapshot.size(); deviceIdx++){
                             //auto device = deviceManager.getDevices().at(deviceIdx)
                             if(devicesInSnapshot[deviceIdx]["id"].isNull()) continue;
-                            Serial.printf("Checking if list device %d is equal to %d\n", devicesInSnapshot[deviceIdx]["id"].as<int>(), deviceId);
                             if(devicesInSnapshot[deviceIdx]["id"].as<int>() == deviceId)  
                             {
-                                Serial.printf("Found device with value %s\n",  devicesInSnapshot[deviceIdx]["value"]);
-                                
-                                setDetails(devicesInSnapshot[deviceIdx]["value"], elm_messages);
+                                if(devicesInSnapshot[deviceIdx]["value"].isNull()){
+                                    Serial.printf("Value is null!!\n");
+                                    break;
+                                }
+                                if(devicesInSnapshot[deviceIdx]["value"].is<uint16_t>()){
+                                    uint16_t sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<uint16_t>();
+                                    setDetails(string_format("%u", sourceDeviceValue).c_str(), elm_messages);
+
+                                } 
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<double>()){
+                                    double sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<double>();
+                                    setDetails(string_format("%02.02f", sourceDeviceValue).c_str(), elm_messages);
+                                }
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<float>()){
+                                    float sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<float>();
+                                    setDetails(string_format("%02.02f", sourceDeviceValue).c_str(), elm_messages);
+
+                                }
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<bool>()){    
+                                    bool value = devicesInSnapshot[deviceIdx]["value"].as<bool>();
+                                    setDetails(value ? "ON" : "OFF", elm_messages);
+                                }
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<int>()){
+                                    int sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<int>();
+                                    setDetails(itoa(sourceDeviceValue,"%d",10), elm_messages);
+                                }
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<short>()){
+                                    double sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<short>();
+                                    setDetails(itoa(sourceDeviceValue,"%d",10), elm_messages);
+                                }
+                                else if(devicesInSnapshot[deviceIdx]["value"].is<const char *>()) {
+                                    Serial.printf("Error occured checking less than condition. value type is const char * %d\n", devicesInSnapshot[deviceIdx]["value"].as<const char *>());
+                                    continue;
+                                }
+                                else {
+                                    Serial.printf("Error occured checking less than condition. value type is unknown %d : %s\n", devicesInSnapshot[deviceIdx]["value"].as<int>(),  devicesInSnapshot[deviceIdx]["value"].as<const char *>());
+                                    continue;
+                                }
+
+                                                               
                             }
                         }
                         
