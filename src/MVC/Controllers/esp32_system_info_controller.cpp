@@ -102,17 +102,17 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)(ESP.getPsramSize() - ESP.getFreePsram())/(float)ESP.getPsramSize())*100),1).c_str());
     controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_AVAILABLE"), ESP.getPsramSize() > 0 ? "block" : "none");
 
-    /* SKETCH */
+    /* SKETCH */ /* ESP.getFreeSketchSpace() returns total free space (on the next partition)*/
     string freeBytesSKETCHPretty(""), usedBytesSKETCHPretty("") , totalBytesSKETCHPretty("");
-	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace(), &freeBytesSKETCHPretty);
-	esp32_fileio::PrettyFormat(ESP.getSketchSize() + ESP.getFreeSketchSpace(), &totalBytesSKETCHPretty);
+	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace() - ESP.getSketchSize(), &freeBytesSKETCHPretty);
+	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace(), &totalBytesSKETCHPretty);
     esp32_fileio::PrettyFormat(ESP.getSketchSize(), &usedBytesSKETCHPretty);
 
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_FREE"), freeBytesSKETCHPretty.c_str());
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_USED"), usedBytesSKETCHPretty.c_str());
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_TOTAL"), totalBytesSKETCHPretty.c_str());    
-    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(ESP.getSketchSize() + ESP.getFreeSketchSpace()))*100),1).c_str());
-    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_AVAILABLE"), ESP.getSketchSize() + ESP.getFreeSketchSpace() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(ESP.getFreeSketchSpace()))*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_AVAILABLE"), ESP.getFreeSketchSpace() > 0 ? "block" : "none");
     
 
     controllerTemplate.SetTemplateVariable(F("$NVS_FREE_ENTRIES"), (to_string_with_precision(stats.free_entries,0)).c_str());
