@@ -8,9 +8,10 @@
 using namespace std;
 extern esp32_devices deviceManager;
 
+
 struct esp32_schedule{
     short scheduleId;
-    string name;
+    string name = "";
     vector<int> deviceIds;
     vector<int> days;
     int startHour;
@@ -32,6 +33,7 @@ public:
     void onLoop();
 
     vector<esp32_schedule> getSchedules();
+    bool isManaged(int deviceId);
 
 private:
     bool getDesiredState(
@@ -42,7 +44,12 @@ private:
         unsigned long triggerThreshold
     );
     bool loadScheduleConfiguration();
+
+    bool isManaged(esp32_schedule scheduleEntry, int deviceId);
+    bool isScheduleActive(esp32_schedule scheduleEntry);
+
     vector<esp32_schedule> _schedules;
-    //vector<esp32_device_info> devices = deviceManager.getDevices();
+    unsigned long _lastCheckedMillis = 0;
+    vector<esp32_device_info> devices;
 };
 #endif

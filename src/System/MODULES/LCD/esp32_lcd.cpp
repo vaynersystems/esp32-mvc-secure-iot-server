@@ -2,6 +2,9 @@
 #include <WiFi.h>
 
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
+#include "System/MODULES/DEVICES/esp32_scheduling_manager.hpp"
+
+extern esp32_scheduling_manager scheduleManager;
 extern esp32_devices deviceManager;
 
 void esp32_lcd::begin(int sda, int scl)
@@ -10,11 +13,14 @@ void esp32_lcd::begin(int sda, int scl)
     _lcd.clear();        
     //Serial.println("Initialized LCD");
     _messages.push_back(esp32_lcd_message("IP Address:","IP"));
-    _messages.push_back(esp32_lcd_message("Time:", "TIME"));    
+    _messages.push_back(esp32_lcd_message("Time:", "TIME"));   
+    _messages.push_back(esp32_lcd_message("Uptime:", "UPTIME"));   
+    _initialized = true; 
 }
 
 void esp32_lcd::loop()
 {
+    if(!_initialized) return;
     //if in text mode, timeout to message mode after [configured time] of inactivitiy
     if(_mode != elm_messages && _lastTextTime + _textTimeout < millis()){
         _mode = elm_messages;
@@ -26,9 +32,9 @@ void esp32_lcd::loop()
         if(_lastMessageTime + _messageTimeout < millis()){
             //Serial.printf("Printing the %d%s message\n", _messageIdx + 1, _messageIdx + 1 == 1 ? "st" : _messageIdx + 1 == 2 ? "nd": _messageIdx + 1 == 3 ? "rd" : "th" );
             auto parts = explode(string(_messages[_messageIdx].messageText), ":", true);
+            
             clear();
             setTitle( parts[0].c_str(), elm_messages);
-            Serial.printf("Checking parameter value [%s]\n",_messages[_messageIdx].messageParam.c_str());
             if (strcmp(_messages[_messageIdx].messageParam.c_str(), "IP") == 0)
             {
                 setDetails(WiFi.localIP().toString().c_str(), elm_messages);                
@@ -36,15 +42,30 @@ void esp32_lcd::loop()
             else if(strcmp(_messages[_messageIdx].messageParam.c_str(), "TIME") == 0){  
                 setDetails(getCurrentTime().c_str(), elm_messages);
             }
+            else if(strcmp(_messages[_messageIdx].messageParam.c_str(), "UPTIME") == 0){  
+                int uptimeS = (int)(millis() / 1000);
+                int uptimeSeconds = uptimeS % (60);
+                int uptimeMinutes = ((uptimeS - uptimeSeconds) % 3600) / 60;
+                int uptimeHours = ((uptimeS - uptimeSeconds - (uptimeMinutes * 60)) % (3600*24)) / 3600;
+                int uptimeDays = (uptimeS - uptimeSeconds - (uptimeMinutes * 60) - (uptimeHours * 3600)) / (3600*24);
+
+                // int uptimeDays = floor(uptimeS / 3600 / 24);
+                // int uptimeHours = floor((uptimeS - (uptimeDays * 3600*24)) / 3600);
+                // int uptimeMinutes = floor(uptimeS - (uptimeDays * 3600*24) - (uptimeHours * 3600) / 60);
+                // int uptimeSeconds = uptimeS - (uptimeDays * 3600*24) - (uptimeHours * 3600) - (uptimeMinutes * 60);
+                setDetails(string_format("%d days %02d:%02d:%02d", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds).c_str(), elm_messages);
+            }
             else {
                 int paramLength = _messages[_messageIdx].messageParam.length();
                 if(paramLength >= 4){                   
                     
-                    if(strcmp(_messages[_messageIdx].messageParam.substr(0,3).c_str(), "DEV") == 0){  
-                        int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(3));
-                        
+                    if(strcmp(_messages[_messageIdx].messageParam.substr(0,5).c_str(), "DEV #") == 0){  
+                        int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(5));
+                        Serial.printf("Passed %d as device id from text: [%s]\n", deviceId, _messages[_messageIdx].messageParam.substr(5).c_str());
+                        //TODO: move to device manager
                         auto snapshotFile = deviceManager.getLastSnapshot();
-                        JsonArray devicesInSnapshot = (*snapshotFile)["series"].as<JsonArray>();
+                        JsonArray devicesInSnapshot = (snapshotFile)["series"].as<JsonArray>();
+                        char digitFormat[] = "%d";
 
                         for(int deviceIdx = 0; deviceIdx < devicesInSnapshot.size(); deviceIdx++){
                             //auto device = deviceManager.getDevices().at(deviceIdx)
@@ -55,31 +76,34 @@ void esp32_lcd::loop()
                                     Serial.printf("Value is null!!\n");
                                     break;
                                 }
+
+                                bool deviceManaged = scheduleManager.isManaged(deviceId);
+                                auto uom = devicesInSnapshot[deviceIdx]["uom"].isNull() ? "" : devicesInSnapshot[deviceIdx]["uom"].as<const char*>();
                                 if(devicesInSnapshot[deviceIdx]["value"].is<uint16_t>()){
                                     uint16_t sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<uint16_t>();
-                                    setDetails(string_format("%u", sourceDeviceValue).c_str(), elm_messages);
+                                    setDetails(string_format("%u%s%s", sourceDeviceValue, uom, deviceManaged ? " (*)" : "").c_str(), elm_messages);
 
                                 } 
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<double>()){
                                     double sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<double>();
-                                    setDetails(string_format("%02.02f", sourceDeviceValue).c_str(), elm_messages);
+                                    setDetails(string_format("%02.02f%s%s", sourceDeviceValue, uom, deviceManaged ? " (*)" : "").c_str(), elm_messages);
                                 }
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<float>()){
                                     float sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<float>();
-                                    setDetails(string_format("%02.02f", sourceDeviceValue).c_str(), elm_messages);
+                                    setDetails(string_format("%02.02f%s%s", sourceDeviceValue, uom, deviceManaged ? " (*)" : "").c_str(), elm_messages);
 
                                 }
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<bool>()){    
                                     bool value = devicesInSnapshot[deviceIdx]["value"].as<bool>();
-                                    setDetails(value ? "ON" : "OFF", elm_messages);
+                                    setDetails(string_format("%s%s", value ? "ON" : "OFF", deviceManaged ? " (*)" : "").c_str(), elm_messages);
                                 }
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<int>()){
                                     int sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<int>();
-                                    setDetails(itoa(sourceDeviceValue,"%d",10), elm_messages);
+                                    setDetails(string_format("%d%s", sourceDeviceValue, deviceManaged ? " (*)" : "").c_str(), elm_messages);
                                 }
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<short>()){
-                                    double sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<short>();
-                                    setDetails(itoa(sourceDeviceValue,"%d",10), elm_messages);
+                                    short sourceDeviceValue = devicesInSnapshot[deviceIdx]["value"].as<short>();
+                                    setDetails(string_format("%d%s", sourceDeviceValue, deviceManaged ? " (*)" : "").c_str(), elm_messages);
                                 }
                                 else if(devicesInSnapshot[deviceIdx]["value"].is<const char *>()) {
                                     Serial.printf("Error occured checking less than condition. value type is const char * %d\n", devicesInSnapshot[deviceIdx]["value"].as<const char *>());
@@ -105,6 +129,7 @@ void esp32_lcd::loop()
             if(_messageIdx >= _messages.size()) _messageIdx = 0;
 
             _lastMessageTime = millis();
+            _lastScrollTime = millis();
         }
     }
     //time to scroll?
@@ -112,9 +137,10 @@ void esp32_lcd::loop()
     if(_lastScrollTime + _scrollSpeed > millis())
         return;
 
+    string details = string(_details);
     //Serial.printf("Checking if there is content to scroll with length %d\n", _details.length());
     //anything to scroll?
-    if(_details.length() <= LCD_WIDTH)
+    if(details.length() <= LCD_WIDTH)
         return;
 
     _lcd.setCursor(0,1);
@@ -123,12 +149,12 @@ void esp32_lcd::loop()
     if(_offset >= LCD_WIDTH) _offset = 0;
     else _offset++;
 
-    int charsLeft = _details.length() - _offset;
+    int charsLeft = details.length() - _offset;
 
     if(charsLeft <= LCD_WIDTH){        
         //can fit rest of string
         _lcd.setCursor(0,1);
-        _lcd.print(_details.substr(_offset,charsLeft).c_str());
+        _lcd.print(details.substr(_offset,charsLeft).c_str());
         int charsWritten = charsLeft - _offset;
         //Serial.printf("Wrote %d chars to lcd details (all)\n", charsWritten);
         
@@ -138,11 +164,11 @@ void esp32_lcd::loop()
             int screenOffset = charsWritten + _spaceBetweenText;
             //_lcd.setCursor(screenOffset,1);
             //Serial.printf("Writing %d additional chars from beggining at position %d\n", LCD_WIDTH - screenOffset, screenOffset);
-            _lcd.print(_details.substr(0, LCD_WIDTH - screenOffset).c_str());
+            _lcd.print(details.substr(0, LCD_WIDTH - screenOffset).c_str());
         }
     }else{
         //only enough room to print some of the text
-        _lcd.print(_details.substr(_offset, LCD_WIDTH).c_str());
+        _lcd.print(details.substr(_offset, LCD_WIDTH).c_str());
         //Serial.printf("Wrote %d chars to lcd details (some) \n", LCD_WIDTH);
     }
     _lastScrollTime = millis();
@@ -152,24 +178,37 @@ void esp32_lcd::loop()
 
 void esp32_lcd::setTitle(const char *text, esp32_lcd_mode mode)
 {
+    if(!_initialized) return;
     _mode = mode;
-    _title = text;
+    memset(_title,0,sizeof(_title));
+    memcpy(_title,text,strlen(text) > 64 ? 64 : strlen(text));
+    //_title = text;
+    //portDISABLE_INTERRUPTS();
     _lcd.setCursor(0,0);
     _lcd.print(text);
+    //portENABLE_INTERRUPTS();
+    _lastMessageTime = 0;
 }
 
 void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode)
 {
+    if(!_initialized) return;
     _mode = mode;
-    _details = text;
+    memset(_details,0,sizeof(_details));
+    memcpy(_details,text,strlen(text) > 64 ? 64 : strlen(text));
+    //_details = text;
     _offset = 0;
+    //portDISABLE_INTERRUPTS();
     _lcd.setCursor(0,1);    
     _lcd.print(text);
+    // portENABLE_INTERRUPTS();
     _lastScrollTime = millis();
+    _lastMessageTime = 0;
 }
 
 void esp32_lcd::set(const char *title, const char *details, esp32_lcd_mode mode)
 {
+    if(!_initialized) return;
     _lcd.clear();
     setTitle(title, mode);
     setDetails(details, mode);
@@ -177,11 +216,13 @@ void esp32_lcd::set(const char *title, const char *details, esp32_lcd_mode mode)
 
 void esp32_lcd::clear()
 {
+    if(!_initialized) return;
     _lcd.clear();
 }
 
 void esp32_lcd::addMessage(const char *message, const char *parameter)
 {
+    if(!_initialized) return;
     //TODO: validate message and parameter
     _messages.push_back(esp32_lcd_message(message, parameter));    
 }

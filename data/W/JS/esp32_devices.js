@@ -137,6 +137,10 @@ class esp32_devices{
                 var response = request.responseText;
                 if(request.status == 200){
                     pendingChanges = false;
+                    if(request.responseURL.endsWith("ResetDevice")) {
+                        closeModal();
+                        return;
+                    }
                     showModal('ESP32 Settings Saved','Settings saved sucessfully. \nRestart device to apply settings? ', 
                     [
                         {text:'No',action: () => { closeModal();} }, 
