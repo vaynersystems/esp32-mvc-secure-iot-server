@@ -6,12 +6,14 @@ const deviceScheduleListViewModelPath = '/W/M/schedule_list_model.json';
 /* DEVICES */
 var activeConfig;
 var persistedConfig;
+var pins;
 //persistedDevices defined elsewhere
 class esp32_devices{
     
-    loadDevices(devices){
+    loadDevices(devices, hwPins){
         persistedConfig = devices;
         activeConfig = devices;
+        pins = hwPins;
     }
     openDeviceView(){
         //has data
@@ -135,6 +137,10 @@ class esp32_devices{
                 var response = request.responseText;
                 if(request.status == 200){
                     pendingChanges = false;
+                    if(request.responseURL.endsWith("ResetDevice")) {
+                        closeModal();
+                        return;
+                    }
                     showModal('ESP32 Settings Saved','Settings saved sucessfully. \nRestart device to apply settings? ', 
                     [
                         {text:'No',action: () => { closeModal();} }, 
@@ -143,7 +149,8 @@ class esp32_devices{
                             action: () => {
                                 setTimeout(() => {
                                     reset(true);closeModal(); 
-                                    setTimeout( () => window.location.reload(),10000);
+                                    showWait();
+                                    setTimeout( () => reload,10000);
                                 }, 500);
                             }
                         }
@@ -214,6 +221,11 @@ class esp32_devices{
                     Source: 'trigger.source', 
                     Field: 'Data', 
                     Value: activeConfig.devices.filter(ac => ac.id !== device.id).map(ac => Object.create({'name': ac.name, 'value': ac.id}))
+                },
+                {
+                    Source: 'pin', 
+                    Field: 'Data', 
+                    Value: pins.filter(ac => ac.pin !== device.pin).map(ac => Object.create({'name': ac.pin, 'value': ac.pin}))
                 }
             ],
             this.saveDevice,
@@ -252,6 +264,16 @@ class esp32_devices{
     }
 }
 /* END OF DEVICES */
+
+function reload(){
+    fetch('/')
+    .then(() => window.location.reload())
+    .catch( () => setTimeout(() => {
+        reload
+    }, 5000))
+    ;
+}
+
 
 function confirmCancelChanges(cancelCallback){
     const modalComponent = _generateModalComponent(); 

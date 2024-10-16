@@ -3,11 +3,12 @@
 #include "Arduino.h"
 #include <map>
 #include "ArduinoJson.h"
-#include <SPIFFS.h>
 #include <SD.h>
 #include <System/Config.h>
 #include <System/CORE/esp32_config.h>
 #include "esp32_filesystem.hpp"
+#include "System/MODULES/LCD/esp32_lcd.hpp"
+extern esp32_lcd lcd;
 
 using namespace std;
 enum esp32_log_type{
@@ -29,9 +30,7 @@ enum esp32_log_level{
 class esp32_logging{
 public:
 
-    //esp32_logging();
     void start();
-
     
     bool logInfo(string message, esp32_log_type logType = syslog);
     bool logInfo(const char* message, esp32_log_type logType = syslog);
@@ -56,8 +55,7 @@ public:
 
 private:
     string getLogFilename(esp32_log_type logType);
-
-    
+    //void ensureLogDirExists();
     
     const char * _logPrefix = "SYSLOG";
     bool _useDate = true;
@@ -66,9 +64,6 @@ private:
     esp32_drive_type _location;
     std::map<esp32_log_type, const char *> logTypes;
     std::map<esp32_log_level, const char *> logEntryTypes;
-
-    //FS &_fs = SPIFFS;
-
 };
 
 #endif

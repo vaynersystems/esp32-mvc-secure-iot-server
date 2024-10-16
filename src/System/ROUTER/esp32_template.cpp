@@ -65,6 +65,7 @@ void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
 bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
 {
     unsigned long timer = millis();
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 	//update globals
 	SetGlobalVariables(req,res);
     #ifdef DEBUG
@@ -73,7 +74,7 @@ bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
 	//open file
 	
 	size_t lastPos = 0;
-	File templateFile = SPIFFS.open(templateContentFilePath.c_str());
+	File templateFile = drive->open(templateContentFilePath.c_str());
     //Serial.printf("Opened file %s\n", templateContentFilePath.c_str());
 	if (templateFile.size() > 0) {
         

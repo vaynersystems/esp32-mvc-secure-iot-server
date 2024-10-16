@@ -1,6 +1,7 @@
 #ifndef _ESP32_BASE_DEVICE_H
 #define _ESP32_BASE_DEVICE_H
 #include "Arduino.h"
+#include "System/Config.h"
 //#include "esp32_abstract_device.hpp"
 enum esp32_device_type{
     Unknown = 0,

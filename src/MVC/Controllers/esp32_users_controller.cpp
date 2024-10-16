@@ -268,14 +268,15 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
     bool firstUser = false;
     // Read the file
     auto filename = std::string(PATH_AUTH_FILE);
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     // Check if the file exists
-    if (!SPIFFS.exists(filename.c_str()))
+    if (!drive->exists(filename.c_str()))
     {     
         return false;
        
     }
     //get user object, update it, store back
-    File file = SPIFFS.open(filename.c_str());
+    File file = drive->open(filename.c_str());
     DynamicJsonDocument doc(file.size() * 2);
     
     DeserializationError error = deserializeJson(doc,file);
@@ -293,7 +294,7 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
     
     existingUser["role"] = role;
     existingUser["enabled"] = enabled;
-    file = SPIFFS.open(filename.c_str(),"w");
+    file = drive->open(filename.c_str(),"w");
     serializeJson(doc, file);
     file.close();
         
@@ -303,7 +304,8 @@ bool esp32_users_controller::SaveExistingUserData(const char* username,const cha
 
 bool esp32_users_controller::DeleteUser(const char *username)
 {
-    File file = SPIFFS.open(PATH_AUTH_FILE,"r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File file = drive->open(PATH_AUTH_FILE,"r");
     DynamicJsonDocument doc(file.size() * 2);   
 
     auto error = deserializeJson(doc,file);
@@ -321,7 +323,7 @@ bool esp32_users_controller::DeleteUser(const char *username)
         }
     }
     
-    file = SPIFFS.open(PATH_AUTH_FILE,"w");
+    file = drive->open(PATH_AUTH_FILE,"w");
     serializeJson(doc, file);
     file.close();
 
@@ -333,7 +335,8 @@ bool esp32_users_controller::DeleteUser(const char *username)
 
 /// @brief Load user information from json file on disk
 JsonVariant esp32_users_controller::LoadUsers() {
-    File f = SPIFFS.open(PATH_AUTH_FILE,"r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File f = drive->open(PATH_AUTH_FILE,"r");
     DynamicJsonDocument doc(f.size() * 2);
     StaticJsonDocument<128> filter; //filter out password field
     filter[0]["username"] = true;
@@ -357,7 +360,8 @@ JsonVariant esp32_users_controller::LoadUsers() {
 
 
 JsonVariant esp32_users_controller::LoadUserData(const char* username) {
-    File f = SPIFFS.open(PATH_AUTH_FILE,"r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File f = drive->open(PATH_AUTH_FILE,"r");
     DynamicJsonDocument doc(f.size() * 2);
     StaticJsonDocument<128> filter;
     filter[0]["username"] = true;

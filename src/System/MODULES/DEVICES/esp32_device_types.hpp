@@ -17,7 +17,7 @@ enum esp32_device_trigger_type{
     Equals = 2
 };
 
-enum esp32_device_sginal{
+enum esp32_device_signal{
     activeLow = 0,
     activeHigh = 1
 };
@@ -29,7 +29,8 @@ public:
     string name;
     string mqttTopic;
     int pin;
-    esp32_device_sginal signal = esp32_device_sginal::activeHigh;
+    uint8_t resolution;
+    esp32_device_signal signal = esp32_device_signal::activeHigh;
     //esp32_device_direction direction;
     bool useTrigger = false;
     bool mqttPublish = false;
@@ -40,9 +41,10 @@ public:
     unsigned long triggerThreshold;
     unsigned long duration;
     
-    unsigned long _lastStartTime = 0;
-    unsigned long _lastPublishTime = 0;
+    unsigned long lastStartTime = 0;
+    unsigned long lastPublishTime = 0;
     //esp32_base_device<uint16_t> deviceInstance;  
+    bool managedByScheduler = false;
 
 protected:
     

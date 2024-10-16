@@ -9,8 +9,9 @@
 #include <WiFi.h>
 #include "lwip/apps/sntp.h"
 #include <SPIFFS.h>
+#include "esp32_filesystem.hpp"
 
-
+extern esp32_file_system filesystem;
 
 class esp32_config
 {

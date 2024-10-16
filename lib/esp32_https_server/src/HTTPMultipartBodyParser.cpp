@@ -1,7 +1,7 @@
 #include "HTTPMultipartBodyParser.hpp"
 #include <sstream>
 
-const size_t MAXLINESIZE = 512;
+const size_t MAXLINESIZE = 4096;
 
 namespace httpsserver {
 
@@ -65,7 +65,10 @@ void HTTPMultipartBodyParser::fillBuffer(size_t maxLen) {
   char *bufPtr;
   if (peekBuffer == NULL) {
     // Nothing in the buffer. Allocate one of the wanted size
+    // Try to allocate in PSRAM if available. Otherwise fall back to regular
     peekBuffer = (char *)ps_calloc(maxLen, sizeof(uint8_t));
+    if (peekBuffer == NULL) 
+        peekBuffer = (char *)malloc(maxLen);
     if (peekBuffer == NULL) {
       HTTPS_LOGE("Multipart: out of memory");
       discardBody();
