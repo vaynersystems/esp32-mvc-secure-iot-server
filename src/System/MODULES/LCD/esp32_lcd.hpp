@@ -41,8 +41,8 @@ class esp32_lcd{
     void begin(int sda, int scl);
     void loop();
 
-    void setTitle(const char * text, esp32_lcd_mode mode = elm_text);
-    void setDetails(const char * text, esp32_lcd_mode mode = elm_text);
+    void setTitle(const char * text, esp32_lcd_mode mode = elm_text, bool clearLine = true);
+    void setDetails(const char * text, esp32_lcd_mode mode = elm_text, bool clearLine = true);
     void set(const char *title, const char * details = "", esp32_lcd_mode mode = elm_text);
     void setScroll(bool shouldScroll);
     void clear();
