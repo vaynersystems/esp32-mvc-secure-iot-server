@@ -10,7 +10,20 @@ function showWait(which){
     if(which === undefined || which === null || which === ''){
         const waitElement = document.createElement('wait');
         waitElement.id = 'page-wait';
-        waitElement.addEventListener('close', () => { waitElement.parent.removeChild(waitElement)});
+        waitElement.remove = () => { 
+            const we = document.getElementById(waitElement.id);
+            we?.parentElement?.removeChild(we)
+        };
+        waitElement.addEventListener('close', (event) => { 
+            const we = event.currentTarget;
+            if(we.parentElement !== null && we.parentElement !== undefined)
+                we.parentElement.removeChild(waitElement);
+            else { //removal failed. try gimmicks
+                we.remove();
+                we.outerHTML = '';
+            }
+        });
+        waitElement.parentElement = document.body;
         document.body.appendChild(waitElement);
         return waitElement;
     }

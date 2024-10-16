@@ -218,7 +218,7 @@ function showLoggingProjections(){
         weeklyCell.style.color = getProjectionColor(bytesPerDay * 7);
         monthlyCell.textContent = formatByte(bytesPerDay * 30);
         monthlyCell.style.color = getProjectionColor(bytesPerDay * 30);
-        yearlyCell.textContent = (bytesPerDay * 365);
+        yearlyCell.textContent = formatByte(bytesPerDay * 365);
         yearlyCell.style.color = getProjectionColor(bytesPerDay * 365);
         projectionRowElement.className = "grid-row grid-5";
 
@@ -464,10 +464,14 @@ function saveSettings(config){
                     {text:'No',action: () => { closeModal();} }, 
                     {
                         text:'Yes', 
-                        action: async () => {
-                            reset(true);closeModal(); 
-                            setTimeout( reload,5000);
-                        }
+                        action: () => {
+                            setTimeout(() => 
+                            {
+                                reset(true);closeModal(); 
+                                showWait();
+                                setTimeout( reload,5000);
+                            })   
+                        }                     
                     }
 
                 ]);
@@ -482,7 +486,13 @@ function saveSettings(config){
 }
 
 function reload(){
-    window.location.reload();
+    hideWait();
+    fetch('/')
+    .then(() => window.location.reload())
+    .catch( () => setTimeout(() => {
+        reload
+    }, 5000))
+    ;
 }
 
 function restoreSettings() {

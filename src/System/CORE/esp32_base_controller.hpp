@@ -18,7 +18,7 @@ using namespace httpsserver;
 
 enum esp32_controller_category{
     Devices = 0,    
-    Site = 1,
+    System = 1,
     Tools = 2,
     Users = 3,
     Extras = 4,

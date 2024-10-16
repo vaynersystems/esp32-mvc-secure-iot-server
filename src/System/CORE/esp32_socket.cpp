@@ -9,7 +9,7 @@ WebsocketHandler* esp32_socket::createSocket(){
         if (activeClients[i] == nullptr) {
             esp32_socket * handler = new esp32_socket(i+1);
             activeClients[i] = handler;
-            #ifdef DEBUG
+            #ifdef DEBUG_SOCKET
             Serial.printf("[%s] Creating new socket for client id %d\n", className, i+1);  
             #endif
             return handler;
@@ -43,13 +43,17 @@ void esp32_socket::onMessage(WebsocketInputStreambuf * input){
         route.params = message["message"].as<const char *>();
         sendToClient(this->_clientId, esp32_router::handleServiceRequest(route));
         //sendToAllClients(esp32_router::handleServiceRequest(route));
+        #ifdef DEBUG_SOCKET
+        Serial.printf("[%s] Client [%d]. Processed websocket message in %d ms\n", className, this->_clientId, millis() - startTime);
+        #endif
         
     } 
-    else 
+    else {
         sendToAllClients(msg);
-    #ifdef DEBUG
-    Serial.printf("[%s] [%d] Processed websocket message in %d ms\n", className, this->_clientId, millis() - startTime);
-    #endif
+        #ifdef DEBUG_SOCKET
+        Serial.printf("[%s]All clientsProcessed websocket message in %d ms\n", className, millis() - startTime);
+        #endif
+    }
 }
 
 // Handler function on connection close

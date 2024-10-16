@@ -8,15 +8,15 @@ string esp32_device_service::Execute()
 {
     string ret = "";
 
-    if (strcmp(route.params.c_str(),"config") == 0){
-        StaticJsonDocument<2048> devicesConfig;
-        esp32_config::getConfigSection("devices", &devicesConfig);
-        serializeJson(devicesConfig, ret);
-        return ret;
+    if (strcmp(route.params.c_str(),"ping") == 0){
+        return "pong";
     }   
     if (strcmp(route.params.c_str(),"snapshot") == 0){
         auto doc =  deviceManager.getLastSnapshot();
-        auto err = serializeJson(*doc, ret);
+        #if DEBUG_DEVICE > 1
+        serializeJson(doc, Serial);
+        #endif
+        auto err = serializeJson(doc, ret);
        
         return ret;
     } 

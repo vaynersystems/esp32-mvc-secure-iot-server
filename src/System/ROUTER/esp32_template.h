@@ -4,7 +4,6 @@
 #include <string>
 #include <map>
 #include "FS.h"
-#include "SPIFFS.h"
 #include <HTTPRequest.hpp>
 #include <HTTPResponse.hpp>
 #include <HTTPConnection.hpp>
@@ -30,12 +29,6 @@ public:
 	void SetTemplateVariable(std::string name, std::string value);
 	void SetGlobalVariables(HTTPRequest* req, HTTPResponse* res);
     void ClearVariables();
-
-	// std::pair<std::string, std::string> GetTemplateVariable(int idx);
-	// std::pair<std::string, std::string> GetTemplateVariable(std::string name);
-
-
-	//void PrintDebugMessage(HTTPRequest* req, HTTPResponse* res);
 };
 
 #endif

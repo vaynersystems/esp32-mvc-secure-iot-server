@@ -6,7 +6,7 @@
 #include "SD.h"
 #include "SPI.h"
 #include <esp32_filesystem_objects.h>
-const int CS = 5;
+const int CS = 10;
 esp32_file_system filesystem;
 const char* infoTypes[] = {"SPIFFS","SD"};
 bool esp32_fileio::start(){
@@ -21,16 +21,36 @@ bool esp32_fileio::start(){
     // IMPORTANT: SD requires about 35k of RAM. Consider configuration parameter to enable/disable SD.
     // commenting out the below code would remove this usage.
     bool sdConnected = false;
-    while(retries++ < 3 && !sdConnected)
-        sdConnected = SD.begin(CS);
-        //return;
-    if(!sdConnected) {
-        #ifdef DEBUG
-        Serial.println("SD Initialization failed!");
-        #endif
-    } else{
-        filesystem.addDisk(SD, "sd",dt_SD);
-    }
+
+    #ifdef USE_SD
+
+    if(SD_TYPE == sd_type::sd_spi){
+        while(retries++ < 3 && !sdConnected)            
+            sdConnected = SD.begin(CS,SPI,4000000);
+
+        if(!sdConnected) {
+            #ifdef DEBUG
+            Serial.println("SD Initialization failed!");
+            #endif
+        } else{
+            filesystem.addDisk(SD, "sd",dt_SD);   
+        }
+    } else if(SD_TYPE == sd_type::sd_mmc){
+        SD_MMC.setPins(38,39,40,41,42,47);
+        while(retries++ < 3 && !sdConnected)
+            sdConnected = SD_MMC.begin();
+
+        if(!sdConnected) {
+            #ifdef DEBUG
+            Serial.println("SD MMC Initialization failed!");
+            #endif
+        } else{
+            filesystem.addDisk(SD_MMC, "sd",dt_SDMMC);   
+        }
+    }    
+    #endif
+          
+    
     #ifdef DEBUG
     Serial.printf("Loaded %d drives.\n",  filesystem.driveCount());
 
@@ -44,7 +64,11 @@ bool esp32_fileio::start(){
         Serial.printf("Drive #%d %s. Type: %s. Size: %s bytes. Used: %s.\n",
             drive->index(), drive->label(), infoTypes[info.type()], driveSize.c_str(), usedSize.c_str()
         );
-        //drive->list();
+        #ifdef DEBUG_FILESYSTEM
+        if(info.used() < 1024*1024*24) //less than 24 MB
+            drive->list();
+        else ESP_LOGI(PROGRAM_TAG, "Skip listing files, too many");
+        #endif
     }
     #endif
     return filesystem.driveCount() > 0;
@@ -120,6 +144,9 @@ size_t esp32_fileio::UpdateFile(const char * filename, httpsserver::HTTPMultipar
 size_t esp32_fileio::UpdateFile(const char *filename, const char *message, bool createIfNotFound, int seek )
 {
     //TODO: consider testing for internal, otherwise prefix spiffs public path if uploading to spiffs
+    #ifdef DEBUG_FILESYSTEM
+    Serial.printf("Updating file %s\n", filename);
+    #endif
     auto routeInfo = esp32_route_file_info<esp32_file_info>(filename);
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.path().c_str()) && !createIfNotFound)
@@ -158,7 +185,7 @@ bool esp32_fileio::DeleteFile(const char * filename){
     auto drive = filesystem.getDisk(routeInfo.drive());
     if(!drive->exists(routeInfo.fullyQualifiedPath().c_str())){
         #ifdef DEBUG
-        Serial.printf("Attempted to delete a non-existent file %s on disk %s\n", routeInfo.fullyQualifiedPath().c_str(), drive->label());
+        ESP_LOGE(PROGRAM_TAG, "Attempted to delete a non-existent file %s on disk %s\n", routeInfo.fullyQualifiedPath().c_str(), drive->label());
         #endif
         return false;
     }
@@ -174,7 +201,7 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     if(!file) {
         auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
         #ifdef DEBUG
-        Serial.printf("Error, file not valid read: %d write: %d \n", file.available(), file.availableForWrite());
+        ESP_LOGE(PROGRAM_TAG, "Error, file not valid read: %d write: %d \n", file.available(), file.availableForWrite());
         #endif
         return;
     }

@@ -2,14 +2,22 @@
 class esp32_digital_input_device : public esp32_base_device<bool>{
 public:
     esp32_digital_input_device(int pin) : esp32_base_device<bool>(pin){
+        pinMode(_pin,INPUT);
     }
     inline  bool getValue()
     {
-        return digitalRead(_pin);
+        bool value = digitalRead(_pin);
+         #if DEBUG_DEVICE > 1
+            Serial.printf("%s on pin %d reading: %d\n", "Digital Input", _pin, value);
+        #endif
+        return value;
     }
 
     inline void setValue(bool value)
     {
+         #if DEBUG_DEVICE > 1
+            Serial.printf("Setting %s on pin %d reading: %d\n", "Digital Input", _pin, value);
+        #endif
         digitalWrite(_pin, value);
     }
 
