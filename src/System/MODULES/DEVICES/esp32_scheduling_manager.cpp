@@ -1,62 +1,69 @@
 #include "esp32_scheduling_manager.hpp"
 #include "system_helper.h"
-
+unsigned long SCHEDULE_CHECK_INTERVAL = 1000;
 void esp32_scheduling_manager::onInit()
 {
-    #ifdef DEBUG_DEVICE
-    Serial.println(F("Initializing schedule manager"));
-    #endif
-
-    if(!loadScheduleConfiguration()){
-        Serial.println("Failed to initialize schedule configuration\n");
-        logger.logError("Failed to initialize schedule configuration\n");
-    }
-}
-StaticJsonDocument<4096> _scratch;
-
-void esp32_scheduling_manager::onLoop()
-{
-    //get relevant schedules to now
+    #ifdef DEBUG_SCHEDULE    
     time_t now;
     now = getTime();
     struct tm tm = *localtime(&now);
     auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec);
-    auto devices = deviceManager.getDevices();
+
+    Serial.printf("Initializing schedule manager @ %s\n", date.c_str());
+    #endif
+    devices = *deviceManager.getDevices();
+    if(!loadScheduleConfiguration()){
+        Serial.println("Failed to initialize schedule configuration\n");
+        logger.logError("Failed to initialize schedule configuration\n");
+    }
+    
+}
+StaticJsonDocument<4096> _scratch;
+
+void esp32_scheduling_manager::onLoop()
+{   
+    time_t now;
+    now = getTime();
+    struct tm tm = *localtime(&now);
+    auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    if(_lastCheckedMillis + SCHEDULE_CHECK_INTERVAL > millis()) return;
+    _lastCheckedMillis = millis(); //at beggining to have event occur every SCHEDULE_CHECK_INTERVAL
+    //get relevant schedules to now
+    
+    
     for(auto device : devices){
         device.managedByScheduler = false;
     }
 
     for(int scheduleIdx = 0; scheduleIdx < _schedules.size(); scheduleIdx++){
-        auto scheduleEntry = _schedules[scheduleIdx];
-        //configured for day
-        if(count(scheduleEntry.days.begin(), scheduleEntry.days.end(), tm.tm_wday) <= 0)
-            continue;
-
-        //after start time
-        if(tm.tm_hour < scheduleEntry.startHour || (tm.tm_hour == scheduleEntry.startHour  && tm.tm_min < scheduleEntry.startMinute ))
-            continue;
-        
-        //before end time
-        if(tm.tm_hour > scheduleEntry.endHour || (tm.tm_hour == scheduleEntry.endHour  && tm.tm_min > scheduleEntry.endMinute ))
-            continue;
+        esp32_schedule scheduleEntry = _schedules[scheduleIdx];
+        bool sActive = isScheduleActive(scheduleEntry);
+        if(!sActive) continue;
 
         //active schedule entry, for each device in entry, check device status and set accordingly        
+        #if DEBUG_SCHEDULE > 0
+        Serial.printf("Schedule %d of %d %s active. Searching for %d device(s) in registered %d devices \n", scheduleIdx + 1, _schedules.size(), _schedules[scheduleIdx].name.c_str(), scheduleEntry.deviceIds.size(), devices.size());        
+        #endif
         for (int deviceIdx = 0; deviceIdx < devices.size(); deviceIdx++){ 
-            if(devices[deviceIdx].id)
-            if(count(scheduleEntry.deviceIds.begin(), scheduleEntry.deviceIds.end(), devices[deviceIdx].id) <= 0)
+            //if(devices[deviceIdx].id)
+            if(!isManaged(scheduleEntry, devices[deviceIdx].id)){
+                #if DEBUG_SCHEDULE > 1
+                Serial.printf("\tDevice %s not part of schedule %s\n", devices[deviceIdx].name.c_str() , _schedules[scheduleIdx].name.c_str());        
+                #endif
                 continue; //device not present in current schedule
-
+            }
+            devices[deviceIdx].managedByScheduler = true;
             //_scratch.clear(); causes memory leak
 
             #if DEBUG_SCHEDULE > 0
-            Serial.printf("*** %02d:%02d\nSchedule %s. %02d:%02d - %02d:%02d.  Determining device [%d]%s state\n", 
+            Serial.printf("*** %02d:%02d\nSchedule %s. %02d:%02d - %02d:%02d.  Determining device [%d] %s state:\n", 
                 tm.tm_hour, tm.tm_min,
                 scheduleEntry.name.c_str(), scheduleEntry.startHour,  scheduleEntry.startMinute,  scheduleEntry.endHour,  scheduleEntry.endMinute,
                 devices[deviceIdx].id, devices[deviceIdx].name.c_str());
             #endif
             
             #if DEBUG_SCHEDULE > 1
-            Serial.printf("schedule entry:\n\tID: \t\t%d\n\tName: \t\t%s\n\tStart: \t\t%02d:%02d\n\tEnd: \t\t%02d:%02d\n\tHas Trigger: \t%s\n",
+            Serial.printf("  Schedule entry:\n\tID: \t\t%d\n\tName: \t\t%s\n\tStart: \t\t%02d:%02d\n\tEnd: \t\t%02d:%02d\n\tHas Trigger: \t%s\n",
                 scheduleEntry.scheduleId,    
                 scheduleEntry.name.c_str(),
                 scheduleEntry.startHour, scheduleEntry.startMinute,
@@ -76,31 +83,37 @@ void esp32_scheduling_manager::onLoop()
             }
             #endif
             
-            JsonObject sourceDeviceState = _scratch.to<JsonObject>();
-            deviceManager.getDeviceState(scheduleEntry.triggerDeviceId, sourceDeviceState);
-            
             bool electricCurrentState = digitalRead(devices[deviceIdx].pin);
             if(devices[deviceIdx].type != Switch && devices[deviceIdx].type != Relay)
             continue; //not an output device
 
             
             bool currentState = devices[deviceIdx].signal == activeLow ? !electricCurrentState : electricCurrentState;
-            auto desiredState = esp32_devices::getDesiredState(currentState, scheduleEntry.triggerType, sourceDeviceState["value"], scheduleEntry.triggerValue, scheduleEntry.triggerThreshold);
+            //turn on or check if trigger condition met
+            auto desiredState = true;
+            if(scheduleEntry.useTrigger){
+                JsonObject sourceDeviceState = _scratch.to<JsonObject>();
+                deviceManager.getDeviceState(scheduleEntry.triggerDeviceId, sourceDeviceState);
+                desiredState = esp32_devices::getDesiredState(currentState, scheduleEntry.triggerType, sourceDeviceState["value"], scheduleEntry.triggerValue, scheduleEntry.triggerThreshold);
+            }
+           
             bool desiredElectricalState = devices[deviceIdx].signal == activeLow ? !desiredState : desiredState;
             
             
             if(!currentState && desiredState){
                 logger.logInfo(string_format("Schedule %s: %s ON at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
-                #ifdef DEBUG_DEVICE
-                Serial.printf(string_format("Schedule %s: %s ON at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str());
+                #ifdef DEBUG_SCHEDULE
+                Serial.printf(string_format("###\nSchedule %s: %s ON at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str());
                 #endif
+                lcd.set(scheduleEntry.name.c_str(), string_format("%s: %s",devices[deviceIdx].name.c_str(), desiredState ? "Turning ON" : "Turning OFF").c_str());
             }
                 
             else if(currentState && !desiredState){
                 logger.logInfo(string_format("Schedule %s: %s OFF at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
-                #ifdef DEBUG_DEVICE
-                Serial.printf(string_format("Schedule %s: %s OFF at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str());
+                #ifdef DEBUG_SCHEDULE
+                Serial.printf(string_format("###\nSchedule %s: %s OFF at %s\n", _schedules[scheduleIdx].name.c_str(), devices[deviceIdx].name.c_str(), date.c_str()).c_str());
                 #endif
+                lcd.set(scheduleEntry.name.c_str(), string_format("%s: %s",devices[deviceIdx].name.c_str(), desiredState ? "Turning ON" : "Turning OFF").c_str());
             }
                 
 
@@ -122,6 +135,7 @@ void esp32_scheduling_manager::onLoop()
             devices[deviceIdx].managedByScheduler = true;
         }      
     }
+    deviceManager.onLoop();
 }
 
 bool esp32_scheduling_manager::loadScheduleConfiguration()
@@ -198,13 +212,14 @@ bool esp32_scheduling_manager::loadScheduleConfiguration()
         if(
             !schedulesConfig[idx]["trigger"].isNull() && 
             !schedulesConfig[idx]["trigger"]["source"].isNull() && 
-            !schedulesConfig[idx]["trigger"]["type"].isNull()
+            !schedulesConfig[idx]["trigger"]["type"].isNull() &&
+            !schedulesConfig[idx]["trigger"]["active"].isNull()
         ){
-            scheduleItem.useTrigger = true;
+            scheduleItem.useTrigger =  schedulesConfig[idx]["trigger"]["active"].as<bool>();;
             scheduleItem.triggerDeviceId = schedulesConfig[idx]["trigger"]["source"];
             scheduleItem.triggerType = esp32_devices::triggerTypeFromName(schedulesConfig[idx]["trigger"]["type"]);
             scheduleItem.triggerValue = schedulesConfig[idx]["trigger"]["value"];
-            scheduleItem.triggerThreshold = schedulesConfig[idx]["trigger"]["threshold"];
+            scheduleItem.triggerThreshold = schedulesConfig[idx]["trigger"]["threshold"].isNull() ? 0 : atoi(schedulesConfig[idx]["trigger"]["threshold"].as<const char *>());
         }
         
         #if DEBUG_SCHEDULE > 0
@@ -217,7 +232,7 @@ bool esp32_scheduling_manager::loadScheduleConfiguration()
         );
 
         if(scheduleItem.useTrigger){
-            Serial.printf("\t   Source: %d\n\t   Type: \t%c\n\t   Value\t%lf\n\t   Threshold:\t%lu\n",
+            Serial.printf("\t   Source: \t%d\n\t   Type: \t%c\n\t   Value\t%lf\n\t   Threshold:\t%lu\n",
                 scheduleItem.triggerDeviceId,
                 scheduleItem.triggerType == LessThan ? '<' : 
                     scheduleItem.triggerType == GreaterThan? '>' : '=',
@@ -237,4 +252,62 @@ bool esp32_scheduling_manager::loadScheduleConfiguration()
 vector<esp32_schedule> esp32_scheduling_manager::getSchedules()
 {
     return _schedules;
+}
+
+bool esp32_scheduling_manager::isManaged(int deviceId)
+{
+    //auto scheduleEntry = find_if(_schedules.begin(), _schedules.end(), [&deviceId](const esp32_schedule& obj){return obj.scheduleId == deviceId;} )
+    for(int scheduleIdx = 0; scheduleIdx < _schedules.size(); scheduleIdx++){
+        bool sActive = isScheduleActive(_schedules[scheduleIdx]);
+        if(!sActive) continue;
+        if(isManaged(_schedules[scheduleIdx],deviceId))
+            return true;
+    }
+    return false;
+}
+
+bool esp32_scheduling_manager::isManaged(esp32_schedule scheduleEntry, int deviceId)
+{
+    auto deviceEntry = find_if(devices.begin(), devices.end(), [&deviceId](const esp32_device_info& obj){return obj.id == deviceId;} );
+    if(deviceEntry == devices.end()) return false; //device not found
+
+    auto scheduleDeviceEntry = find(scheduleEntry.deviceIds.begin(), scheduleEntry.deviceIds.end(), deviceId);
+    if(scheduleDeviceEntry == scheduleEntry.deviceIds.end()) return false; //device is not managed;
+    #if DEBUG_SCHEDULE > 1
+    Serial.printf("device [%d] %s is managed by schedule %s.\n", deviceId, deviceEntry.base()->name.c_str(), scheduleEntry.name.c_str());
+    #endif
+    return true;
+}
+
+bool esp32_scheduling_manager::isScheduleActive(esp32_schedule scheduleEntry)
+{
+    time_t now;
+    now = getTime();
+    struct tm tm = *localtime(&now);
+    auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec);
+    //configured for day
+        if(count(scheduleEntry.days.begin(), scheduleEntry.days.end(), tm.tm_wday) <= 0){
+            #if DEBUG_SCHEDULE > 2
+            Serial.printf("Schedule %d of %d %s not configured for today\n", scheduleIdx + 1, _schedules.size(), _schedules[scheduleIdx].name.c_str());
+            #endif
+            return false;
+        }
+
+        //after start time
+        if(tm.tm_hour < scheduleEntry.startHour || (tm.tm_hour == scheduleEntry.startHour  && tm.tm_min < scheduleEntry.startMinute ))
+        {
+            #if DEBUG_SCHEDULE > 2
+            Serial.printf("Schedule %d of %d %s not yet started for today\n", scheduleIdx + 1, _schedules.size(), _schedules[scheduleIdx].name.c_str());
+            #endif
+            return false;
+        }
+        
+        //before end time
+        if(tm.tm_hour > scheduleEntry.endHour || (tm.tm_hour == scheduleEntry.endHour  && tm.tm_min > scheduleEntry.endMinute )){
+            #if DEBUG_SCHEDULE > 2
+            Serial.printf("Schedule %d of %d %s has ended for today\n", scheduleIdx + 1, _schedules.size(), _schedules[scheduleIdx].name.c_str());
+            #endif
+            return false;
+        }
+        return true;
 }

@@ -37,9 +37,9 @@ public:
 
     void onDestroy();
 
-    StaticJsonDocument<1024>* getLastSnapshot();
+    StaticJsonDocument<1024> getLastSnapshot();
 
-    vector<esp32_device_info> getDevices();
+    vector<esp32_device_info>* getDevices();
     //const char * getDeviceState(int deviceId);
     void getDeviceState(int deviceId, JsonObject object);
     bool setDeviceState(int deviceId, bool value);

@@ -2,8 +2,9 @@
 //         someone with a stronger c/c++ background can likely resolve this with little effort.
 #include "esp32_devices.hpp"
 #include <esp32-hal-gpio.h>
+#include "esp32_scheduling_manager.hpp"
 
-
+extern esp32_scheduling_manager scheduleManager;
 void esp32_devices::onInit()
 {
     #ifdef DEBUG_DEVICE
@@ -66,7 +67,7 @@ void esp32_devices::onInit()
                 );
                 break;
         }     
-        lcd.addMessage(_devices[idx].name.c_str(),string_format("DEV%d",_devices[idx].id).c_str());        
+        lcd.addMessage(_devices[idx].name.c_str(),string_format("DEV #%d",_devices[idx].id).c_str());        
     
     }
     
@@ -123,6 +124,7 @@ void esp32_devices::onLoop()
     /* Write output states */
     for (int idx = 0; idx < _devices.size(); idx++){    
         auto device = _devices[idx]; 
+        if(scheduleManager.isManaged(device.id)) continue; //if managed by schedule, skip
         if(_devices[idx].managedByScheduler) continue; //if device is managed by system scheduler, do not manually set state.   
         int pin = _devices[idx].pin;    
         if(_devices[idx].type != Switch && _devices[idx].type != Relay) continue;
@@ -144,7 +146,7 @@ void esp32_devices::onLoop()
         }
 
         #ifdef DEBUG_DEVICE
-        ESP_LOGD(PROGRAM_TAG, "Main device loop. Checking device %s state\n", _devices[idx].name.c_str());
+        ESP_LOGD(PROGRAM_TAG,"Main device loop. Checking device %s state\n", _devices[idx].name.c_str());
         #endif
         //switch should maintain the state it had previously
         bool shouldBeOn = getDesiredState(
@@ -177,8 +179,10 @@ void esp32_devices::onLoop()
                 auto device = esp32_switch_device(pin);
                 //if desired state is different that current state, change it
                 if(currentState != shouldBeOn){
-                    
-                    //Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
+                    #if DEBUG_DEVICE > 0
+                    Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
+                    #endif
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? "Turning ON" : "Turning OFF");
                     device.setValue(electricShouldBeOn);  
                    if(_devices[idx].mqttPublish && mqtt.enabled())
                         mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
@@ -196,6 +200,10 @@ void esp32_devices::onLoop()
                 
                 auto device = esp32_relay_device(pin, _devices[idx].lastStartTime);
                 if(shouldBeOn){
+                    #if DEBUG_DEVICE > 0
+                    Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
+                    #endif
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? " Turning ON" : "Turning OFF");
                     device.setValue(electricShouldBeOn);
                     _devices[idx].lastStartTime = millis();
                 }
@@ -226,7 +234,7 @@ bool esp32_devices::getDesiredState(
     bool shouldBeOn = currentState; // switch value is a boolean, safe to cast
 
     #if DEBUG_DEVICE > 1
-    Serial.printf("Getting desired state with current target state %s, trigger type %s with trigger value %f and threshold %f\n",
+    Serial.printf("Getting desired state with current target state %s, trigger type %s with trigger value %f and threshold %lu\n",
         currentState ? "ON" : "OFF", triggerType == LessThan ? "<" : triggerType == GreaterThan ? ">" : "=", triggerValue, triggerThreshold
     );
     #endif
@@ -333,12 +341,15 @@ bool esp32_devices::isEqualTo( JsonVariant value, double triggerValue)
     if(value.is<uint16_t>()){
     //if(type == "uint16_t"){
         uint16_t sourceDeviceValue = value.as<uint16_t>();
+        uint16_t tv = static_cast<uint16_t>(triggerValue);
+        Serial.printf("Checking if %u is equal to %u\n", sourceDeviceValue, tv);
         return sourceDeviceValue == triggerValue;
 
     }
     //else if(type == "double"){
     else if(value.is<double>()){
         double sourceDeviceValue = value.as<double>();
+        Serial.printf("Checking if %lf is equal to %lf\n", sourceDeviceValue, triggerValue);
         return sourceDeviceValue == triggerValue;
 
     }
@@ -375,7 +386,7 @@ int esp32_devices::findDeviceStateIndex(JsonArray deviceStates, int deviceId)
     for(JsonObject deviceState : deviceStates){
         if(!deviceState["id"].isNull() && deviceState["id"].as<int>() == deviceId){      
             #ifdef DEBUG_DEVICE
-                #if DEBUG_DEVICE > 1
+                #if DEBUG_DEVICE > 2
                 Serial.printf("Found device state idx %d for device idx %d\n", idx, deviceId);
                 #endif      
             #endif
@@ -443,6 +454,7 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
             #if DEBUG_DEVICE > 1
             Serial.printf("Getting device [%d]%s state:\n\t", _devices[deviceIdx].id, _devices[deviceIdx].name.c_str());
             #endif
+            object["uom"] = "";
             switch(_devices[deviceIdx].type){
                 case esp32_device_type::AnalogInput:
                 {
@@ -463,6 +475,8 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
                 case esp32_device_type::Thermometer:{
                     auto device = esp32_thermometer_device(_devices[deviceIdx].pin);                               
                     object["value"] = device.getValue();
+                    //object["uom"] = string_format("%c%s",(char)0xdf, "F"); //FUNKS UP THE SOCKET CALL
+                    object["uom"] = " F";
                     //return returnValue;      
                 }          
                 break;
@@ -470,6 +484,7 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
                 {
                     auto device = esp32_switch_device(_devices[deviceIdx].pin);
                     object["value"] = device.getValue();
+                    object["type"] = "bool";
                     //return returnValue; 
                 }            
                 break;
@@ -477,6 +492,7 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
                 {
                     auto device = esp32_relay_device(_devices[deviceIdx].pin);
                     object["value"] = device.getValue();
+                    object["type"] = "bool";
                     //return returnValue; 
                 }            
                 break;
@@ -486,7 +502,14 @@ void esp32_devices::getDeviceState(int deviceId, JsonObject object){
             }
             break;
         }
-    }    
+    }
+    
+    // if(!_snapshot.isNull()){
+    //     for(int idx = 0; idx < _snapshot.size(); idx++){
+    //         if(_snapshot[idx]["id"].as<int>() == deviceId )
+    //         return _snapshot[idx]["id"]["value"];
+    //     }
+    // }
 }
 
 bool esp32_devices::setDeviceState(int deviceId, bool value){
@@ -557,14 +580,15 @@ vector<esp32_device_info> esp32_devices::_getDevices()
         deviceConfig.pin = devicesConfig[idx]["pin"];
         if(
             !devicesConfig[idx]["trigger"].isNull() && 
+            !devicesConfig[idx]["trigger"]["active"].isNull() &&
             !devicesConfig[idx]["trigger"]["source"].isNull() && 
             !devicesConfig[idx]["trigger"]["type"].isNull()
         ){
-            deviceConfig.useTrigger = true;
+            deviceConfig.useTrigger = devicesConfig[idx]["trigger"]["active"].as<bool>();
             deviceConfig.triggerDeviceId = devicesConfig[idx]["trigger"]["source"];
             deviceConfig.triggerType = triggerTypeFromName(devicesConfig[idx]["trigger"]["type"]);
             deviceConfig.triggerValue = devicesConfig[idx]["trigger"]["value"];
-            deviceConfig.triggerThreshold = devicesConfig[idx]["trigger"]["threshold"];
+            deviceConfig.triggerThreshold = devicesConfig[idx]["trigger"]["threshold"].isNull() ? 0 : atoi(devicesConfig[idx]["trigger"]["threshold"].as<const char *>());
         }
         if(!devicesConfig[idx]["mqtt"].isNull()){
             deviceConfig.mqttPublish = !devicesConfig[idx]["mqtt"].isNull() && devicesConfig[idx]["mqtt"]["publish"].as<bool>();
@@ -620,14 +644,14 @@ vector<esp32_device_info> esp32_devices::_getDevices()
     return _devices;
 }
 
-StaticJsonDocument<1024> *esp32_devices::getLastSnapshot()
+StaticJsonDocument<1024> esp32_devices::getLastSnapshot()
 {
-    return &_snapshot;
+    return _snapshot;
 }
 
-vector<esp32_device_info> esp32_devices::getDevices()
+vector<esp32_device_info>* esp32_devices::getDevices()
 {
-    return _devices;
+    return &_devices;
 }
 
 // vector<esp32_device_info> esp32_devices::getDeviceConfiguration()

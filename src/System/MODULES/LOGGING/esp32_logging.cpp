@@ -117,7 +117,7 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     auto fileAbsolute = drive->getAbsolutePath(filename.c_str());
     
     auto fileInfo = esp32_file_info_extended(fileAbsolute.c_str());
-    #ifdef DEBUG_DEVICE
+    #if DEBUG_DEVICE > 0
     Serial.printf("Logging snapshot %s\n", snapshotString.c_str());
     #endif
   
@@ -192,7 +192,7 @@ string esp32_logging::getLogFilename(esp32_log_type logType)
     if(timeinfo.tm_year == 70)
         return ""; // clock not initialized
     return string_format("%s/%s_%04d-%02d-%02d.log",
-         PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
+        PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
 
 }
 
@@ -218,8 +218,9 @@ bool esp32_logging::log(const char *message, esp32_log_type log, esp32_log_level
     string filename = getLogFilename(log);  
     struct tm timeinfo = getDate();
     if(filename.length() == 0) return false; 
-    //Serial.printf("Setting logfile location to %s\n", filename.c_str());
-    
+    #if DEBUG_LOGGING > 0
+    Serial.printf("Setting logfile location to %s\n", filename.c_str());
+    #endif
     string const esacped = regex_replace( message, std::regex( "\"" ), "\\\"" );
 
     bool logFileExists =  drive->exists(filename.c_str());

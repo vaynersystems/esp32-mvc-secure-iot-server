@@ -44,7 +44,7 @@ extern const int SERVER_STACK_SIZE = 1024*24;
 extern const int LCD_STACK_SIZE = 1024*8;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
-const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS, lcdDelay = 1000 / portTICK_PERIOD_MS;
+const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS, lcdDelay = 200 / portTICK_PERIOD_MS;
 
 //for starting and looping server task
 void serverTask(void* params) {
@@ -101,7 +101,7 @@ void onShutdown(){
 
 void esp32_system_start(){
     // Initialize LCD    
-    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 2, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 1, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
     
     //debug logging
     lcd.setDetails(string_format("Serial logging (%d baud)..",115200).c_str());
@@ -119,7 +119,7 @@ void esp32_system_start(){
     
     lcd.setDetails("Init Server");
     //Create Server
-    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2, serverTaskHandle, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(serverTask, "secureserver", SERVER_STACK_SIZE, NULL, 2 | portPRIVILEGE_BIT, serverTaskHandle, ARDUINO_RUNNING_CORE); 
     
     lcd.setDetails("Init Device Manager");
     //Create Device Manager

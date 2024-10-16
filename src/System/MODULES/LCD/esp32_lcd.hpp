@@ -54,11 +54,12 @@ class esp32_lcd{
     private:
 
     bool _scrollEnabled = true;
-    string _title = "", _details = "";
+    bool _initialized = false;
+    char _title[64] = {0}, _details[64] = {0};
     unsigned long _lastScrollTime = 0, _lastTextTime = 0, _lastMessageTime = 0;
     LiquidCrystal_I2C _lcd;
     int _offset = 0;
-    unsigned long _scrollSpeed = 500, _textTimeout = 8000, _messageTimeout = 7000;
+    unsigned long _scrollSpeed = 300, _textTimeout = 8000, _messageTimeout = 7000;
     int _spaceBetweenText = 3;
     esp32_lcd_mode _mode;
     vector<esp32_lcd_message> _messages;

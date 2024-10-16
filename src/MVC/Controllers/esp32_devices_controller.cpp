@@ -126,19 +126,7 @@ bool esp32_devices_controller::SaveDeviceData(HTTPRequest* request, HTTPResponse
     auto error = deserializeJson(doc, content);
 
     if(error.code() == DeserializationError::Ok){
-        //if we need to apply certs do so and clear it
-        if(!doc["server"]["certificates"].isNull() && !doc["server"]["certificates"]["uploaded"].isNull()){
-            if(doc["server"]["certificates"]["uploaded"].as<bool>() == true){
-                bool worked = server.importCertFromTemporaryStorage();
-                doc["server"]["certificates"]["uploaded"] = NULL;
-                if(!worked)
-                {
-                    response->setStatusCode(501);
-                    response->setStatusText("Failed to store certificates.");
-                    return false;
-                }
-            }
-        }
+       
         auto drive = filesystem.getDisk(SYSTEM_DRIVE);
         File f = drive->open(PATH_DEVICE_CONFIG, FILE_WRITE);
         if(f.available()){
