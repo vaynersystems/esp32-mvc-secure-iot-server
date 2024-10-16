@@ -10,7 +10,7 @@ extern esp32_devices deviceManager;
 void esp32_lcd::begin(int sda, int scl)
 {
     _lcd.begin(LCD_WIDTH,2,LCD_5x8DOTS, sda, scl);
-    _lcd.clear();        
+    clear();        
     //Serial.println("Initialized LCD");
     _messages.push_back(esp32_lcd_message("IP Address:","IP"));
     _messages.push_back(esp32_lcd_message("Time:", "TIME"));   
@@ -33,7 +33,6 @@ void esp32_lcd::loop()
             //Serial.printf("Printing the %d%s message\n", _messageIdx + 1, _messageIdx + 1 == 1 ? "st" : _messageIdx + 1 == 2 ? "nd": _messageIdx + 1 == 3 ? "rd" : "th" );
             auto parts = explode(string(_messages[_messageIdx].messageText), ":", true);
             
-            clear();
             setTitle( parts[0].c_str(), elm_messages);
             if (strcmp(_messages[_messageIdx].messageParam.c_str(), "IP") == 0)
             {
@@ -176,32 +175,45 @@ void esp32_lcd::loop()
     
 }
 
-void esp32_lcd::setTitle(const char *text, esp32_lcd_mode mode)
+void esp32_lcd::setTitle(const char *text, esp32_lcd_mode mode, bool clearLine)
 {
     if(!_initialized) return;
+
+    if(clearLine){
+        _lcd.setCursor(0,0);
+        //_lcd.print(string(" ", LCD_WIDTH).c_str());
+        _lcd.print("                ");
+    }
+    _lcd.setCursor(0,0); 
+
     _mode = mode;
-    memset(_title,0,sizeof(_title));
+    memset(_title, 0, sizeof(_title));
     memcpy(_title,text,strlen(text) > 64 ? 64 : strlen(text));
-    //_title = text;
-    //portDISABLE_INTERRUPTS();
-    _lcd.setCursor(0,0);
+    
     _lcd.print(text);
-    //portENABLE_INTERRUPTS();
+    
     _lastMessageTime = 0;
 }
 
-void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode)
+void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode, bool clearLine)
 {
     if(!_initialized) return;
+
+    if(clearLine){
+        _lcd.setCursor(0,1);
+        //_lcd.print(string(" ", LCD_WIDTH).c_str());
+        _lcd.print("                ");
+    }
+    _lcd.setCursor(0,1); 
+
     _mode = mode;
-    memset(_details,0,sizeof(_details));
+    memset(_details, 0, sizeof(_details));
     memcpy(_details,text,strlen(text) > 64 ? 64 : strlen(text));
-    //_details = text;
+    Serial.printf("Writing LCD Details: %s\n", text);
     _offset = 0;
-    //portDISABLE_INTERRUPTS();
-    _lcd.setCursor(0,1);    
+       
     _lcd.print(text);
-    // portENABLE_INTERRUPTS();
+    
     _lastScrollTime = millis();
     _lastMessageTime = 0;
 }
@@ -209,15 +221,21 @@ void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode)
 void esp32_lcd::set(const char *title, const char *details, esp32_lcd_mode mode)
 {
     if(!_initialized) return;
-    _lcd.clear();
-    setTitle(title, mode);
-    setDetails(details, mode);
+    clear();
+    setTitle(title, mode, false);
+    setDetails(details, mode, false);
 }
 
 void esp32_lcd::clear()
 {
     if(!_initialized) return;
-    _lcd.clear();
+    _lcd.setCursor(0,0);
+    //_lcd.print(string(" ", LCD_WIDTH).c_str());
+    _lcd.print("                ");
+    _lcd.setCursor(0,1);
+    //_lcd.print(string(" ", LCD_WIDTH).c_str());
+    _lcd.print("                ");
+    
 }
 
 void esp32_lcd::addMessage(const char *message, const char *parameter)

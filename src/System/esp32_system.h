@@ -62,6 +62,7 @@ void serverTask(void* params) {
 
 void lcdTask(void* params){
     lcd.begin(PIN_SDA, PIN_SCL);
+    lcd.clear();
     lcd.setTitle("Starting ESP32..");
     while(true){
         lcd.loop();        
