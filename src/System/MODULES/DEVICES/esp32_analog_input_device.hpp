@@ -3,6 +3,7 @@ class esp32_analog_input_device : public esp32_base_device<uint16_t>{
 
 public:
     esp32_analog_input_device(int pin) : esp32_base_device<uint16_t>(pin){
+        pinMode(_pin,INPUT);
     }
 
     ~esp32_analog_input_device(){
@@ -10,11 +11,18 @@ public:
     
     inline uint16_t getValue()
     {
-        return analogRead(_pin);
+        uint16_t value = analogRead(_pin);
+        #if DEBUG_DEVICE > 1
+            Serial.printf("%s on pin %d reading: %f\n", "Analog Input", _pin, value);
+        #endif
+        return value;
     }
 
     inline void setValue(uint16_t value)
     {
+         #if DEBUG_DEVICE > 1
+            Serial.printf("Setting %s on pin %d reading: %f\n", "Analog Input", _pin, value);
+        #endif
         analogWrite(_pin, value);
     }
 

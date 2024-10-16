@@ -381,10 +381,11 @@ bool esp32_middleware::isPublicPage(string path)
 
 int esp32_middleware::initPublicPages()
 {
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     _publicPages.clear();
     int fileCount = 0;
-    if(!SPIFFS.exists(PATH_PUBLIC_PAGES)) return 0;
-    File publicPagesFile = SPIFFS.open(PATH_PUBLIC_PAGES);
+    if(!drive->exists(PATH_PUBLIC_PAGES)) return 0;
+    File publicPagesFile = drive->open(PATH_PUBLIC_PAGES);
     //Serial.println("Adding public pages");
     String line = String("");
     while(publicPagesFile.available()){

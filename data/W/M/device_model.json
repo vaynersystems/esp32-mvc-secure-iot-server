@@ -20,6 +20,16 @@
         "Source": "type"
     },
     {
+        "Name": "Device Resolution",
+        "Type": "Lookup",
+        "Readonly": false,
+        "Value": "",
+        "Data": [{"name": "9 bit", "value": 9},{"name": "10 bit", "value": 10},{"name": "11 bit", "value": 11},{"name": "12 bit", "value": 12}],
+        "Source": "resolution",
+        "Condition1":"Device Type",
+        "ConditionValue1": "Thermometer"
+    },
+    {
         "Name": "Device Pin",
         "Type": "Lookup",
         "Readonly": false,

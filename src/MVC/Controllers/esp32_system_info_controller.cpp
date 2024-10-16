@@ -11,7 +11,7 @@ DerivedController<esp32_system_info_controller> esp32_system_info_controller::re
 void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     //auto spiffs_mem = esp32_fileio::getMemoryInfo(SPIFFS);
-    auto spiffs_info = filesystem.getDisk("spiffs")->info();
+    auto spiffs_info = filesystem.getDisk(SYSTEM_DRIVE)->info();
     auto disk = filesystem.getDisk("sd");
     esp32_drive_info sd_info;
     if(disk != NULL)

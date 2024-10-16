@@ -4,8 +4,9 @@
 #include "System/AUTH/esp32_sha256.h"
 #include <SPIFFS.h>
 #include "ArduinoJson.h"
+#include "esp32_filesystem.hpp"
 using namespace std;
-
+extern esp32_file_system filesystem;
 struct esp32_user_auth_info{
     string username = "";
     string password = "";

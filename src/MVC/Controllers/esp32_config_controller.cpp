@@ -7,8 +7,9 @@ DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_c
 void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response) {
     
     title = "Module Configuration Page";
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
-    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r+w");
+    File f = drive->open(PATH_SYSTEM_CONFIG,"r+w");
     if(!f){
         Serial.printf("Failed to open config file on spiffs\n");
         return;
@@ -162,7 +163,9 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* request, HTTPRespons
 /// @param req 
 /// @param res 
 void esp32_config_controller::LoadConfigData(HTTPRequest* request, HTTPResponse* response) {
-    File f = SPIFFS.open(PATH_SYSTEM_CONFIG,"r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+
+    File f = drive->open(PATH_SYSTEM_CONFIG,"r");
     byte buff[32];
     int bytesToRead = 0;
     while(true){
@@ -309,19 +312,21 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     DynamicJsonDocument docConfig(2048);
     DynamicJsonDocument docDevices(2048);
 
-    File authorize = SPIFFS.open(PATH_AUTH_FILE, "r");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+
+    File authorize = drive->open(PATH_AUTH_FILE, "r");
     deserializeJson(docSecurity,authorize);
     authorize.close();
 
-    File config = SPIFFS.open(PATH_SYSTEM_CONFIG, "r");
+    File config = drive->open(PATH_SYSTEM_CONFIG, "r");
     deserializeJson(docConfig,config);
     config.close();
 
-    File devices = SPIFFS.open(PATH_DEVICE_CONFIG, "r");
+    File devices = drive->open(PATH_DEVICE_CONFIG, "r");
     deserializeJson(docDevices,devices);
     devices.close();
 
-    File publicPages = SPIFFS.open(PATH_PUBLIC_PAGES, "r");
+    File publicPages = drive->open(PATH_PUBLIC_PAGES, "r");
     auto publicArray = docPublic.to<JsonArray>();
     while(publicPages.available()){      
         publicArray.add(publicPages.readStringUntil('\n'));
@@ -346,7 +351,7 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
 void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *response)
 {
     const int length = request->getContentLength();
-    
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     DynamicJsonDocument doc(length * 2);
     string content;
     char * buf = new char[32];
@@ -366,23 +371,23 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
     if(error.code() == DeserializationError::Ok){
         //if we need to apply certs do so and clear it
         if(!doc["security"].isNull()){
-            File security = SPIFFS.open(PATH_AUTH_FILE,"w");
+            File security = drive->open(PATH_AUTH_FILE,"w");
             serializeJson(doc["security"], security);
             security.close();
         }
         if(!doc["config"].isNull()){
-            File config = SPIFFS.open(PATH_SYSTEM_CONFIG,"w");
+            File config = drive->open(PATH_SYSTEM_CONFIG,"w");
             serializeJson(doc["config"], config);
             config.close();
         }
         if(!doc["public"].isNull()){
-            File publicPages = SPIFFS.open(PATH_PUBLIC_PAGES,"w");
+            File publicPages = drive->open(PATH_PUBLIC_PAGES,"w");
             for(auto page: doc["public"].as<JsonArray>())
                 publicPages.println(page.as<const char*>());
             publicPages.close();
         }
         if(!doc["devices"].isNull()){
-            File devices = SPIFFS.open(PATH_DEVICE_CONFIG,"w");
+            File devices = drive->open(PATH_DEVICE_CONFIG,"w");
             for(auto device: doc["devices"].as<JsonArray>())
                 devices.println(device.as<const char*>());
             devices.close();

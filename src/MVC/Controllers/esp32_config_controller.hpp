@@ -33,7 +33,7 @@ public:
     virtual void Restore(HTTPRequest *request, HTTPResponse * response);
     
     virtual esp32_controller_category GetCategory(){
-        return esp32_controller_category::Site;
+        return esp32_controller_category::System;
     }
     virtual const char* GetName(){
         return "Configuration";

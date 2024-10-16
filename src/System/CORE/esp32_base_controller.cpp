@@ -96,8 +96,8 @@ inline std::string esp32_base_controller::GetControllersJSON(HTTPRequest* req){
             case esp32_controller_category::Extras:
                 categoryStr = "Extras";
             break;            
-            case esp32_controller_category::Site:
-                categoryStr = "Site";
+            case esp32_controller_category::System:
+                categoryStr = "System";
             break;
             case esp32_controller_category::Tools:
                 categoryStr = "Tools";
