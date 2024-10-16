@@ -47,11 +47,6 @@ void esp32_lcd::loop()
                 int uptimeMinutes = ((uptimeS - uptimeSeconds) % 3600) / 60;
                 int uptimeHours = ((uptimeS - uptimeSeconds - (uptimeMinutes * 60)) % (3600*24)) / 3600;
                 int uptimeDays = (uptimeS - uptimeSeconds - (uptimeMinutes * 60) - (uptimeHours * 3600)) / (3600*24);
-
-                // int uptimeDays = floor(uptimeS / 3600 / 24);
-                // int uptimeHours = floor((uptimeS - (uptimeDays * 3600*24)) / 3600);
-                // int uptimeMinutes = floor(uptimeS - (uptimeDays * 3600*24) - (uptimeHours * 3600) / 60);
-                // int uptimeSeconds = uptimeS - (uptimeDays * 3600*24) - (uptimeHours * 3600) - (uptimeMinutes * 60);
                 setDetails(string_format("%d days %02d:%02d:%02d", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds).c_str(), elm_messages);
             }
             else {
@@ -60,7 +55,6 @@ void esp32_lcd::loop()
                     
                     if(strcmp(_messages[_messageIdx].messageParam.substr(0,5).c_str(), "DEV #") == 0){  
                         int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(5));
-                        Serial.printf("Passed %d as device id from text: [%s]\n", deviceId, _messages[_messageIdx].messageParam.substr(5).c_str());
                         //TODO: move to device manager
                         auto snapshotFile = deviceManager.getLastSnapshot();
                         JsonArray devicesInSnapshot = (snapshotFile)["series"].as<JsonArray>();
@@ -209,7 +203,7 @@ void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode, bool clearLine
     _mode = mode;
     memset(_details, 0, sizeof(_details));
     memcpy(_details,text,strlen(text) > 64 ? 64 : strlen(text));
-    Serial.printf("Writing LCD Details: %s\n", text);
+    
     _offset = 0;
        
     _lcd.print(text);
