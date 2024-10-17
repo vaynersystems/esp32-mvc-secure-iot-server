@@ -1,4 +1,4 @@
-#include "esp32_config.h"
+#include "esp32_config.hpp"
 
     JsonObject esp32_config::getConfig(){
 

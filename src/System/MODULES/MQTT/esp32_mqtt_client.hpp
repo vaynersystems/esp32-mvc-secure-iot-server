@@ -2,9 +2,9 @@
 #define _ESP32_MQTT_CLIENT_H
 #include <WiFiClientSecure.h>
 #include "PubSubClient.h"
-#include <System/MODULES/LOGGING/esp32_logging.hpp>
-#include <System/CORE/esp32_config.h>
-#include <System/CORE/esp32_server.h>
+#include "System/MODULES/LOGGING/esp32_logging.hpp"
+#include "System/CORE/esp32_config.hpp"
+#include "System/CORE/esp32_server.hpp"
 extern esp32_logging logger;
 extern esp32_server server;
 

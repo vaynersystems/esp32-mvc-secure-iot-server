@@ -1,6 +1,10 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.5.2"
+#define FIRMWARE_VERSION "0.6.5"
+#ifdef PROJECT_VER
+#undef PROJECT_VER
+#endif
+#define PROJECT_VER FIRMWARE_VERSION
 #define PROGRAM_TAG "esp32-mvc"
 
 //paths
@@ -30,9 +34,9 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 
 //debug info
 // #define DEBUG
- #define DEBUG_DEVICE 0
- #define DEBUG_SCHEDULE 0
- #define DEBUG_LOGGING 0
+ //#define DEBUG_DEVICE 0
+ //#define DEBUG_SCHEDULE 0
+ //#define DEBUG_LOGGING 0
 // #define DEBUG_SECURITY 0
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0

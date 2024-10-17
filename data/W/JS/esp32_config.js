@@ -495,6 +495,72 @@ function reload(){
     ;
 }
 
+function updateFirmware(){
+    var input = document.getElementById("updateFirmware");
+    var reader = new FileReader();
+    if ("files" in input) {
+        if (input.files.length === 0) {
+            alert("You did not select a firmware file");
+        } else {
+            reader.onload = function () {
+                
+                reader.result;
+                if(!input.files[0].name.endsWith(".bin") && !input.files[0].name.endsWith(".elf")){
+                    alert('File must have a BIN or ELF extension');
+                    return;
+                }
+                
+                var writeToDevice = confirm("You are about update the device firmware. Are you sure you want to continue?");
+                if(writeToDevice){
+                    console.log('uploading new firmware');
+                    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+                    const url = base + "/" + 'UpdateFirmware';
+                    request.open("POST", url, true);
+                    request.setRequestHeader("Content-type", "application/octet-stream");
+                    request.onreadystatechange = function () {
+                        if (request.readyState == request.DONE) {
+                            hideLoading();
+                            //hideWait();
+                            //hideWait('page');
+                            if (request.status == 401) {
+                                showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                                return;
+                            }
+                            var response = request.responseText;
+                            if(request.status == 200){
+                                //pendingChanges = false;
+                                showModal('ESP32 Firmware Updated', 'Firmware uploaded. \nRestart device to apply settings? ',
+                                [
+                                    {text:'No',action: () => { closeModal();} }, 
+                                    {
+                                        text:'Yes', 
+                                        action: () => {
+                                            reset(true);closeModal(); 
+                                            setTimeout( reload,5000)
+                                        }
+                                    }
+
+                                ]);
+                            } else if(request.status = 500){
+                                showModal('ESP32 Firmware Update Failed', 'Firmware update failed!',
+                                    [
+                                        {text:'Ok',action: () => { closeModal();} }
+                                    ]);
+                            }
+                                            
+                        }
+                    }
+                    
+                    request.send(reader.result);
+                    showWait();
+                }
+                
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        }
+    }
+}
+
 function restoreSettings() {
     var input = document.getElementById("restoreSettings");
     var reader = new FileReader();

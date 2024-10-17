@@ -1,7 +1,7 @@
 
-#include "esp32_middleware.h"
-#include "esp32_authentication.h"
-#include "../CORE/esp32_server.h"
+#include "esp32_middleware.hpp"
+#include "esp32_authentication.hpp"
+#include "../CORE/esp32_server.hpp"
 #include "string_helper.h"
 #include <esp_task_wdt.h>
 #include <BLEEddystoneTLM.h>
