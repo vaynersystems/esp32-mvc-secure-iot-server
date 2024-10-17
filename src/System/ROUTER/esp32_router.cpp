@@ -564,7 +564,7 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
     }
     else
     {
-        Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
+        //Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
         handleFile(req, res);
     }
 }
@@ -573,7 +573,7 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 {
     bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";    
     //hydrate to check if path is internal, user authorized, and file exists.
-    Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
+    //Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
     auto routeInfo = esp32_route_file_info<esp32_file_info_extended>(req);
     
     if(routeInfo.isInternal && !isAdminUser){
@@ -654,7 +654,7 @@ void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, 
         controllerObj->Action(req, res);
         controllerObj->controllerTemplate.ClearVariables();
 
-        Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+        //Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
     }
     delete controllerObj;
 }

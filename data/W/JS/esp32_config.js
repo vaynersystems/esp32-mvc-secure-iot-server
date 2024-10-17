@@ -503,10 +503,12 @@ function updateFirmware(){
             alert("You did not select a firmware file");
         } else {
             reader.onload = function () {
-                
-                reader.result;
-                if(!input.files[0].name.endsWith(".bin") && !input.files[0].name.endsWith(".elf")){
-                    alert('File must have a BIN or ELF extension');
+
+                if(!input.files[0].name.endsWith(".bin")){
+                    showModal('ESP32 Firmware Update Failed', 'File must have a BIN extension!',
+                        [
+                            {text:'Ok',action: () => { closeModal();} }
+                        ]);
                     return;
                 }
                 

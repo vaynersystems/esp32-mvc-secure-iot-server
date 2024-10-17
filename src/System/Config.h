@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.6.5"
+#define FIRMWARE_VERSION "0.6.0"
 #ifdef PROJECT_VER
 #undef PROJECT_VER
 #endif
