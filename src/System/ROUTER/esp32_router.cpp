@@ -1,7 +1,7 @@
 #ifndef _ESP32_ROUTER_CPP
 #define _ESP32_ROUTER_CPP
 #include "esp32_router.h"
-#include "System/CORE/esp32_server.h"
+#include "System/CORE/esp32_server.hpp"
 
 extern esp32_server server;
 

@@ -1,8 +1,8 @@
-#include "CORE/esp32_fileio.h"
-#include "CORE/esp32_server.h"
+#include "CORE/esp32_fileio.hpp"
+#include "CORE/esp32_server.hpp"
 #include "MODULES/MQTT/esp32_mqtt_client.hpp"
 #include "CORE/esp32_wifi.h"
-#include "AUTH/esp32_authentication.h"
+#include "AUTH/esp32_authentication.hpp"
 #include "AUTH/esp32_sha256.h"
 
 #include "MODULES/DEVICES/esp32_devices.hpp"
@@ -101,6 +101,7 @@ void onShutdown(){
 
 
 void esp32_system_start(){
+    Serial.printf("Starting esp32-mvc-controller firmware (v %s)\n", FIRMWARE_VERSION);
     // Initialize LCD    
     xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 1, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
     

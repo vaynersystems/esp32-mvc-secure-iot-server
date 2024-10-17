@@ -34,6 +34,7 @@
                 <li id="backup">Backup</li>
                 <li id="restore">Restore</li>
                 <li id="reset">Reset</li>
+                <li id="update-firmware">Update</li>
             </ul>
         </div>
     </div>
@@ -417,6 +418,17 @@
             <div class="section-content">
                 <label for="reset-button">Reset device</label>
                 <button name="reset-button" onclick="reset()">Reset</button>                
+            </div>
+        </div>
+
+        <div class="section" name="update-firmware">
+            <div class="section-header">Update Firmware</div>
+            <div class="section-content">
+                <div class="row"><div>Current firmware version</div> <div>$_FIRMWARE_VERSION</div></div>
+                <div style="padding-top:20px;">
+                    <label for="updateFirmware">Upload</label>
+                    <input id="updateFirmware" type="file" accept="application/octet-stream" onchange="updateFirmware();">
+                </div>                
             </div>
         </div>
 

@@ -2,9 +2,8 @@
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
 #include <nvs.h>
-#include <esp_ota_ops.h>
-#include <System/CORE/esp32_config.h>
-#include <System/MODULES/DEVICES/esp32_devices.hpp>
+#include "System/CORE/esp32_config.hpp"
+#include "System/MODULES/DEVICES/esp32_devices.hpp"
 
 extern const int SERVER_STACK_SIZE;
 extern esp32_devices deviceManager;
@@ -19,7 +18,7 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     if(error.code() != ESP_OK){
         Serial.printf("Failed to get devices. Received error deserializing configuration file. \n\t %d %s\n", error.code(), error.c_str());
     }
-    f.close();   
+    f.close();       
     
     if(configFile["devices"].isNull()) return;
         

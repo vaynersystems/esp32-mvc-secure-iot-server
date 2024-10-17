@@ -55,6 +55,10 @@ void esp32_config_controller::Action(HTTPRequest* request, HTTPResponse* respons
     else if (route.action.compare("GenerateCertificate") == 0) {
         GenerateCertificate(request, response);
     }
+    else if (route.action.compare("UpdateFirmware") == 0) {
+        UpdateFirmware(request, response);
+    }
+    
     else if (route.action.compare("Backup") == 0) {
         Backup(request, response);
     }
@@ -87,6 +91,10 @@ bool esp32_config_controller::HasAction(const char * action){
     }
 
     else if (strcmp(action, "GenerateCertificate") == 0) {
+        return true;
+    }
+
+    else if (strcmp(action, "UpdateFirmware") == 0) {
         return true;
     }
 
@@ -301,6 +309,60 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
     } else {
         response->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
     }
+}
+
+void esp32_config_controller::UpdateFirmware(HTTPRequest *request, HTTPResponse *response)
+{
+    if(request->getMethod() != "POST")
+        return;
+    
+    if(ESP.getPsramSize() > 0){
+        Serial.printf("starting firmware update\n");
+        //store in psram.
+        size_t byteLength = request->getContentLength();
+        Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
+        byte * firmwareBinary = (byte *)ps_malloc(byteLength);
+        if(firmwareBinary == NULL){
+            Serial.printf("Failed to allocate %d bytes of PS RAM for firmware update\n", byteLength);
+            response->setStatusCode(500);
+            return;
+        }
+        // Serial.printf("Allocated %d bytes in PSRAM\n", byteLength);
+        // Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
+        
+        byte* buf = new byte[512];
+        size_t readLength = 0;
+        size_t fieldLength = 0;
+        int readBlocks = 0;
+        bool updated = false;
+
+        while(true){
+            
+            readLength = request->readBytes((byte*)buf,512); 
+            //Serial.printf("Read %d bytes at 0x%06X .. \n", readLength, fieldLength);
+            if(readLength <= 0){ 
+                continue;
+            }
+            memcpy(&firmwareBinary[fieldLength], buf, readLength);
+            fieldLength += readLength;
+           
+            if(request->requestComplete()) break;
+        }
+        delete[] buf;
+
+        if(byteLength != fieldLength){
+            Serial.printf("Reported %d bytes but buffer filled with %d bytes\n", byteLength, fieldLength);
+        }else{
+            updated = otaServer.updateFirmware(firmwareBinary, byteLength);
+        }
+        delete[] firmwareBinary;
+        response->setStatusCode(updated ? 200 : 500);
+        response->printf("Update %s", updated ? "completed" : "failed");        
+    }
+    else {
+        
+    }
+        
 }
 
 void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *response)

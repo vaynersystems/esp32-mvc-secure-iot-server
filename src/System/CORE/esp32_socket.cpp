@@ -1,4 +1,4 @@
-#include "esp32_socket.h"
+#include "esp32_socket.hpp"
 const char *className = "esp32_socket";
 static esp32_socket* activeClients[SOCKET_MAX];
 // This method is called by the webserver to instantiate a new handler for each

@@ -1,7 +1,7 @@
 #include "esp32_historic_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
-#include <System/CORE/esp32_config.h>
+#include "System/CORE/esp32_config.hpp"
 #include <loopback_stream.h>
 
 DerivedController<esp32_historic_controller> esp32_historic_controller::reg("esp32_historic");

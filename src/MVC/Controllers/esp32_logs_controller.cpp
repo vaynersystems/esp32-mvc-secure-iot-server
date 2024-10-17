@@ -1,8 +1,8 @@
 #include "esp32_logs_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
-#include <System/CORE/esp32_config.h>
-#include <loopback_stream.h>
+#include "System/CORE/esp32_config.hpp"
+#include "loopback_stream.h"
 
 DerivedController<esp32_logs_controller> esp32_logs_controller::reg("esp32_logs");
 

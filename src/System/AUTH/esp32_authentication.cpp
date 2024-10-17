@@ -1,4 +1,4 @@
-#include "esp32_authentication.h"
+#include "esp32_authentication.hpp"
 #include "system_helper.h"
 #include "base64.hpp"
 #include "esp32_sha256.h"
