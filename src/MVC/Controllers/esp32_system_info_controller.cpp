@@ -47,7 +47,7 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable(F("$_FLASH_SPEED"),     to_string(ESP.getFlashChipSpeed()).c_str());
     controllerTemplate.SetTemplateVariable(F("$_SDK_VERSION"),     ESP.getSdkVersion());
     controllerTemplate.SetTemplateVariable(F("$_SKETCH_SIZE"),     sketchSizePretty.c_str()) ;
-    controllerTemplate.SetTemplateVariable(F("$_FIRMWARE_VERSION"),FIRMWARE_VERSION) ;
+    //controllerTemplate.SetTemplateVariable(F("$_FIRMWARE_VERSION"),FIRMWARE_VERSION) ;
     
     
 
@@ -103,16 +103,17 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     controllerTemplate.SetTemplateVariable(F("$PSRAM_MEMORY_AVAILABLE"), ESP.getPsramSize() > 0 ? "block" : "none");
 
     /* SKETCH */ /* ESP.getFreeSketchSpace() returns total free space (on the next partition)*/
+    const esp_partition_t * part = esp_ota_get_boot_partition();
     string freeBytesSKETCHPretty(""), usedBytesSKETCHPretty("") , totalBytesSKETCHPretty("");
-	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace() - ESP.getSketchSize(), &freeBytesSKETCHPretty);
-	esp32_fileio::PrettyFormat(ESP.getFreeSketchSpace(), &totalBytesSKETCHPretty);
+	esp32_fileio::PrettyFormat( part->size - ESP.getSketchSize(), &freeBytesSKETCHPretty);
+	esp32_fileio::PrettyFormat(part->size, &totalBytesSKETCHPretty);
     esp32_fileio::PrettyFormat(ESP.getSketchSize(), &usedBytesSKETCHPretty);
 
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_FREE"), freeBytesSKETCHPretty.c_str());
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_USED"), usedBytesSKETCHPretty.c_str());
     controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_TOTAL"), totalBytesSKETCHPretty.c_str());    
-    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(ESP.getFreeSketchSpace()))*100),1).c_str());
-    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_AVAILABLE"), ESP.getFreeSketchSpace() > 0 ? "block" : "none");
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_PERCENT_USED"), to_string_with_precision(round(((float)ESP.getSketchSize()/(float)(part->size))*100),1).c_str());
+    controllerTemplate.SetTemplateVariable(F("$SKETCH_MEMORY_AVAILABLE"), part->size > 0 ? "block" : "none");
     
 
     controllerTemplate.SetTemplateVariable(F("$NVS_FREE_ENTRIES"), (to_string_with_precision(stats.free_entries,0)).c_str());
@@ -139,6 +140,20 @@ void esp32_system_info_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     //     controllerTemplate.SetTemplateVariable(varName,"SOME LONG TESTING STRING TO SEE IF THE SIZE OF THE HEAP ISSUE e.g. MEMORY LEAK IS COMNIG FROM THIS DUMP");
     // }
     esp32_base_controller::Index(req,res);      
+}
+
+inline void esp32_system_info_controller::Disks(HTTPRequest *req, HTTPResponse *res)
+{
+    res->print("[");
+    for(int idx = 0; idx < filesystem.driveCount(); idx++){
+        auto disk = filesystem.getDisk(idx);
+        auto info = disk->info();
+        res->printf("%s{\"index\": \"%d\",\"name\": \"%s\",  \"type\": %d, \"size\": %lu, \"used\": %lu}",
+        
+            idx == 0 ? "" : ", ", idx, disk->label(), info.type(), info.size(), info.used());
+    }
+    res->print("]");
+    res->setStatusCode(200);
 }
 
 void esp32_system_info_controller::prettyFlashModeString(string &flashMode){
@@ -168,3 +183,20 @@ void esp32_system_info_controller::prettyFlashModeString(string &flashMode){
     }
 }
 
+void esp32_system_info_controller::Action(HTTPRequest* request, HTTPResponse* response) {
+    if (route.action.compare("Disks") == 0) {
+        Disks(request, response);
+    }
+    
+    else
+        esp32_base_controller::Action(request, response);
+}
+
+bool esp32_system_info_controller::HasAction(const char * action){
+    if (strcmp(action,"Disks") == 0) {
+        return true;
+    }
+    
+    else
+        return esp32_base_controller::HasAction(action);
+}

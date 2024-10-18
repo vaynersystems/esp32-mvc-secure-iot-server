@@ -105,7 +105,7 @@ bool esp32_cert_spiffs::importFromTemporary()
     {
         _cert = cert;
         saveCertificates();
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.printf("Imported certificate with %d bytes of data and %d bytes key\n", cert->getCertLength(), cert->getPKLength());
         #endif 
         return true;

@@ -61,6 +61,7 @@ void esp32_template::SetGlobalVariables(HTTPRequest* req, HTTPResponse* res) {
     SetTemplateVariable(F("$_USERNAME"), req->getHeader(HEADER_USERNAME).c_str());
     SetTemplateVariable(F("$_USERROLE"), req->getHeader(HEADER_GROUP).c_str());
     SetTemplateVariable(F("$_FIRMWARE_VERSION"), FIRMWARE_VERSION);
+    SetTemplateVariable(F("$_FIRMWARE_DATE"), FIRMWARE_DATE);
 }
 
 bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)

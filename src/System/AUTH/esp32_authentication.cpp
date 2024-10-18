@@ -21,13 +21,13 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
     // Check if the file exists
     if (!drive->exists(filename.c_str()))
     {     
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.println("Authorization file does not exist..");
         #endif
         if(strlen(password) == 64) //ecoded password, must reject
             return info;
         if(strlen(username) < 3 || strlen(username) > 32) return info;
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.println("Creating"); 
         #endif
         byte encryptedPass[SHA256_SIZE];
@@ -73,7 +73,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         DeserializationError error = deserializeJson(d,file);        
         file.close();
         if (error) {
-            #ifdef DEBUG
+            #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
             Serial.print("deserializeJson() failed: ");
             Serial.println(error.c_str());
             #endif
@@ -226,7 +226,9 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
     bool valid = true;
     for (byte i; i < SHA256_SIZE; i++){
         if(storedPasswordHash[i] != requestPasswordHash[i]){
+            #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
             Serial.printf("Byte %d does not match. %02x in stored, %02X in request\n", i, storedPasswordHash[i], requestPasswordHash[i]);            
+            #endif
             valid = false;
             break;
         }         

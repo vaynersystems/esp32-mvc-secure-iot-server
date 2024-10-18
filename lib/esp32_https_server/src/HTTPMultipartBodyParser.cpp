@@ -103,7 +103,7 @@ void HTTPMultipartBodyParser::fillBuffer(size_t maxLen) {
   }
   peekBufferSize = bufPtr - peekBuffer;
   if (peekBufferSize == 0) {
-    HTTPS_LOGE("Multipart incomplete");
+    HTTPS_LOGI("Multipart incomplete");
   }
 }
 
