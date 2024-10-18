@@ -53,13 +53,14 @@ void esp32_cert_spiffs::generateTemporaryCertificate(const char *deviceName, con
 
     generateCert(deviceName, companyName, validFrom, validTo);
     // SAVING TO SPIFFS TEMP LOCATION
-    File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "w");
-    //print out certificate date
+    auto drive = filesystem.getDisk(0);
+
+    auto pubFile = drive->open(PUBLIC_TEMP_PATH, "w", true);
+    auto priFile = drive->open(PRIVATE_TEMP_PATH, "w", true);    
+    
     pubFile.write(_cert->getCertData(), _cert->getCertLength());
-
     pubFile.close();
-
-    File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "w");
+    
     priFile.write(_cert->getPKData(), _cert->getPKLength());
     priFile.close();
 

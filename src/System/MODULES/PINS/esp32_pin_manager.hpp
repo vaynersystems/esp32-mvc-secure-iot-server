@@ -21,8 +21,12 @@ static const esp32_pin _esp32_s3_pins[] = {
         esp32_pin(7),
         esp32_pin(8), // i2c scl
         esp32_pin(9), // i2c sda
+        #if (defined(PIN_SDA) && PIN_SDA != 10) && (defined(PIN_SCL) && PIN_SCL != 10)
         esp32_pin(10),// spi0_cs0
+        #endif
+        #if (defined(PIN_SDA) && PIN_SDA != 11) && (defined(PIN_SCL) && PIN_SCL != 11)
         esp32_pin(11),// spi0_mosi
+        #endif
         esp32_pin(12),// spi0_sck
         esp32_pin(13),// spi0_miso
         esp32_pin(14),
