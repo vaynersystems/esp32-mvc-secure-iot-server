@@ -2,7 +2,7 @@
 #include <WiFi.h>
 
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
-#include "System/MODULES/DEVICES/esp32_scheduling_manager.hpp"
+#include "System/MODULES/SCHEDULING/esp32_scheduling_manager.hpp"
 
 extern esp32_scheduling_manager scheduleManager;
 extern esp32_devices deviceManager;

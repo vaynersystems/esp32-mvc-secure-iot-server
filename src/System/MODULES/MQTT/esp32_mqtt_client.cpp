@@ -100,7 +100,7 @@ void esp32_mqtt_client::loop(){
         #ifdef DEBUG
         Serial.printf("Publishing to topic %s %s. Result: %s\n", (*it).first.c_str(),(*it).second.c_str(), result ? "sucessfull" : "failed");
         #endif
-        //logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", (*it).first.c_str(), (*it).second.c_str(), result ? "suceeded" : "failed"));
+        logger.logDebug(string_format("Publishing. Topic: [%s] Value [%s] - Result: %s", (*it).first.c_str(), (*it).second.c_str(), result ? "suceeded" : "failed"));
         if(!result) return; // stop processing
         //_publishList.pop_back();
 
