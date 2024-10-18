@@ -12,16 +12,16 @@ void esp32_devices::onInit()
     #endif
     loadDeviceConfiguration();
     auto devicePins = pinManager.getControllerPins();
-    bool initializedPin = false;
+    
     for(int idx=0; idx < _devices.size();idx++){
         #ifdef DEBUG_DEVICE
         Serial.printf("Initializing device #%d: %s\n", idx + 1, _devices[idx].name.c_str() );
         #endif
-        initializedPin = false;
         switch(_devices[idx].type){
             case esp32_device_type::AnalogInput:
             case esp32_device_type::DigitalInput:
                 pinMode(_devices[idx].pin, INPUT);
+                 _devices[idx].initialized = true;
 
                 break;
             case esp32_device_type::Thermometer:
@@ -33,6 +33,7 @@ void esp32_devices::onInit()
                 sensors.begin();
                  //9 bit takes 155ms, 12bit 810ms. default to 10 bit, giving ~0.45F resolution
                 sensors.setResolution(_devices[idx].resolution > 0 ? _devices[idx].resolution  : 10);
+                 _devices[idx].initialized = true;
                 break;
 
             case esp32_device_type::Switch:
@@ -50,13 +51,13 @@ void esp32_devices::onInit()
                             if(_devices[idx].signal != activeHigh){
                                 digitalWrite(_devices[idx].pin, HIGH);
                             }
-                            initializedPin = true;
+                            _devices[idx].initialized = true;
                         }
                         break;
                     }
                 }
-                if(!initializedPin)
-                    Serial.printf("[esp32_devices] ERROR: Output device %s not intilaized! Pin %d not found in controller. Check your device configuration!\n",
+                if(!_devices[idx].initialized)
+                    Serial.printf("[esp32_devices] ERROR: Output device %s not intitialized! Pin %d not found in controller. Check your device configuration!\n",
                         _devices[idx].name.c_str(), _devices[idx].pin
                     );
                 
@@ -91,6 +92,7 @@ void esp32_devices::onLoop()
     /* Read all states */
     /* NOTE: could use arduino json's .is(T) method to test for type instead of storing manually */
     for (int idx = 0; idx < _devices.size(); idx++){        
+        if(!_devices[idx].initialized) continue;
         int pin = _devices[idx].pin;
         esp32_device_type type = _devices[idx].type;
         JsonObject deviceSeriesEntry = seriesEntries.createNestedObject();
@@ -104,7 +106,7 @@ void esp32_devices::onLoop()
             case esp32_device_type::DigitalInput:
             case esp32_device_type::Thermometer:
             {
-                if(timeToPublish){
+                if(timeToPublish && !deviceSeriesEntry["value"].isNull()){
                     mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<string>().c_str());
                     _devices[idx].lastPublishTime = millis();
                 }
@@ -124,6 +126,7 @@ void esp32_devices::onLoop()
     /* Write output states */
     for (int idx = 0; idx < _devices.size(); idx++){    
         auto device = _devices[idx]; 
+        if(!device.initialized) continue;
         if(scheduleManager.isManaged(device.id)) continue; //if managed by schedule, skip
         if(_devices[idx].managedByScheduler) continue; //if device is managed by system scheduler, do not manually set state.   
         int pin = _devices[idx].pin;    
@@ -165,10 +168,10 @@ void esp32_devices::onLoop()
             electricCurrentState ? "ON" : "OFF", currentState ? "ON" : "OFF", shouldBeOn ? "ON" : "OFF", electricShouldBeOn ? "ON" : "OFF");
         #endif
 
-        // if(!currentState && shouldBeOn)
-        //     logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
-        // else if(currentState && !shouldBeOn)
-        //     logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);  
+        if(!currentState && shouldBeOn)
+            logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+        else if(currentState && !shouldBeOn)
+            logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);  
 
         switch(_devices[idx].type){            
            
@@ -182,7 +185,8 @@ void esp32_devices::onLoop()
                     #if DEBUG_DEVICE > 0
                     Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
                     #endif
-                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? "Turning ON" : "Turning OFF");
+                   
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? "Turning ON (trigger)" : "Turning OFF (trigger)");
                     device.setValue(electricShouldBeOn);  
                    if(_devices[idx].mqttPublish && mqtt.enabled())
                         mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
@@ -203,7 +207,7 @@ void esp32_devices::onLoop()
                     #if DEBUG_DEVICE > 0
                     Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
                     #endif
-                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? " Turning ON" : "Turning OFF");
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? " Turning ON (trigger)" : "Turning OFF (trigger)");
                     device.setValue(electricShouldBeOn);
                     _devices[idx].lastStartTime = millis();
                 }

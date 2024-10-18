@@ -1,6 +1,7 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.5.2"
+#define FIRMWARE_VERSION "0.6.1"
+#define FIRMWARE_DATE __DATE__
 #define PROGRAM_TAG "esp32-mvc"
 
 //paths
@@ -23,20 +24,27 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define USE_SD
 #define SD_TYPE sd_mmc
 //#define SD_DISK ((SD_TYPE == sd_spi) ? SD : SD_MMC)
+// #if !defined(BOARD_HAS_SDMMC) //if board does not support sdmmc, default back to SPI
+//     #if SD_TYPE == sd_mmc
+//         #undef SD_TYPE
+//         #define SD_TYPE sd_spi
+//     #endif
+// #endif
 
 #define ENABLE_EDITOR 1
 #define SOCKET_MAX 5
 #define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
 
 //debug info
-// #define DEBUG
- #define DEBUG_DEVICE 0
- #define DEBUG_SCHEDULE 0
- #define DEBUG_LOGGING 0
-// #define DEBUG_SECURITY 0
+// #define DEBUG 1
+// #define DEBUG_DEVICE 0
+// #define DEBUG_SCHEDULE 1
+// #define DEBUG_LOGGING 0
+// #define DEBUG_SECURITY 1
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0
-// #define DEBUG_LCD 0
+// #define DEBUG_LCD 1
+// #define DEBUG_OTA 0
 
 //content parser configuration
 #define HTML_REF_CONST_TITLE "$title"
@@ -51,7 +59,15 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define HEADER_AUTH "Authorization"
 #define HEADER_COOKIE "Cookie"
 
-/* PINS */
-#define PIN_SDA 10
-#define PIN_SCL 11
+/* LCD PINS */
+#define USE_LCD
+
+#if CONFIG_IDF_TARGET_ESP32
+    #define PIN_SDA 21
+    #define PIN_SCL 22
+#elif CONFIG_IDF_TARGET_ESP32S3
+    #define PIN_SDA 10
+    #define PIN_SCL 11
+#endif
+
 

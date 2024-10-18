@@ -11,7 +11,9 @@ void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response
 
     File f = drive->open(PATH_SYSTEM_CONFIG,"r+w");
     if(!f){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to open config file on spiffs\n");
+        #endif
         return;
     }
     char buff[64];
@@ -55,6 +57,10 @@ void esp32_config_controller::Action(HTTPRequest* request, HTTPResponse* respons
     else if (route.action.compare("GenerateCertificate") == 0) {
         GenerateCertificate(request, response);
     }
+    else if (route.action.compare("UpdateFirmware") == 0) {
+        UpdateFirmware(request, response);
+    }
+    
     else if (route.action.compare("Backup") == 0) {
         Backup(request, response);
     }
@@ -87,6 +93,10 @@ bool esp32_config_controller::HasAction(const char * action){
     }
 
     else if (strcmp(action, "GenerateCertificate") == 0) {
+        return true;
+    }
+
+    else if (strcmp(action, "UpdateFirmware") == 0) {
         return true;
     }
 
@@ -197,7 +207,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
     }
     delete[] buf;
 
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
     #endif
     auto error = deserializeJson(doc, content);
@@ -227,7 +237,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
         response->setStatusText(error.c_str());
-        #ifdef DEBUG
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf(error.c_str());
         #endif
         return false;
@@ -261,7 +271,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Generating certificate...\n");
     #endif
     char * buf = new char[32];
@@ -287,7 +297,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
         companyName = doc["company"].as<const char*>();
         validFrom = doc["from"].as<const char*>();
         validTo = doc["to"].as<const char*>();
-        #ifdef DEBUG
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf(".. parsed \n\tdevice: %s\n\t company %s\n\t valid-from: %s\n\t valid-to: %s\n",
             deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str()
         );
@@ -296,11 +306,25 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
         if(deviceName.length() > 0 && deviceName.length() < 32 &&
             companyName.length() > 0 && companyName.length() < 32 && 
             validFrom.length() == 14 && validTo.length() == 14)
+        {
             server.generateCertificate(deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str());
+        }
         
     } else {
         response->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());
     }
+}
+
+void esp32_config_controller::UpdateFirmware(HTTPRequest *request, HTTPResponse *response)
+{
+    if(request->getMethod() != "POST")
+        return;
+    lcd.pause();
+    auto result = otaServer.updateFirmware(request);    
+    lcd.play();
+    response->flush();
+    response->setStatusCode(result == ESP_OK ? 200 : 500);
+    response->printf("Update %s: %s", result == ESP_OK ? "completed" : "failed", esp_err_to_name(result)); 
 }
 
 void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *response)
@@ -363,7 +387,7 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
     }
     delete[] buf;
 
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
     #endif
     auto error = deserializeJson(doc, content);
@@ -401,7 +425,7 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
         response->setStatusText(error.c_str());
-        #ifdef DEBUG
+        #if defined(DEBUG)
         Serial.printf(error.c_str());
         #endif
     }    

@@ -34,6 +34,7 @@
                 <li id="backup">Backup</li>
                 <li id="restore">Restore</li>
                 <li id="reset">Reset</li>
+                <li id="update-firmware">Update</li>
             </ul>
         </div>
     </div>
@@ -166,8 +167,6 @@
                 <div class="grid-2">
                     <span>Log Location</span>
                     <select id="logging-location">
-                        <option value="0">SPIFFS</option>
-                        <option value="1">SD</option>
                     </select>                                           
                 </div>   
 
@@ -218,11 +217,12 @@
                 <div class="row hint">
                     The following table will project the file size given the frequency selected.
                 </div>
-                <div class="grid-5">
+                <div class="grid-6">
                     <div class="grid-header">Device Count</div>
                     <div class="grid-header">Daily Size</div>
                     <div class="grid-header">Weekly Size</div>
                     <div class="grid-header">Monthly Size</div>
+                    <div class="grid-header">6 Months Size</div>
                     <div class="grid-header">Yearly Size</div>
                 </div>
                 <div id="device-logging-projection">                    
@@ -417,6 +417,17 @@
             <div class="section-content">
                 <label for="reset-button">Reset device</label>
                 <button name="reset-button" onclick="reset()">Reset</button>                
+            </div>
+        </div>
+
+        <div class="section" name="update-firmware">
+            <div class="section-header">Update Firmware</div>
+            <div class="section-content">
+                <div class="row"><div>Current firmware version</div> <div>$_FIRMWARE_VERSION</div></div>
+                <div style="padding-top:20px;">
+                    <label for="updateFirmware">Upload</label>
+                    <input id="updateFirmware" type="file" accept="application/octet-stream" onchange="updateFirmware();">
+                </div>                
             </div>
         </div>
 
