@@ -28,7 +28,7 @@ TaskHandle_t* deviceTaskHandle;
 TaskHandle_t* mqttClientTaskHandle;
 
 //QueueHandle_t xMutex;
-//SemaphoreHandle_t xMutex;
+SemaphoreHandle_t lcdMutex;
 
 void serverTask(void* params);
 void lcdTask(void* params);
@@ -54,12 +54,11 @@ const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / port
 void serverTask(void* params) {
     server.start();
     while (true) {
-        //xSemaphoreTake( xMutex, portMAX_DELAY );
-        //{
-            server.step();
-            vTaskDelay(serverDelay); 
-        //}
-        //xSemaphoreGive(xMutex);
+        if(xSemaphoreTake( lcdMutex, serverDelay ) == pdTRUE)
+        {
+            server.step();xSemaphoreGive(lcdMutex);            
+        }
+        vTaskDelay(serverDelay);         
                
     }
 
@@ -75,14 +74,11 @@ void lcdTask(void* params){
     lcd.setTitle(string_format("ESP32 IoT v%s", FIRMWARE_VERSION).c_str());
     lcd.setDetails(string_format("Built %s",FIRMWARE_DATE).c_str());
     while(true){
-        //xSemaphoreTake( xMutex, portMAX_DELAY );
-        //{
-            lcd.loop();        
-            vTaskDelay(lcdDelay);
-        //}
-        //xSemaphoreGive(xMutex);
-        
-        
+        if(xSemaphoreTake( lcdMutex, lcdDelay ) == pdTRUE){
+            lcd.loop();       
+            xSemaphoreGive(lcdMutex); 
+        }
+        vTaskDelay(lcdDelay);
     }    
 }
 
@@ -93,8 +89,11 @@ void deviceTask(void* params) {
     scheduleManager.onInit();
 
     while(true){
-        scheduleManager.onLoop();
-        deviceManager.onLoop();
+        if(xSemaphoreTake( lcdMutex, deviceDelay) == pdTRUE){
+            scheduleManager.onLoop();        
+            deviceManager.onLoop();
+            xSemaphoreGive(lcdMutex);
+        }
         vTaskDelay(deviceDelay);
     }   
     vTaskDelete( NULL );
@@ -117,7 +116,7 @@ void onShutdown(){
 
 
 void esp32_system_start(){
-    //xMutex = xSemaphoreCreateMutex();
+    lcdMutex = xSemaphoreCreateMutex();
     Serial.printf("Starting esp32-mvc-controller firmware (v %s)\n", FIRMWARE_VERSION);
     // Initialize LCD    
     xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 1, lcdTaskHandle, ARDUINO_RUNNING_CORE); 

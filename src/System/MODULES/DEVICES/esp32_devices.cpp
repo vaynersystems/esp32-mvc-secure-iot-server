@@ -168,10 +168,10 @@ void esp32_devices::onLoop()
             electricCurrentState ? "ON" : "OFF", currentState ? "ON" : "OFF", shouldBeOn ? "ON" : "OFF", electricShouldBeOn ? "ON" : "OFF");
         #endif
 
-        // if(!currentState && shouldBeOn)
-        //     logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
-        // else if(currentState && !shouldBeOn)
-        //     logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);  
+        if(!currentState && shouldBeOn)
+            logger.logInfo(string_format("%s ON at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);
+        else if(currentState && !shouldBeOn)
+            logger.logInfo(string_format("%s OFF at %s", _devices[idx].name.c_str(), date.c_str()).c_str(), esp32_log_type::device);  
 
         switch(_devices[idx].type){            
            
@@ -185,7 +185,8 @@ void esp32_devices::onLoop()
                     #if DEBUG_DEVICE > 0
                     Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
                     #endif
-                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? "Turning ON" : "Turning OFF");
+                   
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? "Turning ON (trigger)" : "Turning OFF (trigger)");
                     device.setValue(electricShouldBeOn);  
                    if(_devices[idx].mqttPublish && mqtt.enabled())
                         mqtt.publish(_devices[idx].mqttTopic.c_str(), shouldBeOn  ? "On" : "Off");                   
@@ -206,7 +207,7 @@ void esp32_devices::onLoop()
                     #if DEBUG_DEVICE > 0
                     Serial.printf("Setting device %s with state %s to %s\n", _devices[idx].name.c_str(), currentState ? "on" : "off", shouldBeOn ? "on" : "off");
                     #endif
-                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? " Turning ON" : "Turning OFF");
+                    lcd.set(_devices[idx].name.c_str(), shouldBeOn ? " Turning ON (trigger)" : "Turning OFF (trigger)");
                     device.setValue(electricShouldBeOn);
                     _devices[idx].lastStartTime = millis();
                 }

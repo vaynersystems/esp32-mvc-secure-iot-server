@@ -306,7 +306,9 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
         if(deviceName.length() > 0 && deviceName.length() < 32 &&
             companyName.length() > 0 && companyName.length() < 32 && 
             validFrom.length() == 14 && validTo.length() == 14)
+        {
             server.generateCertificate(deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str());
+        }
         
     } else {
         response->printf("Error deserializing input: [%d]%s\n", error.code(), error.c_str());

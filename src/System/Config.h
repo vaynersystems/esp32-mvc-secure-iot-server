@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.6.0"
+#define FIRMWARE_VERSION "0.6.1"
 #define FIRMWARE_DATE __DATE__
 #define PROGRAM_TAG "esp32-mvc"
 
@@ -36,14 +36,14 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
 
 //debug info
- #define DEBUG 1
+// #define DEBUG 1
 // #define DEBUG_DEVICE 0
 // #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0
-// #define DEBUG_SECURITY 0
+// #define DEBUG_SECURITY 1
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0
-#define DEBUG_LCD 0
+// #define DEBUG_LCD 1
 // #define DEBUG_OTA 0
 
 //content parser configuration

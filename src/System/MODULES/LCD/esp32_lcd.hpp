@@ -63,6 +63,7 @@ class esp32_lcd{
     bool _scrollEnabled = true;
     bool _paused = false;
     bool _initialized = false;
+    bool _updatePending = false;
     char _title[64] = {0}, _details[64] = {0};
     unsigned long _lastScrollTime = 0, _lastTextTime = 0, _lastMessageTime = 0;
     LiquidCrystal_I2C _lcd;

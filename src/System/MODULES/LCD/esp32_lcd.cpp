@@ -21,6 +21,21 @@ void esp32_lcd::begin(int sda, int scl)
 void esp32_lcd::loop()
 {
     if(!_initialized) return;
+
+    if(_updatePending){
+        clear();
+        
+        _lcd.setCursor(0,0);         
+        _lcd.print(_title);
+        _lcd.setCursor(0,1);         
+        _lcd.print(_details);
+        
+        _offset = 0;
+        _lastScrollTime = millis();
+        _lastMessageTime = millis();
+        _updatePending = false;
+        return;    
+    }
     //if in text mode, timeout to message mode after [configured time] of inactivitiy
     if(_mode != elm_messages && _lastTextTime + _textTimeout < millis() && !_paused){
         _mode = elm_messages;
@@ -171,50 +186,26 @@ void esp32_lcd::loop()
 void esp32_lcd::setTitle(const char *text, esp32_lcd_mode mode, bool clearLine)
 {
     if(!_initialized) return;
-
-    if(clearLine){
-        _lcd.setCursor(0,0);
-        //_lcd.print(string(" ", LCD_WIDTH).c_str());
-        _lcd.print("                ");
-    }
-    _lcd.setCursor(0,0); 
-
     _mode = mode;
     memset(_title, 0, sizeof(_title));
     memcpy(_title,text,strlen(text) > 64 ? 64 : strlen(text));
+    _updatePending = true;
     
-    _lcd.print(text);
-    
-    _lastMessageTime = 0;
 }
 
 void esp32_lcd::setDetails(const char *text, esp32_lcd_mode mode, bool clearLine)
 {
-    if(!_initialized) return;
-
-    if(clearLine){
-        _lcd.setCursor(0,1);
-        //_lcd.print(string(" ", LCD_WIDTH).c_str());
-        _lcd.print("                ");
-    }
-    _lcd.setCursor(0,1); 
+    if(!_initialized) return;    
 
     _mode = mode;
     memset(_details, 0, sizeof(_details));
-    memcpy(_details,text,strlen(text) > 64 ? 64 : strlen(text));
-    
-    _offset = 0;
-       
-    _lcd.print(text);
-    
-    _lastScrollTime = millis();
-    _lastMessageTime = 0;
+    memcpy(_details,text,strlen(text) > 64 ? 64 : strlen(text));    
+        
 }
 
 void esp32_lcd::set(const char *title, const char *details, esp32_lcd_mode mode)
 {
     if(!_initialized) return;
-    clear();
     setTitle(title, mode, false);
     setDetails(details, mode, false);
 }
