@@ -11,6 +11,7 @@
 
 #include "MODULES/LCD/esp32_lcd.hpp"
 #include <esp_task_wdt.h>
+#include <semphr.h>
 
 esp32_server server;
 esp32_wifi wifi;
@@ -26,6 +27,9 @@ TaskHandle_t* lcdTaskHandle;
 TaskHandle_t* deviceTaskHandle;
 TaskHandle_t* mqttClientTaskHandle;
 
+//QueueHandle_t xMutex;
+//SemaphoreHandle_t xMutex;
+
 void serverTask(void* params);
 void lcdTask(void* params);
 void deviceTask(void* params);
@@ -40,7 +44,7 @@ void onShutdown();
 #define REPORT_FREQUENCY 5000000 // 5 seconds
 // DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
 // SET_LOOP_TASK_STACK_SIZE(1024*16)
-extern const int SERVER_STACK_SIZE = 1024*16; 
+extern const int SERVER_STACK_SIZE = 1024*24; 
 extern const int LCD_STACK_SIZE = 1024*8;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
@@ -50,8 +54,13 @@ const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / port
 void serverTask(void* params) {
     server.start();
     while (true) {
-        server.step();
-        vTaskDelay(serverDelay);        
+        //xSemaphoreTake( xMutex, portMAX_DELAY );
+        //{
+            server.step();
+            vTaskDelay(serverDelay); 
+        //}
+        //xSemaphoreGive(xMutex);
+               
     }
 
     //#ifdef DEBUG
@@ -66,8 +75,14 @@ void lcdTask(void* params){
     lcd.setTitle(string_format("ESP32 IoT v%s", FIRMWARE_VERSION).c_str());
     lcd.setDetails(string_format("Built %s",FIRMWARE_DATE).c_str());
     while(true){
-        lcd.loop();        
-        vTaskDelay(lcdDelay);
+        //xSemaphoreTake( xMutex, portMAX_DELAY );
+        //{
+            lcd.loop();        
+            vTaskDelay(lcdDelay);
+        //}
+        //xSemaphoreGive(xMutex);
+        
+        
     }    
 }
 
@@ -102,9 +117,11 @@ void onShutdown(){
 
 
 void esp32_system_start(){
+    //xMutex = xSemaphoreCreateMutex();
     Serial.printf("Starting esp32-mvc-controller firmware (v %s)\n", FIRMWARE_VERSION);
     // Initialize LCD    
-    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, tskIDLE_PRIORITY, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 1, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
+    //xTaskCreate(lcdTask, "lcd",LCD_STACK_SIZE, NULL, 2, lcdTaskHandle);
     
     //debug logging
     lcd.setDetails(string_format("Serial logging (%d baud)..",115200).c_str());
