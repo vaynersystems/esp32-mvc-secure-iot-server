@@ -22,6 +22,7 @@ StaticJsonDocument<4096> _scratch;
 
 void esp32_scheduling_manager::onLoop()
 {   
+    if(_schedules.size() == 0) return;
     time_t now;
     now = getTime();
     struct tm tm = *localtime(&now);

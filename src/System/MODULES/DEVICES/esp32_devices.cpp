@@ -21,6 +21,7 @@ void esp32_devices::onInit()
             case esp32_device_type::AnalogInput:
             case esp32_device_type::DigitalInput:
                 pinMode(_devices[idx].pin, INPUT);
+                 _devices[idx].initialized = true;
 
                 break;
             case esp32_device_type::Thermometer:
@@ -32,6 +33,7 @@ void esp32_devices::onInit()
                 sensors.begin();
                  //9 bit takes 155ms, 12bit 810ms. default to 10 bit, giving ~0.45F resolution
                 sensors.setResolution(_devices[idx].resolution > 0 ? _devices[idx].resolution  : 10);
+                 _devices[idx].initialized = true;
                 break;
 
             case esp32_device_type::Switch:

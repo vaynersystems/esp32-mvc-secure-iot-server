@@ -38,12 +38,12 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 //debug info
 // #define DEBUG
 // #define DEBUG_DEVICE 0
-// #define DEBUG_SCHEDULE 0
+// #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0
 // #define DEBUG_SECURITY 0
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0
-// #define DEBUG_LCD 0
+#define DEBUG_LCD 0
 // #define DEBUG_OTA 0
 
 //content parser configuration
