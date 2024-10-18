@@ -9,7 +9,7 @@
 #include "esp32_thermometer_device.hpp"
 #include "esp32_switch_device.hpp"
 #include "esp32_relay_device.hpp"
-#include <System/CORE/esp32_config.h>
+#include "System/CORE/esp32_config.hpp"
 #include "System/MODULES/LOGGING/esp32_logging.hpp"
 #include "System/MODULES/MQTT/esp32_mqtt_client.hpp"
 #include "System/MODULES/PINS/esp32_pin_manager.hpp"

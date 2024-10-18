@@ -1,7 +1,7 @@
 
-#include "esp32_middleware.h"
-#include "esp32_authentication.h"
-#include "../CORE/esp32_server.h"
+#include "esp32_middleware.hpp"
+#include "esp32_authentication.hpp"
+#include "../CORE/esp32_server.hpp"
 #include "string_helper.h"
 #include <esp_task_wdt.h>
 #include <BLEEddystoneTLM.h>
@@ -78,7 +78,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
                 string message = string_format("Authentication for: %s : %s", reqUsername.c_str(), info.authenticated ? "VALID" : "INVALID");
                 logger.logInfo(message.c_str(), auth);
+                #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
                 Serial.println(message.c_str());
+                #endif
                 
                 
                 // if authentication was successful issue JWT token
@@ -151,7 +153,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         }
         else {
             // Failed to deserialize token
-#ifdef DEBUG
+#if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
             Serial.printf("Improperly Formed Token [%s]\n", jwtDecodedString.c_str());
 #endif
             //Should take user to login page
@@ -185,7 +187,7 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
     for(size_t idx = 0; idx < chunks.size(); idx++){
         vector<string> parts = explode(chunks[idx],"=");
         if(parts.size() == 1){ //no name
-            #ifdef DEBUG
+            #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
             Serial.printf("Invalid cookie parsed without name %s\n", parts[0].c_str());
             #endif
         }
@@ -212,7 +214,9 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
             if(!server.middleware->isPublicPage(req->getRequestString()))
                 return;
             else {
+                #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
                 Serial.println("Anonomous access");
+                #endif
                 req->setHeader(HEADER_USERNAME, "");
                 req->setHeader(HEADER_GROUP, "");
                 req->setHeader(HEADER_COOKIE, "");
@@ -247,8 +251,8 @@ void esp32_middleware::middlewareAuthorization(HTTPRequest* req, HTTPResponse* r
         jwtToken.c_str(),
         jwtDecodedString.c_str()
     );
-    logger.log(message, auth, debug);
     #ifdef DEBUG_SECURITY
+    logger.log(message, auth, debug);    
     Serial.println(message.c_str());
     #endif
     if (decodeResult) {        
@@ -317,7 +321,7 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
     string request = req->getRequestString();
     if(!server.middleware->isPublicPage(request)){    
 
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.printf("Request for resource %s rejected. Resource is not public.", request.c_str());
         #endif
         if(ends_with(request,".gz") || ends_with(request, ".js") || ends_with(request, ".css")){
@@ -339,7 +343,7 @@ bool esp32_middleware::denyIfNotPublic(HTTPRequest* req, HTTPResponse* res){
 bool esp32_middleware::denyIfNotAuthorized(HTTPRequest* req, HTTPResponse* res){
     bool isInternalPath = req->getRequestString().substr(0, 5) == PATH_INTERNAL_ROOT;
     if(isInternalPath && req->getHeader(HEADER_GROUP) != "ADMIN"){
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.printf("Request for resource %s unauthorized for user %u.", req->getRequestString().c_str(), req->getHeader(HEADER_USERNAME));
         #endif
         res->setStatusCode(401);

@@ -41,11 +41,18 @@ class esp32_lcd{
     void begin(int sda, int scl);
     void loop();
 
-    void setTitle(const char * text, esp32_lcd_mode mode = elm_text);
-    void setDetails(const char * text, esp32_lcd_mode mode = elm_text);
+    void setTitle(const char * text, esp32_lcd_mode mode = elm_text, bool clearLine = true);
+    void setDetails(const char * text, esp32_lcd_mode mode = elm_text, bool clearLine = true);
     void set(const char *title, const char * details = "", esp32_lcd_mode mode = elm_text);
     void setScroll(bool shouldScroll);
     void clear();
+
+    void pause(){
+        _paused = true;
+    }
+    void play(){
+        _paused = false;
+    }
 
     void addMessage(const char* message, const char* parameter);
 
@@ -54,12 +61,14 @@ class esp32_lcd{
     private:
 
     bool _scrollEnabled = true;
+    bool _paused = false;
     bool _initialized = false;
+    bool _updatePending = false;
     char _title[64] = {0}, _details[64] = {0};
     unsigned long _lastScrollTime = 0, _lastTextTime = 0, _lastMessageTime = 0;
     LiquidCrystal_I2C _lcd;
     int _offset = 0;
-    unsigned long _scrollSpeed = 300, _textTimeout = 8000, _messageTimeout = 7000;
+    unsigned long _scrollSpeed = 350, _textTimeout = 8000, _messageTimeout = 7000;
     int _spaceBetweenText = 3;
     esp32_lcd_mode _mode;
     vector<esp32_lcd_message> _messages;

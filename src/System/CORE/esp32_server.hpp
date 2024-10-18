@@ -6,7 +6,7 @@
 
 #include "System/AUTH/ArduinoJWT.h"
 #include "System/ROUTER/esp32_router.h"
-#include "System/AUTH/esp32_middleware.h"
+#include "System/AUTH/esp32_middleware.hpp"
 
 #include <HTTPSServer.hpp>
 //#include <SSLCert.hpp>
@@ -16,8 +16,8 @@
 #include <HTTPBodyParser.hpp>
 #include <HTTPMultipartBodyParser.hpp>
 #include <HTTPURLEncodedBodyParser.hpp>
-#include "esp32_socket.h"
-#include "esp32_config.h"
+#include "esp32_socket.hpp"
+#include "esp32_config.hpp"
 #include <System/AUTH/CERT/esp32_cert_nvs.hpp>
 #include <System/AUTH/CERT/esp32_cert_spiffs.hpp>
 

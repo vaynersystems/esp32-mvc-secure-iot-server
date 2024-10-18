@@ -7,7 +7,7 @@
 #include "ArduinoJson.h"
 #include "system_helper.h"
 
-#include "System/AUTH/esp32_authentication.h"
+#include "System/AUTH/esp32_authentication.hpp"
 using namespace std;
 using namespace httpsserver;
 

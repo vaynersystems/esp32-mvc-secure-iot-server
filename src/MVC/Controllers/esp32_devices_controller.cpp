@@ -10,7 +10,9 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     File f = drive->open(PATH_DEVICE_CONFIG,"r");
     if(!f){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to open config file on spiffs\n");
+        #endif
         return;
     }
     char buff[64];

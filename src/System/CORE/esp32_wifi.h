@@ -11,7 +11,7 @@
 
 #include <SPIFFS.h>
 #include "ArduinoJson.h"
-#include "esp32_config.h"
+#include "esp32_config.hpp"
 
 
 class esp32_wifi

@@ -5,7 +5,7 @@
 #include "../AUTH/ArduinoJWT.h"
 #include "../ROUTER/esp32_router.h"
 
-#include "../AUTH/esp32_middleware.h"
+#include "../AUTH/esp32_middleware.hpp"
 
 #include <HTTPSServer.hpp>
 //#include <SSLCert.hpp>
