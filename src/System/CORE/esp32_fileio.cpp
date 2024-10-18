@@ -56,22 +56,24 @@ bool esp32_fileio::start(){
     #ifdef DEBUG
     Serial.printf("Loaded %d drives.\n",  filesystem.driveCount());
 
-    for(int idx = 0; idx <  filesystem.driveCount(); idx++){
-        auto drive = filesystem.getDisk(idx);
-        
-        auto info = drive->info();
-        string driveSize, usedSize;
-        PrettyFormat(info.size(), &driveSize);
-        PrettyFormat(info.used(), &usedSize);
-        Serial.printf("Drive #%d %s. Type: %s. Size: %s bytes. Used: %s.\n",
-            drive->index(), drive->label(), infoTypes[info.type()], driveSize.c_str(), usedSize.c_str()
-        );
         #ifdef DEBUG_FILESYSTEM
-        if(info.used() < 1024*1024*24) //less than 24 MB
-            drive->list();
-        else ESP_LOGI(PROGRAM_TAG, "Skip listing files, too many");
+        for(int idx = 0; idx <  filesystem.driveCount(); idx++){
+            auto drive = filesystem.getDisk(idx);
+            
+            auto info = drive->info();
+            string driveSize, usedSize;
+            PrettyFormat(info.size(), &driveSize);
+            PrettyFormat(info.used(), &usedSize);
+            Serial.printf("Drive #%d %s. Type: %s. Size: %s bytes. Used: %s.\n",
+                drive->index(), drive->label(), infoTypes[info.type()], driveSize.c_str(), usedSize.c_str()
+            );
+            
+            if(info.used() < 1024*1024*24) //less than 24 MB
+                drive->list();
+            else ESP_LOGI(PROGRAM_TAG, "Skip listing files, too many");
+            
+        }
         #endif
-    }
     #endif
     return filesystem.driveCount() > 0;
 }

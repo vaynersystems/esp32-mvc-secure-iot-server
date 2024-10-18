@@ -653,6 +653,7 @@ function loadDrives(){
                     driveOptionElement.tag = driveConfig;
                     driveSelectorElement.appendChild(driveOptionElement);
                 }
+                if(driveSelectorElement !== null) driveSelectorElement.value = activeConfig.system.logging.location;
                 showLoggingProjections();
             }
         }        
@@ -794,6 +795,7 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('device-logging-frequency');
     invalidateOnChange('logging-retention');
     invalidateOnChange('logging-level');
+    invalidateOnChange('logging-location');
 
     invalidateOnChange('ntp-host-name');
     invalidateOnChange('time-zone');
