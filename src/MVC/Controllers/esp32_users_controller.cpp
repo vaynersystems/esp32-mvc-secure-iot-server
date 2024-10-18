@@ -373,7 +373,9 @@ JsonVariant esp32_users_controller::LoadUserData(const char* username) {
     auto error = deserializeJson(doc,f,  DeserializationOption::Filter(filter));
     f.close();
     if(error != DeserializationError::Ok){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Error occured deserializing user data: %s\n", error.c_str());
+        #endif
         return JsonObject();
     }
 

@@ -11,7 +11,9 @@ void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response
 
     File f = drive->open(PATH_SYSTEM_CONFIG,"r+w");
     if(!f){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to open config file on spiffs\n");
+        #endif
         return;
     }
     char buff[64];
@@ -205,7 +207,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
     }
     delete[] buf;
 
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
     #endif
     auto error = deserializeJson(doc, content);
@@ -235,7 +237,7 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
         response->setStatusText(error.c_str());
-        #ifdef DEBUG
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf(error.c_str());
         #endif
         return false;
@@ -269,7 +271,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Generating certificate...\n");
     #endif
     char * buf = new char[32];
@@ -295,7 +297,7 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
         companyName = doc["company"].as<const char*>();
         validFrom = doc["from"].as<const char*>();
         validTo = doc["to"].as<const char*>();
-        #ifdef DEBUG
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf(".. parsed \n\tdevice: %s\n\t company %s\n\t valid-from: %s\n\t valid-to: %s\n",
             deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str()
         );
@@ -315,54 +317,12 @@ void esp32_config_controller::UpdateFirmware(HTTPRequest *request, HTTPResponse 
 {
     if(request->getMethod() != "POST")
         return;
-    
-    if(ESP.getPsramSize() > 0){
-        Serial.printf("starting firmware update\n");
-        //store in psram.
-        size_t byteLength = request->getContentLength();
-        Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
-        byte * firmwareBinary = (byte *)ps_malloc(byteLength);
-        if(firmwareBinary == NULL){
-            Serial.printf("Failed to allocate %d bytes of PS RAM for firmware update\n", byteLength);
-            response->setStatusCode(500);
-            return;
-        }
-        // Serial.printf("Allocated %d bytes in PSRAM\n", byteLength);
-        // Serial.printf("Free PSRAM: %d\n", ESP.getFreePsram());
-        
-        byte* buf = new byte[512];
-        size_t readLength = 0;
-        size_t fieldLength = 0;
-        int readBlocks = 0;
-        bool updated = false;
-
-        while(true){
-            
-            readLength = request->readBytes((byte*)buf,512); 
-            //Serial.printf("Read %d bytes at 0x%06X .. \n", readLength, fieldLength);
-            if(readLength <= 0){ 
-                continue;
-            }
-            memcpy(&firmwareBinary[fieldLength], buf, readLength);
-            fieldLength += readLength;
-           
-            if(request->requestComplete()) break;
-        }
-        delete[] buf;
-
-        if(byteLength != fieldLength){
-            Serial.printf("Reported %d bytes but buffer filled with %d bytes\n", byteLength, fieldLength);
-        }else{
-            updated = otaServer.updateFirmware(firmwareBinary, byteLength);
-        }
-        delete[] firmwareBinary;
-        response->setStatusCode(updated ? 200 : 500);
-        response->printf("Update %s", updated ? "completed" : "failed");        
-    }
-    else {
-        
-    }
-        
+    lcd.pause();
+    auto result = otaServer.updateFirmware(request);    
+    lcd.play();
+    response->flush();
+    response->setStatusCode(result == ESP_OK ? 200 : 500);
+    response->printf("Update %s: %s", result == ESP_OK ? "completed" : "failed", esp_err_to_name(result)); 
 }
 
 void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *response)
@@ -425,7 +385,7 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
     }
     delete[] buf;
 
-    #ifdef DEBUG
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
     #endif
     auto error = deserializeJson(doc, content);
@@ -463,7 +423,7 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
         // String errorText = "Error saving configuration: ";
         // errorText += error.c_str();
         response->setStatusText(error.c_str());
-        #ifdef DEBUG
+        #if defined(DEBUG)
         Serial.printf(error.c_str());
         #endif
     }    

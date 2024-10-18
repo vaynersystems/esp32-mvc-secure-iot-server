@@ -36,6 +36,7 @@ bool esp32_fileio::start(){
             filesystem.addDisk(SD, "sd",dt_SD);   
         }
     } else if(SD_TYPE == sd_type::sd_mmc){
+        #if defined(CONFIG_IDF_TARGET_ESP32S3)
         SD_MMC.setPins(38,39,40,41,42,47);
         while(retries++ < 3 && !sdConnected)
             sdConnected = SD_MMC.begin();
@@ -47,6 +48,7 @@ bool esp32_fileio::start(){
         } else{
             filesystem.addDisk(SD_MMC, "sd",dt_SDMMC);   
         }
+        #endif
     }    
     #endif
           
@@ -226,14 +228,15 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     }
     else
     {
-        //Serial.printf("Comparing extension %s for file %s\n", extension.c_str(), routeInfo.name().c_str());
+        if(extension.find_first_of(".gz") != extension.npos)
+            extension = extension.substr(0,extension.length() - 3);
+            
         if (strcmp(extension.c_str(), "htm") == 0)
             extension = "html"; // workaround for encoding
         else if (extension.compare("js") == 0)
             extension = "javascript"; // workaround for encoding
 
-        if(extension.find_first_of(".gz") != extension.npos)
-            extension = extension.substr(0,extension.length() - 3);
+        
         extension = "text/" + extension;
     }
     response->setHeader("Content-Type", extension);

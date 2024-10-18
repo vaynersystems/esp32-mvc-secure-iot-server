@@ -17,7 +17,7 @@ void esp32_cert_base::generateCert(const char *deviceName, const char *companyNa
     );
     //TODO: use MDSN name from config for certificate
     if(certCreated != 0) {
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.println("Failed to generate a new certificate");
         #endif
         return;

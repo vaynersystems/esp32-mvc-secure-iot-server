@@ -55,8 +55,10 @@ static const esp32_pin _esp32_d0wdq6_pins[] = {
         esp32_pin(18, false), //spi clk
         esp32_pin(19, false), //spi miso
         esp32_pin(20, false),
+        #ifndef USE_LCD
         esp32_pin(21, false), //i2c sda
         esp32_pin(22, false), //i2c scl
+        #endif
         esp32_pin(23, false), //spi mosi
         esp32_pin(25),
         esp32_pin(26), //listed input only? but output verified!

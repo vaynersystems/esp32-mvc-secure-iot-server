@@ -40,11 +40,11 @@ void onShutdown();
 #define REPORT_FREQUENCY 5000000 // 5 seconds
 // DO NOT LOWER THESE. Components will begin to malfunction causing crashes.
 // SET_LOOP_TASK_STACK_SIZE(1024*16)
-extern const int SERVER_STACK_SIZE = 1024*24; 
+extern const int SERVER_STACK_SIZE = 1024*16; 
 extern const int LCD_STACK_SIZE = 1024*8;
 extern const int DEVICE_MANAGER_STACK_SIZE = 1024 * 24; 
 extern const int MQTT_CLIENT_STACK_SIZE = 1024 * 36;
-const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS, lcdDelay = 200 / portTICK_PERIOD_MS;
+const TickType_t deviceDelay = 200 / portTICK_PERIOD_MS, serverDelay = 50 / portTICK_PERIOD_MS, lcdDelay = 400 / portTICK_PERIOD_MS;
 
 //for starting and looping server task
 void serverTask(void* params) {
@@ -63,7 +63,8 @@ void serverTask(void* params) {
 void lcdTask(void* params){
     lcd.begin(PIN_SDA, PIN_SCL);
     lcd.clear();
-    lcd.setTitle("Starting ESP32..");
+    lcd.setTitle(string_format("ESP32 IoT v%s", FIRMWARE_VERSION).c_str());
+    lcd.setDetails(string_format("Built %s",FIRMWARE_DATE).c_str());
     while(true){
         lcd.loop();        
         vTaskDelay(lcdDelay);
@@ -103,7 +104,7 @@ void onShutdown(){
 void esp32_system_start(){
     Serial.printf("Starting esp32-mvc-controller firmware (v %s)\n", FIRMWARE_VERSION);
     // Initialize LCD    
-    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, 1, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
+    xTaskCreatePinnedToCore(lcdTask, "lcd", LCD_STACK_SIZE, NULL, tskIDLE_PRIORITY, lcdTaskHandle, ARDUINO_RUNNING_CORE); 
     
     //debug logging
     lcd.setDetails(string_format("Serial logging (%d baud)..",115200).c_str());

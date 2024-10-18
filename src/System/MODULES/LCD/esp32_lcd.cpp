@@ -22,10 +22,9 @@ void esp32_lcd::loop()
 {
     if(!_initialized) return;
     //if in text mode, timeout to message mode after [configured time] of inactivitiy
-    if(_mode != elm_messages && _lastTextTime + _textTimeout < millis()){
+    if(_mode != elm_messages && _lastTextTime + _textTimeout < millis() && !_paused){
         _mode = elm_messages;
     }
-
 
     if(_mode == elm_messages){
         //go to next message if time
@@ -47,7 +46,7 @@ void esp32_lcd::loop()
                 int uptimeMinutes = ((uptimeS - uptimeSeconds) % 3600) / 60;
                 int uptimeHours = ((uptimeS - uptimeSeconds - (uptimeMinutes * 60)) % (3600*24)) / 3600;
                 int uptimeDays = (uptimeS - uptimeSeconds - (uptimeMinutes * 60) - (uptimeHours * 3600)) / (3600*24);
-                setDetails(string_format("%d days %02d:%02d:%02d", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds).c_str(), elm_messages);
+                setDetails(string_format("%03d - %02d:%02d:%02d", uptimeDays, uptimeHours, uptimeMinutes, uptimeSeconds).c_str(), elm_messages);
             }
             else {
                 int paramLength = _messages[_messageIdx].messageParam.length();

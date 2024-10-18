@@ -59,6 +59,7 @@ bool esp32_wifi::start(){
             string dns = wifiConfig["dns"].as<string>();
 
             IPAddress ipAddress, subnetAddress, gatewayAddress, dnsAddress;
+            #if defined(DEBUG) && DEBUG > 0
             if(!ipAddress.fromString(ip.c_str()) )
                 Serial.println("Failed to parse ip address from config file");
             if(!subnetAddress.fromString(subnet.c_str()) )
@@ -68,7 +69,8 @@ bool esp32_wifi::start(){
             if(!dnsAddress.fromString(dns.c_str()) )
                 Serial.println("Failed to parse dns address from config file");
             
-            Serial.println("Configuring custom IP address");            
+            Serial.println("Configuring custom IP address");   
+            #endif         
             WiFi.config(ipAddress, gatewayAddress, subnetAddress, dnsAddress);
         }
     
@@ -76,11 +78,15 @@ bool esp32_wifi::start(){
         
         unsigned long startConnectTime = millis();
         while (WiFi.status() != WL_CONNECTED) {
+            #if defined(DEBUG) && DEBUG > 0
             Serial.print(".");
+            #endif
             delay(500);
             if (millis() - startConnectTime > 15000)
             {
+                #if defined(DEBUG) && DEBUG > 0
                 Serial.println("Failed to connect to wifi.");
+                #endif
                 WiFi.disconnect(true,true);
                 break;
             }

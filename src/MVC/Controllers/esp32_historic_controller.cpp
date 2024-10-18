@@ -11,7 +11,9 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     File f = drive->open(PATH_DEVICE_CONFIG,"r");
     if(!f){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to open config file on spiffs\n");
+        #endif
         return;
     }
     char buff[64];
@@ -41,7 +43,9 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
                 response += string_format("%s{\"name\": \"%s\"}",jsonIdx++ == 0 ? "": ", ", files[idx].name().c_str()).c_str();
         }
         response += "]";
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Found %d log files: \n%s\n", filesFound, response.c_str());
+        #endif
         controllerTemplate.SetTemplateVariable(F("$_LOGDAYS"),response.c_str() );
     }
     esp32_base_controller::Index(req,res);      
@@ -79,7 +83,9 @@ void esp32_historic_controller::Logs(HTTPRequest* req, HTTPResponse* res){
     auto disk = filesystem.getDisk(logger.location());
     //auto fs = logger.fs();
     if(disk == NULL){
+        #if defined(DEBUG)
         Serial.printf("Failed to load %s. Disk could not be mounted\n", req->getRequestString());
+        #endif
         return;
     }
 

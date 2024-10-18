@@ -34,34 +34,6 @@ function showCertificateAction(){
             ],
             null,null,uploadCertificates
         );
-        // //clone form to use in modal
-        // publicSaved = 0;
-        // privateSaved = 0;
-        // const certificateUploadSourceElement = document.getElementById('editor-certificate-upload');
-        // if(certificateUploadSourceElement === null) return;
-        // const certificateUploadElement = certificateUploadSourceElement.cloneNode(true);
-        // certificateUploadElement.setAttribute('modal', certificateUploadElement.id);
-
-        // //wire up change event for file dialogs
-        // const publicCertFileElement = certificateUploadElement.querySelector('#public-cert');
-        // const privateCertFileElement = certificateUploadElement.querySelector('#private-cert');
-        // if(publicCertFileElement === null || privateCertFileElement === null) return;
-        // publicCertFileElement.addEventListener('change', () =>{
-        //     if(publicCertFileElement.files.length > 0)
-        //         publicCertFile = publicCertFileElement.files[0];
-        // })
-
-        // privateCertFileElement.addEventListener('change', () =>{
-        //     if(privateCertFileElement.files.length > 0)
-        //         privateCertFile = privateCertFileElement.files[0];
-        // })
-        
-        // showModalComponent(certificateUploadElement,'Upload a certificate', 
-        // [
-        //     { text:'Cancel',action: () => { publicCertFile = undefined; privateCertFile = undefined; closeModal();}},
-        //     { text: 'Upload', action:  () => { uploadCertificates(); }}
-        // ], '800px');
-        
 
     }else if(selectedAction == 'generate'){
 

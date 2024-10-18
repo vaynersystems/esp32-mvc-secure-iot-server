@@ -16,7 +16,9 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     File f = drive->open(PATH_DEVICE_CONFIG,"r");
     auto error = deserializeJson(configFile, f);
     if(error.code() != ESP_OK){
+        #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to get devices. Received error deserializing configuration file. \n\t %d %s\n", error.code(), error.c_str());
+        #endif
     }
     f.close();       
     
