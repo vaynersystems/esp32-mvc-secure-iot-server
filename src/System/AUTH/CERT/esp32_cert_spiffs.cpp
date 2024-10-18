@@ -50,16 +50,19 @@ void esp32_cert_spiffs::generateCert(const char* deviceName, const char* company
 void esp32_cert_spiffs::generateTemporaryCertificate(const char *deviceName, const char *companyName, const char *validFrom, const char *validTo)
 {
     SSLCert* tempCert = new SSLCert(*_cert);
-
+    
+    Serial.printf("Generating temp cert...\n");
     generateCert(deviceName, companyName, validFrom, validTo);
     // SAVING TO SPIFFS TEMP LOCATION
-    File pubFile = SPIFFS.open(PUBLIC_TEMP_PATH, "w");
-    //print out certificate date
+    auto drive = filesystem.getDisk(0);
+
+    Serial.printf("Saving temp certificates to disk\n");
+    auto pubFile = drive->open(PUBLIC_TEMP_PATH, "w", true);
+    auto priFile = drive->open(PRIVATE_TEMP_PATH, "w", true);    
+    
     pubFile.write(_cert->getCertData(), _cert->getCertLength());
-
     pubFile.close();
-
-    File priFile = SPIFFS.open(PRIVATE_TEMP_PATH, "w");
+    
     priFile.write(_cert->getPKData(), _cert->getPKLength());
     priFile.close();
 
@@ -67,6 +70,7 @@ void esp32_cert_spiffs::generateTemporaryCertificate(const char *deviceName, con
 }
 
 void esp32_cert_spiffs::saveCertificates(){
+    Serial.printf("Saving certificates\n");
     // SAVING TO SPIFFS
     File pubFile = SPIFFS.open(SPIFFS_PUBLIC_KEY_PATH, "w");
     //print out certificate date
@@ -105,7 +109,7 @@ bool esp32_cert_spiffs::importFromTemporary()
     {
         _cert = cert;
         saveCertificates();
-        #ifdef DEBUG
+        #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.printf("Imported certificate with %d bytes of data and %d bytes key\n", cert->getCertLength(), cert->getPKLength());
         #endif 
         return true;

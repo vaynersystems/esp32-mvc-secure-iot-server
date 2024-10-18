@@ -177,15 +177,11 @@ function formatByte(value){
 }
 function getProjectionColor(bytes){
     const loggingStorageElement = document.getElementById('logging-location');
-    
-    var orangeThreshold = loggingStorageElement.value == 0 ? 1024*256 : 1024*1024*256; // 256KB for SPIFFS, 256MB for SD
-    var redThreshold = loggingStorageElement.value == 0 ? 1024*1024 : 1024*1024*1024;// 1MB for SPIFFS, 1GB for SD
-    if(bytes > redThreshold)
-        return 'red';
-    if(bytes > orangeThreshold)
-        return 'orange';
+    var diskSize = drives[loggingStorageElement.value].size;
 
-        return 'green';
+    if(bytes > (diskSize * .8)) return 'red';
+    if(bytes > (diskSize * .4)) return 'orange';
+    return 'green';
 }
 
 /* Logging  */
@@ -210,6 +206,7 @@ function showLoggingProjections(){
         const dailyCell = document.createElement('div');
         const weeklyCell = document.createElement('div');
         const monthlyCell = document.createElement('div');
+        const sixMonthsCell = document.createElement('div');
         const yearlyCell = document.createElement('div');
         deviceCell.textContent = deviceCount;        
         dailyCell.textContent = formatByte(bytesPerDay);
@@ -218,14 +215,17 @@ function showLoggingProjections(){
         weeklyCell.style.color = getProjectionColor(bytesPerDay * 7);
         monthlyCell.textContent = formatByte(bytesPerDay * 30);
         monthlyCell.style.color = getProjectionColor(bytesPerDay * 30);
+        sixMonthsCell.textContent = formatByte(bytesPerDay * 182);
+        sixMonthsCell.style.color = getProjectionColor(bytesPerDay * 182);        
         yearlyCell.textContent = formatByte(bytesPerDay * 365);
         yearlyCell.style.color = getProjectionColor(bytesPerDay * 365);
-        projectionRowElement.className = "grid-row grid-5";
+        projectionRowElement.className = "grid-row grid-6";
 
         projectionRowElement.appendChild(deviceCell); 
         projectionRowElement.appendChild(dailyCell);
         projectionRowElement.appendChild(weeklyCell);
         projectionRowElement.appendChild(monthlyCell);
+        projectionRowElement.appendChild(sixMonthsCell);
         projectionRowElement.appendChild(yearlyCell);
         projectionContainerElement.appendChild(projectionRowElement);
     }
@@ -495,6 +495,74 @@ function reload(){
     ;
 }
 
+function updateFirmware(){
+    var input = document.getElementById("updateFirmware");
+    var reader = new FileReader();
+    if ("files" in input) {
+        if (input.files.length === 0) {
+            alert("You did not select a firmware file");
+        } else {
+            reader.onload = function () {
+
+                if(!input.files[0].name.endsWith(".bin")){
+                    showModal('ESP32 Firmware Update Failed', 'File must have a BIN extension!',
+                        [
+                            {text:'Ok',action: () => { closeModal();} }
+                        ]);
+                    return;
+                }
+                
+                var writeToDevice = confirm("You are about update the device firmware. Are you sure you want to continue?");
+                if(writeToDevice){
+                    console.log('uploading new firmware');
+                    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+                    const url = base + "/" + 'UpdateFirmware';
+                    request.open("POST", url, true);
+                    request.setRequestHeader("Content-type", "application/octet-stream");
+                    request.onreadystatechange = function () {
+                        if (request.readyState == request.DONE) {
+                            hideLoading();
+                            //hideWait();
+                            //hideWait('page');
+                            if (request.status == 401) {
+                                showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                                return;
+                            }
+                            var response = request.responseText;
+                            if(request.status == 200){
+                                //pendingChanges = false;
+                                showModal('ESP32 Firmware Updated', 'Firmware uploaded. \nRestart device to apply settings? ',
+                                [
+                                    {text:'No',action: () => { closeModal();} }, 
+                                    {
+                                        text:'Yes', 
+                                        action: () => {
+                                            reset(true);closeModal(); 
+                                            setTimeout( reload,5000)
+                                        }
+                                    }
+
+                                ]);
+                            } else if(request.status = 500){
+                                showModal('ESP32 Firmware Update Failed', 'Firmware update failed!',
+                                    [
+                                        {text:'Ok',action: () => { closeModal();} }
+                                    ]);
+                            }
+                                            
+                        }
+                    }
+                    
+                    request.send(reader.result);
+                    showWait();
+                }
+                
+            };
+            reader.readAsArrayBuffer(input.files[0]);
+        }
+    }
+}
+
 function restoreSettings() {
     var input = document.getElementById("restoreSettings");
     var reader = new FileReader();
@@ -554,6 +622,47 @@ function restoreSettings() {
         }
     }
 }
+
+function prettyBytes(size){
+    if (size === undefined) return "";
+    return size > 1024*1024*1024 ? (size / (1024*1024*1024)).toFixed(2) + "GB" :
+        size > 1024*1024 ? (size / (1024*1024)).toFixed(2) + "MB" :
+        size > 1024 ? (size / (1024)).toFixed(2) + "KB" :
+        size.toFixed(2) + "B"
+}
+
+//load drives
+var drives;
+function loadDrives(){
+    xmlHttp = new XMLHttpRequest();
+    xmlHttp.onreadystatechange = () =>{
+    
+        if (xmlHttp.readyState == 4) {
+            if (xmlHttp.status == 200)
+            {
+                drives = JSON.parse(xmlHttp.responseText);
+                if(drives.length == 0) return;
+                const driveSelectorElement = document.getElementById('logging-location');
+                if(driveSelectorElement === null || driveSelectorElement === undefined) return;
+                driveSelectorElement.innerHTML = '';
+                for(var driveConfig of drives){
+                    const driveOptionElement = document.createElement('option');
+                    const driveSize =  prettyBytes(driveConfig.size);
+                    driveOptionElement.value = driveConfig.index;
+                    driveOptionElement.text =  driveConfig.name + " - "  + driveSize;
+                    driveOptionElement.tag = driveConfig;
+                    driveSelectorElement.appendChild(driveOptionElement);
+                }
+                if(driveSelectorElement !== null) driveSelectorElement.value = activeConfig.system.logging.location;
+                showLoggingProjections();
+            }
+        }        
+    };
+    xmlHttp.open("GET", "/esp32_system_info/Disks", true);
+    xmlHttp.send(null);
+}
+
+loadDrives();
 
 function invalidateOnChange(componentId){
     const element = document.getElementById(componentId);
@@ -686,6 +795,7 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('device-logging-frequency');
     invalidateOnChange('logging-retention');
     invalidateOnChange('logging-level');
+    invalidateOnChange('logging-location');
 
     invalidateOnChange('ntp-host-name');
     invalidateOnChange('time-zone');
@@ -701,8 +811,6 @@ function esp32_config_init(configDataSting){
     
     pendingChanges = false;    
     checkPendingChanges();
-
-    showLoggingProjections();
     
 }
 

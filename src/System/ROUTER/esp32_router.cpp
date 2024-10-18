@@ -1,7 +1,7 @@
 #ifndef _ESP32_ROUTER_CPP
 #define _ESP32_ROUTER_CPP
 #include "esp32_router.h"
-#include "System/CORE/esp32_server.h"
+#include "System/CORE/esp32_server.hpp"
 
 extern esp32_server server;
 
@@ -72,7 +72,7 @@ void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
         if (path.length() > 1 && path[path.length() - 1] == '/')
             path = path.substr(0, path.length() - 1);
 
-        drive->list(path.c_str(), res, JSON,filter.c_str());       
+        drive->list(path.c_str(), res, JSON,filter.c_str(), 200, 5);       
         
     }
     else
@@ -81,10 +81,12 @@ void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
         if (dir.length() <= 0)
         {
             dir = "/";
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
             Serial.printf("Empty path, starting from %s\n", dir.c_str());
+            #endif
         }
 
-        drive->list(dir.c_str(), res, JSON, filter.c_str());    
+        drive->list(dir.c_str(), res, JSON, filter.c_str(), 200, 5);    
     }
 }
 
@@ -239,7 +241,9 @@ int esp32_router::handlePagePart_FromFile(HTTPRequest *req, HTTPResponse *res, S
         }
         else
         {
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
             Serial.printf("File %s not found.\n", fileName.c_str());
+            #endif
             res->printf("Page Part %s file %s NOT FOUND!", searchString, fileName.c_str());
         }
         res->println(line.substring(idx + strlen(searchString)).c_str());
@@ -395,7 +399,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 filePath = filename;
                 filePath = filePath.erase(0, filePath.find_first_of("/"));
                 filePath = filePath.erase(filePath.find_first_of(13));
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.printf("Received request to delete %s\n", filePath.c_str());
+                #endif
                 // filename = filePath.substr(filePath.find_first_of('?') + 1);
 
                 bool deleted = esp32_fileio::DeleteFile(filePath.c_str());
@@ -411,7 +417,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
             }
             else
             {
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.printf("Expected string %s. Instead found %s\n", "------------------------", name.substr(0, strlen("------------------------")).c_str());
+                #endif
             }
             /* else {
                  res->printf("<p>Unexpected field %s</p>", name.c_str());
@@ -445,7 +453,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         }
         else
         {
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
             Serial.printf("Unknown POST Content-Type: %s\n", contentType.c_str());
+            #endif
             return;
         }
         string filename;
@@ -460,7 +470,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
 
                 size_t readLength = parser->read((byte *)buf, 512);
                 filename = string("/") + string(buf, readLength);
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.println("Read filename");
+                #endif
                 if(drive.length() > 0) break;
                 
             }
@@ -497,7 +509,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                     size_t readLength = parser->read((byte*)buf, 512);
                     drive.append((const char *)buf);
                 }
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.println("Read drive");
+                #endif
                 if(filename.length() > 0) break;
                 
             }
@@ -511,7 +525,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                     filename.append((const char *)buf);
                 }  
                 if(drive.length() > 0) break;
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.println("Read path");           
+                #endif
             }
             else
             {
@@ -522,8 +538,10 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         if(drive.length() > 0){
             
             auto fs = filesystem.getDisk(atoi(drive.c_str()));
-            filename = string_format("/%s%s",fs->label(),filename.c_str());              
+            filename = string_format("/%s%s",fs->label(),filename.c_str());   
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0           
             Serial.printf("Drive parameter: %s, Filename: %s\n", drive.c_str(),filename.c_str());
+            #endif
         }
 
         unsigned long startWrite = millis();
@@ -532,14 +550,17 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
 
         if(req->getMethod() == "POST")
         {
-            
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
             Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
+            #endif
             size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
             savedFile = bytes > 0;
             res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
             
         }
+        #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
         Serial.printf(" done in %u ms", millis() - startWrite);
+        #endif
 
         if (!savedFile)
         {
@@ -564,7 +585,7 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
     }
     else
     {
-        Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
+        //Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
         handleFile(req, res);
     }
 }
@@ -573,7 +594,7 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 {
     bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";    
     //hydrate to check if path is internal, user authorized, and file exists.
-    Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
+    //Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
     auto routeInfo = esp32_route_file_info<esp32_file_info_extended>(req);
     
     if(routeInfo.isInternal && !isAdminUser){
@@ -654,7 +675,7 @@ void esp32_router::handleControllerRequest(HTTPRequest *req, HTTPResponse *res, 
         controllerObj->Action(req, res);
         controllerObj->controllerTemplate.ClearVariables();
 
-        Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
+        //Serial.printf("[ESP ROUTER]Serving page from template %s\n", route.controller.c_str());
     }
     delete controllerObj;
 }
@@ -664,7 +685,9 @@ string esp32_router::handleServiceRequest(esp32_service_route route){
     auto service = serviceFactory->createInstance(route);
     if (service == NULL)
     {
+        #if defined(DEBUG_SOCKET) && DEBUG_SOCKET > 0
         Serial.printf("Service %s not found\n", route.service.c_str());
+        #endif
         return "error";
     }
 

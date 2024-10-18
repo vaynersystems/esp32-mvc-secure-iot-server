@@ -1,8 +1,8 @@
 #include "esp32_logs_controller.hpp"
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
-#include <System/CORE/esp32_config.h>
-#include <loopback_stream.h>
+#include "System/CORE/esp32_config.hpp"
+#include "loopback_stream.h"
 
 DerivedController<esp32_logs_controller> esp32_logs_controller::reg("esp32_logs");
 
@@ -10,7 +10,9 @@ void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     vector<esp32_file_info_extended> files;
     auto drive = filesystem.getDisk(logger.location());
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Searching %s for logs\n", drive->label());
+    #endif
 
     drive->search(files,PATH_LOGGING_ROOT, "!SNAPSHOT_");
     
@@ -22,7 +24,9 @@ void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
             response += string_format("%s{\"name\": \"%s\"}",jsonIdx++ == 0 ? "" : ", ", files[idx].name().c_str()).c_str();
     }
     response += "]";
+    #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Found the following log files \n%s\n", response.c_str());
+    #endif
     controllerTemplate.SetTemplateVariable(F("$_LOGFILES"),response.c_str() );
 
     esp32_base_controller::Index(req,res);      

@@ -4,8 +4,8 @@
 #include <map>
 #include "ArduinoJson.h"
 #include <SD.h>
-#include <System/Config.h>
-#include <System/CORE/esp32_config.h>
+#include "System/Config.h"
+#include "System/CORE/esp32_config.hpp"
 #include "esp32_filesystem.hpp"
 #include "System/MODULES/LCD/esp32_lcd.hpp"
 extern esp32_lcd lcd;

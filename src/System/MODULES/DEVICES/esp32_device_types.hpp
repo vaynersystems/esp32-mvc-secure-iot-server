@@ -45,6 +45,7 @@ public:
     unsigned long lastPublishTime = 0;
     //esp32_base_device<uint16_t> deviceInstance;  
     bool managedByScheduler = false;
+    bool initialized = false;
 
 protected:
     

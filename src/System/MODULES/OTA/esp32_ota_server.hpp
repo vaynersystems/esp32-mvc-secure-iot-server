@@ -1,34 +1,31 @@
 #ifndef _ESP32_OTA_SERVER_H
 #define _ESP32_OTA_SERVER_H
 #include "System/Config.h"
+#include "System/MODULES/LCD/esp32_lcd.hpp"
+#include "string_helper.h"
+#include "HTTPRequest.hpp"
 #include <ArduinoOTA.h>
 #include <WiFi.h>
 #include <esp_ota_ops.h>
-
+#include <esp_efuse.h>
+using namespace httpsserver;
+extern esp32_lcd lcd;
 class esp32_ota_server{
     public:
-    bool updateFirmware(byte* newFirmware, size_t length){
-        
-        const esp_partition_t *running = esp_ota_get_running_partition();
-        esp_ota_img_states_t ota_state;
-        if (esp_ota_get_state_partition(running, &ota_state) == ESP_OK) {
-            if (ota_state == ESP_OTA_IMG_PENDING_VERIFY) {
-                // run diagnostic function ...
-                bool diagnostic_is_ok = diagnostic();
-                if (diagnostic_is_ok) {
-                    ESP_LOGI(TAG, "Diagnostics completed successfully! Continuing execution ...");
-                    esp_ota_mark_app_valid_cancel_rollback();
-                } else {
-                    ESP_LOGE(TAG, "Diagnostics failed! Start rollback to the previous version ...");
-                    esp_ota_mark_app_invalid_rollback_and_reboot();
-                }
-            }
-        }
-    }
+    esp_err_t updateFirmware(const byte* newFirmware, size_t length);
+    esp_err_t updateFirmware(HTTPRequest *request);
 
-    bool diagnostic(){
-        return true;
-    }
+    private:
+
+    const esp_partition_t * _running;
+    const esp_partition_t * _updatePartition;    
+    esp_ota_handle_t _updateHandle ;
+
+   
+    esp_err_t _startUpdate(size_t firmwareSize);
+    esp_err_t _writeFirmwareChunk(const byte* newFirmware, size_t length);
+    esp_err_t _commitUpdate();
+    
 
 };
-#endif;
+#endif
