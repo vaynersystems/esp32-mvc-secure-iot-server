@@ -49,14 +49,14 @@ public:
     esp32_route_file_info(const char *path) : T(path){
         requestPath = path;
         isEditorRequest = false;
-        string pathS = this->path();
+        string pathS = path;
         isInternal = find(
             INTERNAL_PATHS.begin(),
             INTERNAL_PATHS.end(), 
             pathS.find_last_of('/') > 1 ? pathS.substr(0,pathS.find_last_of('/')) : "/"
         ) != INTERNAL_PATHS.end(); 
     }
-    esp32_route_file_info(HTTPRequest * req) : esp32_route_file_info(req->getRequestString().c_str())
+    esp32_route_file_info(HTTPRequest * req) : esp32_route_file_info(urlDecode(req->getRequestString()).c_str())
     {   
         isEditorRequest = strstr(req->getHeader("Refer").c_str(), "edit") != nullptr;          
     }

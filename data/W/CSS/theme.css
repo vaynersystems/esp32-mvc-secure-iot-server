@@ -7,12 +7,12 @@ html, body{
     --primary-control-color: rgb(5, 63, 22);
     --primary-control-background: rgb(255, 255, 255);
     --primary-button-color: rgb(2, 13, 24);
-    --primary-button-background:  rgb(33, 32, 34);
+    --primary-button-background:  rgb(98, 252, 193);
     --secondary-button-color: rgb(237, 238, 239);
     --secondary-button-background: rgb(29, 142, 86);
     --secondary-button-background-hover: rgb(17, 99, 58);
     --modal-color: rgb(255, 255, 255);
-    --modal-background: rgba(3, 45, 9, 0.4);
+--modal-background: rgba(3, 45, 9, 0.4);
     --modal-header-color: rgb(255, 255, 255);
     --modal-header-background: rgb(29, 142, 86);
 

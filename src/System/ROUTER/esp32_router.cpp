@@ -458,21 +458,21 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
             #endif
             return;
         }
-        string filename;
+        string filename, path;
         while (parser->nextField())
         {
             string name = parser->getFieldName();
             string mimeType = parser->getFieldMimeType();
-            // Serial.printf("Parsing field %s\n", name.c_str());
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
+                Serial.printf("Parsing field %s\n", name.c_str());
+            #endif
             char buf[512];
             if (name == "filename")
             {
 
                 size_t readLength = parser->read((byte *)buf, 512);
                 filename = string("/") + string(buf, readLength);
-                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
-                Serial.println("Read filename");
-                #endif
+                
                 if(drive.length() > 0) break;
                 
             }
@@ -508,11 +508,8 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                     memset(buf, 0, sizeof(buf));
                     size_t readLength = parser->read((byte*)buf, 512);
                     drive.append((const char *)buf);
-                }
-                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
-                Serial.println("Read drive");
-                #endif
-                if(filename.length() > 0) break;
+                }              
+                //if(filename.length() > 0) break;
                 
             }
             else if (name == "path")
@@ -522,12 +519,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 {
                     memset(buf, 0, sizeof(buf));
                     size_t readLength = parser->read((byte*)buf, 512);
-                    filename.append((const char *)buf);
+                    path.append((const char *)buf);
                 }  
-                if(drive.length() > 0) break;
-                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
-                Serial.println("Read path");           
-                #endif
+                //if(drive.length() > 0) break;               
             }
             else
             {
@@ -538,29 +532,38 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         if(drive.length() > 0){
             
             auto fs = filesystem.getDisk(atoi(drive.c_str()));
-            if(filename.find(fs->label()) <= 0) //if drive not passed in filename, prefix it
-                filename = string_format("/%s%s",fs->label(),filename.c_str());   
+            if(path.find(fs->label()) <= 0) //if drive not passed in filename, prefix it
+                path = string_format("/%s%s",fs->label(),path.c_str());   
             #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0           
-            Serial.printf("Drive parameter: %s, Filename: %s\n", drive.c_str(),filename.c_str());
+            Serial.printf("Drive parameter: %s, Path: %s, Filename: %s\n", drive.c_str(), path.c_str(), filename.c_str());
             #endif
         }
 
         unsigned long startWrite = millis();
         if(req->getMethod() == "PUT")
-            savedFile = esp32_fileio::CreateFile(filename.c_str());
+            savedFile = esp32_fileio::CreateFile(path.c_str());
 
         if(req->getMethod() == "POST")
         {
-            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
-            Serial.printf("Writing %u bytes to file [%s].. ", req->getContentLength(), filename.c_str());
-            #endif
-            size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
-            savedFile = bytes > 0;
-            res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
+            if(path.length() > 0)
+                filename = path + "/" + filename;
+            if(filename[filename.length() - 1] == '/'){
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
+                Serial.printf("Filename %s seems to be a directory. Qutting upload");
+                #endif
+                res->setStatusCode(500);
+            } else{                
+                size_t bytes = esp32_fileio::UpdateFile(filename.c_str(), parser,true);
+                #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
+                Serial.printf("Writing %u bytes to file [%s].. ", bytes, filename.c_str());
+                #endif
+                savedFile = bytes > 0;
+                res->printf("<p>Saved %d bytes to %s</p>", bytes, filename.c_str());
+            }
             
         }
         #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
-        Serial.printf(" done in %u ms", millis() - startWrite);
+        Serial.printf(" done in %u ms\n", millis() - startWrite);
         #endif
 
         if (!savedFile)
@@ -586,7 +589,9 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
     }
     else
     {
-        //Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
+        #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
+        Serial.printf("[ESP ROUTER]Serving page from file %s\n", req->getRequestString().c_str());
+        #endif
         handleFile(req, res);
     }
 }
@@ -609,7 +614,7 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
         return;
     }   
     
-    esp32_fileio::writeFileToResponse(req->getRequestString().c_str(), res);
+    esp32_fileio::writeFileToResponse(urlDecode(req->getRequestString()).c_str(), res);
 }
 
 
