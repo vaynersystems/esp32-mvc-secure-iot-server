@@ -41,7 +41,7 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 // #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0
 // #define DEBUG_SECURITY 1
-// #define DEBUG_FILESYSTEM 0
+ #define DEBUG_FILESYSTEM 1
 // #define DEBUG_SOCKET 0
 // #define DEBUG_LCD 1
 // #define DEBUG_OTA 0

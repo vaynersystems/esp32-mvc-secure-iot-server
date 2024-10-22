@@ -2,7 +2,11 @@
 #define _ESP32_FILEIO_H
 #include "FS.h"
 #include "SPIFFS.h"
-//#include "SD.h"
+
+#include "SD.h"
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+#include "SD_MMC.h"
+#endif
 
 #include <list>
 

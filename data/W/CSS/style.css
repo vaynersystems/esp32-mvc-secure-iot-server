@@ -15,17 +15,17 @@ body {
 
 
 button{
-    background-color: rgb(from var(--primary-button-background) r g b / 20%);
+    background-color: rgb(from var(--primary-button-background) r g b / 60%);
     color: var(--primary-button-color);
-    min-width: 40px;
+    min-width: 30px;
     line-height: 14px;
     border: navajowhite;
     margin: 5px;
-    padding: 4px 20px;
+    padding: 4px 10px;
     font-weight: 800;
 }
 button:hover{
-    background-color: rgb(from var(--primary-button-background) r g b / 40%);
+    background-color: rgb(from var(--primary-button-background) r g b / 80%);
     cursor: pointer;
 }
 button[disabled]{
