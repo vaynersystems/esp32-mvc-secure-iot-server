@@ -538,7 +538,8 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         if(drive.length() > 0){
             
             auto fs = filesystem.getDisk(atoi(drive.c_str()));
-            filename = string_format("/%s%s",fs->label(),filename.c_str());   
+            if(filename.find(fs->label()) <= 0) //if drive not passed in filename, prefix it
+                filename = string_format("/%s%s",fs->label(),filename.c_str());   
             #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0           
             Serial.printf("Drive parameter: %s, Filename: %s\n", drive.c_str(),filename.c_str());
             #endif
