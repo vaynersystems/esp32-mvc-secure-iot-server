@@ -11,8 +11,6 @@
 #include <vector>
 #include <Wire.h>  // I2C library
 
-
-
 using namespace std;
 #define LCD_WIDTH 16
 

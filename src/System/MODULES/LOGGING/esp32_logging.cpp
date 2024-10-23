@@ -109,10 +109,9 @@ bool esp32_logging::logSnapshot(JsonObject snapshot)
     if(snapshot.isNull() || snapshot.size() == 0) return false;
     string snapshotString = "";
     serializeJson(snapshot, snapshotString);
-    //auto logLocation = fs();
 
     string filename = getLogFilename(esp32_log_type::snapshot);  
-    auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!  
+    auto drive = filesystem.getDisk(_location); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!  
     if(filename.length() == 0) return false; 
     auto fileAbsolute = drive->getAbsolutePath(filename.c_str());
     
@@ -146,12 +145,10 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
     
     if(logsFound == 0 || _retentionDays == 0) return 0; //configured for no rotation 
     int deleted = 0;
-    //tm now = getDate(); 
     time_t now;
-    time(&now);// = mktime(&now);
+    time(&now);
     if(logsFound < 0) 
     {
-        //Serial.printf("Error occured listing files: %d\n", logsFound);
         return 0;
     }
     if (logsFound == 0)
@@ -163,9 +160,7 @@ int esp32_logging::rotateLogs(esp32_log_type logType)
                 files[idx].name().c_str(), (now - files[idx].lastWrite())/(60*60*24)));
             drive->remove(files[idx].fullyQualifiedPath().c_str());
             deleted++;
-        } else {
-            //Serial.printf("Keeping log file %s since it is %d days old\n", log["name"].as<const char *>(), (now - lastWrite)/(60*60*24));
-        }    
+        }  
     }
     
     return deleted;
