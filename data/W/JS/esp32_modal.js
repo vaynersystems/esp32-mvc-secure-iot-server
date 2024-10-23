@@ -13,14 +13,45 @@
      * @param {function} cancelCallback - function to call after form is cancelled
      * @param {function} validationCallback - function to before form is saved
      * @param {function} changeCallback - function called when a field is changed
+     * @example 
+     *  openModal(
+            'Device Editor',
+            deviceViewModelPath,
+            device,
+            [
+                {
+                    Source: 'trigger.source', 
+                    Field: 'Data', 
+                    Value: activeConfig.devices
+                        .filter(ac => ac.id !== device.id)
+                        .map(ac => Object.create({'name': ac.name, 'value': ac.id}))
+                },
+                {
+                    Source: 'pin', 
+                    Field: 'Data', 
+                    Value: pins
+                        .filter(ac => ac.pin !== device.pin)
+                        .map(ac => Object.create({'name': ac.pin, 'value': ac.pin}))
+                }
+            ],
+            this.saveDevice,
+            onCancelCallback,
+            null,
+            onChangeCallback            
+        );
      */
     function openModal(name, viewModelUri, model, optional, saveCallback, cancelCallback, validationCallback, changeCallback){
+        var waitElement = showWait();
         fetch(viewModelUri)
             .then(response => response.json())
             .then(viewModel => {
                 openModalWithModel(name,viewModel,model,optional, saveCallback, cancelCallback, validationCallback, changeCallback);
+                waitElement.dispatchEvent(new Event('close'));
             })
-            .catch(error => console.error(error));
+            .catch(error => {
+                console.error(error);
+                waitElement.dispatchEvent(new Event('close'));
+            });
     }
 
     function openModalWithModel(name, viewModel, model, optional, saveCallback, cancelCallback, validationCallback, changeCallback){

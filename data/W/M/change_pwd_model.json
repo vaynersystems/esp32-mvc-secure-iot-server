@@ -3,7 +3,7 @@
         "Name": "Username",
         "Type": "Text",
         "Value": "",
-        "Readonly": false,
+        "Readonly": true,
         "Source": "username",
         "Validation": [
             {"Type": "Required"},
