@@ -476,7 +476,10 @@ function saveSettings(config){
 
                 ]);
             } else{
-                showModal('Unknown Error', 'An unknown error occured while saving. Please try again.');
+                if(request.status == 0 && request.responseURL.endsWith("ResetDevice")){
+                    console.log('Updates applied and device reset!')
+                }else
+                    showModal('Unknown Error', 'An unknown error occured while saving. Please try again.');
             }
                             
         }

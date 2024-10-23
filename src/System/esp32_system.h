@@ -6,7 +6,7 @@
 #include "AUTH/esp32_sha256.h"
 
 #include "MODULES/DEVICES/esp32_devices.hpp"
-#include "MODULES/DEVICES/esp32_scheduling_manager.hpp"
+#include "MODULES/SCHEDULING/esp32_scheduling_manager.hpp"
 #include "MODULES/LOGGING/esp32_logging.hpp"
 
 #include "MODULES/LCD/esp32_lcd.hpp"

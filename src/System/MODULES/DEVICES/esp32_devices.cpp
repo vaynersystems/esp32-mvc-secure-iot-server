@@ -2,7 +2,7 @@
 //         someone with a stronger c/c++ background can likely resolve this with little effort.
 #include "esp32_devices.hpp"
 #include <esp32-hal-gpio.h>
-#include "esp32_scheduling_manager.hpp"
+#include "../SCHEDULING/esp32_scheduling_manager.hpp"
 
 extern esp32_scheduling_manager scheduleManager;
 void esp32_devices::onInit()
