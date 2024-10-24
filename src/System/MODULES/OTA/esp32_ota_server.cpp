@@ -43,7 +43,7 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
     #endif
     size_t firmwareSize = request->getContentLength();
     esp_err_t result = ESP_OK;
-    byte* buf = new byte[512];
+    byte* buf = new byte[FILESYSTEM_BUFFER_SIZE];
     size_t readLength = 0;
     size_t fieldLength = 0;
 
@@ -62,7 +62,7 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
         }
 
         while(true){            
-            readLength = request->readBytes((byte*)buf,512); 
+            readLength = request->readBytes((byte*)buf,FILESYSTEM_BUFFER_SIZE); 
             //Serial.printf("Read %d bytes at 0x%06X .. \n", readLength, fieldLength);
             if(readLength <= 0) continue;
 

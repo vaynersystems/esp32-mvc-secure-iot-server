@@ -142,7 +142,7 @@ bool esp32_wifi::start(){
     
     //#ifdef DEBUG
     Serial.print("Connected. IP=");
-    Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.broadcastIP() :  WiFi.localIP());
+    Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.softAPIP() :  WiFi.localIP());
     //#endif
 
     sntp_setoperatingmode(SNTP_OPMODE_POLL);

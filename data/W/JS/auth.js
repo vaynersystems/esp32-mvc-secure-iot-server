@@ -14,6 +14,7 @@ function getToken(url, user, pass) {
     request.setRequestHeader("X_RETURN_URL", "");
     request.onreadystatechange = function () {
         if (request.readyState == request.DONE) {
+            hideLoading();
             if (request.status == 401 ) {
                 const message = '<p class="error">' + (request.statusText.length > 0 ? request.statusText  : 'Unknown error' ) + '</p>';
                 showModal('Authentication Error',message);
