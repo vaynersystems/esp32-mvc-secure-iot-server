@@ -386,6 +386,12 @@
                     It is the default, but if security is paramount, use SPIFFS store and be sure to encrypt your flash when building.
                 </div>
 
+                <div class="hint">
+                    <p>Backups are encrypted using your private key.</p>
+                    <p>If you you change the device's certificate, previous backups will be invalidated.</p>
+    
+                </div>
+                
                 <div class="grid-2">
                     <div>I want to </div>
                     <div class="row">
@@ -402,6 +408,11 @@
 
         <div class="section" name="backup">
             <div class="section-header">Backup</div>
+            <div class="hint">
+                <p>Backups are encrypted using your private key.</p>
+                <p>If you you change the device's certificate, previous backups will be invalidated.</p>
+
+            </div>
             <div class="section-content">
                 <a href="esp32_config/Backup" download="backup.dat" target="_blank">Download a copy</a> of your configuration so you can restore.
             </div>

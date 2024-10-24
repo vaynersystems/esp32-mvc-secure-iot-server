@@ -32,6 +32,11 @@ void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response
 }
 
 void esp32_config_controller::Post(HTTPRequest* request, HTTPResponse* response) {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     SaveConfigData(request, response);   
 }
 
@@ -119,9 +124,6 @@ bool esp32_config_controller::HasAction(const char * action){
         return esp32_base_controller::HasAction(action);
 }
 
-
-
-
 //custom action to get wifi list, or other list
 void esp32_config_controller::GetAvailableWifi(HTTPRequest* request, HTTPResponse* response) {
      int n = WiFi.scanNetworks();
@@ -180,6 +182,11 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* request, HTTPRespons
 /// @param req 
 /// @param res 
 void esp32_config_controller::LoadConfigData(HTTPRequest* request, HTTPResponse* response) {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
     File f = drive->open(PATH_SYSTEM_CONFIG,"r");
@@ -201,6 +208,11 @@ void esp32_config_controller::LoadConfigData(HTTPRequest* request, HTTPResponse*
 /// @param res 
 /// @return 
 bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse* response){
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return false;
+    }
     const int length = request->getContentLength();
     
     DynamicJsonDocument doc(length * 2);
@@ -261,9 +273,11 @@ void esp32_config_controller::ResetDevice(HTTPRequest* request, HTTPResponse* re
 
 void esp32_config_controller::UploadCertificate(HTTPRequest *request, HTTPResponse *response)
 {
-    // Serial.printf("Uploading with action %s and parameter %s\n",
-    //     route.action.c_str(), route.params.c_str());
-    //req has post of file.
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     if(strcmp(route.params.c_str(), "Public") == 0){
         esp32_router::handleFileUpload(request, response, PUBLIC_TEMP_PATH);
     } else if(strcmp(route.params.c_str(), "Private") == 0){
@@ -274,6 +288,11 @@ void esp32_config_controller::UploadCertificate(HTTPRequest *request, HTTPRespon
 
 void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResponse *response)
 {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     const int length = request->getContentLength();
     
     DynamicJsonDocument doc(length * 2);
@@ -324,6 +343,11 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
 
 void esp32_config_controller::UpdateFirmware(HTTPRequest *request, HTTPResponse *response)
 {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     if(request->getMethod() != "POST")
         return;
     lcd.pause();
@@ -336,6 +360,12 @@ void esp32_config_controller::UpdateFirmware(HTTPRequest *request, HTTPResponse 
 
 void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *response)
 {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
+
     //package config, auth, public files into one
     DynamicJsonDocument doc(8192);
     DynamicJsonDocument docPublic(2048);
@@ -370,8 +400,12 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     doc["public"] = docPublic;
     doc["type"] = "esp32-backup";
 
-    char enc_key[33] = "12345678901234567890123456789012"; //null terminated
-    char enc_iv[17] =  "1234567890123456";
+    
+
+    char enc_key[32] = {0}; //null terminated
+    char enc_iv[16] =  {0};
+    memcpy(enc_key,server.getCertificate()->getPKData(),sizeof(enc_key));
+    memcpy(enc_iv,server.getCertificate()->getPKData(),sizeof(enc_iv));
 
     string backupData = "", backupDataEncrypted = "";
     unsigned char * encryptedData;
@@ -397,6 +431,11 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
 
 void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *response)
 {
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
     const int length = request->getContentLength();
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     //DynamicJsonDocument doc(length * 2);
@@ -421,17 +460,23 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
         if(request->requestComplete()) break;
     }     
     delete[] buf;
-
+    
+    #if defined(DEBUG) && DEBUG > 3
+    #endif
     Serial.printf("Decrypting string of %d bytes. Read %d bytes\n", length, fieldLength);
 
-    char enc_key[33] = "12345678901234567890123456789012"; //null terminated
-    char enc_iv[17] =  "1234567890123456";
+    char enc_key[32] = {0}; //null terminated
+    char enc_iv[16] =  {0};
+    memcpy(enc_key,server.getCertificate()->getPKData(),sizeof(enc_key));
+    memcpy(enc_iv,server.getCertificate()->getPKData(),sizeof(enc_iv));
+    
     unsigned char * decryptedData = (unsigned char *)malloc(length + 1);
     memset(decryptedData, 0, length + 1);
 
     auto decryptedLength = decrypt_string(backupDataEncrypted, length, (const char*)enc_key,  (const char*)enc_iv, decryptedData);
-    
+    #if defined(DEBUG) && DEBUG > 3
     Serial.printf("Decrypted string of %d bytes\n", decryptedLength);
+    #endif
 
     #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n", decryptedLength);
@@ -442,32 +487,21 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
 
     if(error.code() == DeserializationError::Ok){
         #if defined(DEBUG) && DEBUG > 0
-        Serial.println("Restoring JSON");
-        //serializeJson(doc,Serial);
+        Serial.println("Restoring from backup");
         Serial.println();
         #endif
          bool failed = false;
         string secString = "";
         //if we need to apply certs do so and clear it
         if(!doc["security"].isNull()){
-            //string userStr = "";
-            //serializeJson(doc["security"], userStr);
             JsonArray users = docSecurity.to<JsonArray>();
-            //users.set(doc["security"].as<JsonArray>());
-            // int sourceUsers = doc["security"].as<JsonArray>().size();
             
             for(auto user: doc["security"].as<JsonArray>()){
+                #if defined(DEBUG) && DEBUG > 3
                 Serial.printf("Restoring user %s\n", user["username"].as<const char*>());                
+                #endif
                 docSecurity.add(user);
             }
-            // int destinationUsers = docSecurity.size();
-            // Serial.printf("Copied %d users. Found %d users in copy\n", sourceUsers, destinationUsers);
-            // serializeJson(docSecurity, secString);
-
-            // Serial.println();
-            // Serial.print(secString.c_str());
-            // Serial.println();
-            //drive->rename(PATH_AUTH_FILE, PATH_AUTH_FILE ".bak");
             File sourceFile = drive->open(PATH_AUTH_FILE);
             File destFile = drive->open(PATH_AUTH_FILE ".b", FILE_WRITE);
             static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
@@ -481,12 +515,13 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             
             File security = drive->open(PATH_AUTH_FILE,"w");
             //security.print(userStr.c_str());
-            serializeJson(docSecurity, security);           
+            serializeJson(docSecurity, security);        
+            #if defined(DEBUG) && DEBUG > 3   
             Serial.printf("Serialized security (%d bytes in json) to file with %d bytes...\n", docSecurity.memoryUsage(), security.position());
+            #endif
             security.close();
             
-            //test and rollback if failed
-           
+            //test and rollback if failed           
             File securityVerify = drive->open(PATH_AUTH_FILE,"r");
             DynamicJsonDocument docSec(2048);
             auto testError = deserializeJson(docSec, securityVerify);
@@ -497,20 +532,13 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
                 
             } else{
                 Serial.printf("Sucessfully deserialized updated security: %s.\n", testError.c_str());
-                // if(sourceUsers != docSec.as<JsonArray>().size()){
-                //     Serial.printf("Error, user count %d doesn't match import %d\n", docSec.as<JsonArray>().size(), sourceUsers);
-                //     serializeJson(docSec, Serial);
-                //     Serial.println();
-                //     failed = true;                    
-                // } else{
-                    for(auto userAccount : docSec.to<JsonArray>()){
-                        if(userAccount["username"].isNull()){
-                            Serial.printf("Error, username field not found");
-                            failed = true;
-                            break;
-                        }
+                for(auto userAccount : docSec.to<JsonArray>()){
+                    if(userAccount["username"].isNull()){
+                        Serial.printf("Error, username field not found");
+                        failed = true;
+                        break;
                     }
-                // }
+                }
             }
             if(failed){ //rollback
                 File sourceFile = drive->open(PATH_AUTH_FILE ".b");
@@ -522,13 +550,16 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
                 destFile.close();
                 sourceFile.close(); 
                 response->setStatusCode(500);   
+                #if defined(DEBUG)
                 Serial.println("Quitting restore!");             
+                #endif
                 
             } else // commit / remove backup
             {
-                //serializeJson(docSec, Serial);
+                #if defined(DEBUG) && DEBUG > 1
                 Serial.println();
                 Serial.printf("Removing backup file: %s.\n", PATH_AUTH_FILE ".b");
+                #endif
                 drive->remove(PATH_AUTH_FILE ".b");
             
             }
@@ -543,9 +574,11 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             serializeJson(docConfig, configFile);
             configFile.close();
 
+            #if defined(DEBUG) && DEBUG > 3
             Serial.println("Saved System Configuration:");
             serializeJson(docConfig, Serial);
             Serial.println();
+            #endif
         }
         if(!failed && !doc["public"].isNull()){            
             Serial.println("Restoring public pages");
@@ -554,10 +587,12 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             for(auto page: doc["public"].as<JsonArray>())
                 publicPagesFile.println(page.as<const char*>());
             publicPagesFile.close();
-
+            
+            #if defined(DEBUG) && DEBUG > 3
             Serial.println("Saved Public Pages:");
             serializeJson(doc["public"], Serial);
             Serial.println();
+            #endif
         }
         if(!failed && !doc["devices"].isNull()){
             Serial.println("Restoring devices");
@@ -567,9 +602,11 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             serializeJson(docDevices, devicesFile);
             devicesFile.close();
 
+            #if defined(DEBUG) && DEBUG > 3
             Serial.println("Saved Devices:");
             serializeJson(docDevices, Serial);
             Serial.println();
+            #endif
         }
         
         response->setStatusCode(failed ? 500 : 200);
@@ -591,7 +628,14 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
 
 
 void esp32_config_controller::FactoryReset(HTTPRequest *request, HTTPResponse *response){
+    if(strcmp(request->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
+    {
+        response->setStatusCode(401);
+        return;
+    }
+    #if defined(DEBUG) && DEBUG > 2
     Serial.printf("\n\n********************\n** STARTING FACTORY RESET **\n********************\n");
+    #endif
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
     if(drive->exists(PATH_SYSTEM_CONFIG))
@@ -651,6 +695,8 @@ void esp32_config_controller::FactoryReset(HTTPRequest *request, HTTPResponse *r
 
     response->setStatusCode(200);
     response->print("Reset");
+    #if defined(DEBUG) && DEBUG > 2
     Serial.println("Reset controller to factory defaults. Resetting...");
+    #endif
     ESP.restart();
 }

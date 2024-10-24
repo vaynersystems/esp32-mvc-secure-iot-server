@@ -594,14 +594,6 @@ function restoreSettings() {
             alert("You did not select any file to restore");
         } else {
             reader.onload = function () {
-                // var json;
-                // try {
-                //     json = JSON.parse(reader.result);
-                // } catch (e) {
-                //     alert("Not a valid backup file");
-                //     return;
-                // }
-                // if (json.type === "esp32-backup") {
                 var writeToDevice = confirm("You are about to overwrite your device settings. Are you sure you want to continue?");
                 if(writeToDevice){
                     console.log('calling backend to restore from backup ', reader.result);
@@ -620,7 +612,7 @@ function restoreSettings() {
                             var response = request.responseText;
                             if(request.status == 200){
                                 pendingChanges = false;
-                                showModal('ESP32 Settings Saved', 'Settings restored sucessfully. \nRestart device to apply settings? '
+                                showModal('ESP32 Settings Saved', 'Settings restored sucessfully. \nRestart device to apply settings? ',
                                 [
                                     {text:'No',action: () => { closeModal();} }, 
                                     {
