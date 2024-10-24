@@ -29,6 +29,7 @@ public:
     virtual void UpdateFirmware(HTTPRequest * request, HTTPResponse * response);
     virtual void Backup(HTTPRequest *request, HTTPResponse * response);
     virtual void Restore(HTTPRequest *request, HTTPResponse * response);
+    virtual void FactoryReset(HTTPRequest *request, HTTPResponse *response);
     
     virtual esp32_controller_category GetCategory(){
         return esp32_controller_category::System;

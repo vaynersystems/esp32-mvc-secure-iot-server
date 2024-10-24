@@ -131,9 +131,13 @@ void esp32_server::step()
 
     if(_lastReporStatus + 10000 < millis()){
         _lastReporStatus = millis();
+        // Serial.printf("Server Staus: %s.\nSecure Server Status %s\n",
+        //     unsecureServer->isRunning() ? "Running" : "Stopped",
+        //     secureServer->isRunning() ? "Running" : "Stopped"
+        // );
         Serial.printf("Server Staus: %s.\nSecure Server Status %s\n",
-            unsecureServer->isRunning() ? "Running" : "Stopped",
-            secureServer->isRunning() ? "Running" : "Stopped"
+            unsecureServer->hasActiveSocket() ? "Running" : "Stopped",
+            secureServer->hasActiveSocket() ? "Running" : "Stopped"
         );
     }
         
