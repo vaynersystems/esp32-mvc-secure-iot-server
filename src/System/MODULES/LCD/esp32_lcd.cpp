@@ -50,7 +50,10 @@ void esp32_lcd::loop()
             setTitle( parts[0].c_str(), elm_messages);
             if (strcmp(_messages[_messageIdx].messageParam.c_str(), "IP") == 0)
             {
-                setDetails(WiFi.localIP().toString().c_str(), elm_messages);                
+                if(WiFi.getMode() == WiFiMode_t::WIFI_MODE_STA)
+                    setDetails(WiFi.localIP().toString().c_str(), elm_messages);                
+                else if(WiFi.getMode() == WiFiMode_t::WIFI_MODE_AP)
+                    setDetails(WiFi.softAPIP().toString().c_str(), elm_messages);                
             } 
             else if(strcmp(_messages[_messageIdx].messageParam.c_str(), "TIME") == 0){  
                 setDetails(getCurrentTime().c_str(), elm_messages);

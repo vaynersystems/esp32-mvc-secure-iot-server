@@ -76,7 +76,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
             if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str());
-                string message = string_format("Authentication for: %s : %s", reqUsername.c_str(), info.authenticated ? "VALID" : "INVALID");
+                string message = string_format("Authentication for: %s - %s", reqUsername.c_str(), info.authenticated ? "VALID" : "INVALID");
                 logger.logInfo(message.c_str(), auth);
                 #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
                 Serial.println(message.c_str());

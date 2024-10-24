@@ -46,14 +46,23 @@
         <div class="detail">Password</div>
         <input type='password' name='password' id='password'></input>
     </div>
-    <input id="login-button" type='button' value='Login' onclick='getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value)' />
+    <input id="login-button" type='button' value='Login' />
     <div class="error" id="error"></div>
 </div>
 <script src="/W/JS/esp32_modal.js"></script>
 <script src="/W/JS/auth.js"></script>
 <script type="text/javascript">
+    window.onload = function(){
+        const loginButtonElement = document.getElementById('login-button');
+        loginButtonElement.addEventListener('click', () =>{
+            showLoading();
+            getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value);
+        });
+
+        document.addEventListener('keydown',(key) => { if(key.key == 'Enter') loginButtonElement.click()})
+    }
     // document.onkeydown = function(key){
     //     if(key.key == 'Enter') document.getElementById('login-button').click();
     // }
-    document.addEventListener('keydown',(key) => { if(key.key == 'Enter') document.getElementById('login-button').click()})
+    
 </script>

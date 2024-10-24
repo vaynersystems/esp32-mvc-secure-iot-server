@@ -33,6 +33,7 @@
                 <li id="certificates">Certificates</li>
                 <li id="backup">Backup</li>
                 <li id="restore">Restore</li>
+                <li id="factory-reset">Factory</li>
                 <li id="reset">Reset</li>
                 <li id="update-firmware">Update</li>
             </ul>
@@ -417,6 +418,16 @@
             <div class="section-content">
                 <label for="reset-button">Reset device</label>
                 <button name="reset-button" onclick="reset()">Reset</button>                
+            </div>
+        </div>
+
+        <div class="section" name="factory-reset">
+            <div class="section-header">Restore to Factory Settings</div>
+            <div class="section-content">
+                <div class="row info">This action will erase your devices, schedules, and custom configurations.</div>
+                <div style="padding-top:20px;">
+                    <button id="restoreFactory" onclick="restoreFactory();">Factory reset</button>
+                </div>                
             </div>
         </div>
 

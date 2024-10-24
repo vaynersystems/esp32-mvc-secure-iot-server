@@ -15,6 +15,12 @@
 #define PATH_DEVICE_CONFIG "/" SYSTEM_DRIVE "/INT/device_config.json"
 #define PATH_PUBLIC_PAGES "/" SYSTEM_DRIVE "/INT/public_pages.txt"
 
+
+#define PATH_FACTORY_AUTH_FILE "/" SYSTEM_DRIVE "/FACTORY/authorized.dat"
+#define PATH_FACTORY_SYSTEM_CONFIG "/" SYSTEM_DRIVE "/FACTORY/system_config.json"
+#define PATH_FACTORY_DEVICE_CONFIG "/" SYSTEM_DRIVE "/FACTORY/device_config.json"
+#define PATH_FACTORY_PUBLIC_PAGES "/" SYSTEM_DRIVE "/FACTORY/public_pages.txt"
+
 #define PUBLIC_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/public.cer"
 #define PRIVATE_TEMP_PATH "/" SYSTEM_DRIVE "/TMP/private.key"
 
@@ -33,14 +39,16 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 
 #define ENABLE_EDITOR 1
 #define SOCKET_MAX 5
-#define MIN_LOG_BYTES 1024 * 256 //min bytes free to log to a disk
+#define MIN_LOG_BYTES 1024 * 128 //min bytes free to log to a disk
+
+#define FILESYSTEM_BUFFER_SIZE 512
 
 //debug info
-// #define DEBUG 1
+ #define DEBUG 1
 // #define DEBUG_DEVICE 0
 // #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0
-// #define DEBUG_SECURITY 1
+ #define DEBUG_SECURITY 4
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0
 // #define DEBUG_LCD 1

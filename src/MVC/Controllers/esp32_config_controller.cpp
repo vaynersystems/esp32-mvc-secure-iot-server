@@ -1,5 +1,5 @@
 #include "esp32_config_controller.hpp"
-
+#include "esp32_crypt.h"
 
 
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
@@ -51,6 +51,9 @@ void esp32_config_controller::Action(HTTPRequest* request, HTTPResponse* respons
     else if (route.action.compare("ResetDevice") == 0) {
         ResetDevice(request, response);
     }
+    else if (route.action.compare("FactoryReset") == 0) {
+        FactoryReset(request, response);
+    }
     else if (route.action.compare("UploadCertificate") == 0) {
         UploadCertificate(request, response);
     }
@@ -85,6 +88,10 @@ bool esp32_config_controller::HasAction(const char * action){
     }
     
     else if (strcmp(action, "ResetDevice") == 0) {
+        return true;
+    }
+
+    else if (strcmp(action, "FactoryReset") == 0) {
         return true;
     }
 
@@ -363,7 +370,23 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     doc["public"] = docPublic;
     doc["type"] = "esp32-backup";
 
-    serializeJson(doc,*response);
+    char enc_key[33] = "12345678901234567890123456789012"; //null terminated
+    char enc_iv[17] =  "1234567890123456";
+
+    string backupData = "", backupDataEncrypted = "";
+    unsigned char * encryptedData;
+    serializeJson(doc,backupData);
+    size_t dataLength = ecrypted_string_length(backupData.c_str());
+
+    encryptedData = (unsigned char *)malloc(dataLength);
+
+    encrypt_string(backupData.c_str(), (uint8_t*)enc_key,  (uint8_t*)enc_iv, encryptedData);
+    Serial.printf("Encypted string of %d bytes to %d bytes.\n",
+        backupData.length(), dataLength
+    );
+    
+    response->write(encryptedData, dataLength);
+    delete[] encryptedData;
 
     char dispStr[128];
     sprintf(dispStr, " attachment; filename = \"%s\"", "backup.json");
@@ -376,50 +399,182 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
 {
     const int length = request->getContentLength();
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
-    DynamicJsonDocument doc(length * 2);
-    string content;
-    char * buf = new char[32];
-    while(true){
+    //DynamicJsonDocument doc(length * 2);
+    DynamicJsonDocument doc(8192);
+    DynamicJsonDocument docPublic(2048);
+    DynamicJsonDocument docSecurity(2048);
+    DynamicJsonDocument docConfig(2048);
+    DynamicJsonDocument docDevices(2048);
+    
+    unsigned char * backupDataEncrypted  = (unsigned char *)malloc(length);
+    memset((void *)backupDataEncrypted, 0, length + 1);
+    unsigned char * buf = new unsigned char[FILESYSTEM_BUFFER_SIZE];
+    size_t readLength = 0;
+    size_t fieldLength = 0;
+    while(true){            
+        readLength = request->readBytes((byte*)buf,FILESYSTEM_BUFFER_SIZE); 
+        if(readLength <= 0) continue;
+
+        memcpy(&backupDataEncrypted[fieldLength], buf, readLength);
+        fieldLength += readLength;
         
-        int bytesRead = request->readBytes((byte*)buf,32); 
-        if(bytesRead <= 0) break;       
-        content.append(buf,bytesRead);
-    }
+        if(request->requestComplete()) break;
+    }     
     delete[] buf;
 
+    Serial.printf("Decrypting string of %d bytes. Read %d bytes\n", length, fieldLength);
+
+    char enc_key[33] = "12345678901234567890123456789012"; //null terminated
+    char enc_iv[17] =  "1234567890123456";
+    unsigned char * decryptedData = (unsigned char *)malloc(length + 1);
+    memset(decryptedData, 0, length + 1);
+
+    auto decryptedLength = decrypt_string(backupDataEncrypted, length, (const char*)enc_key,  (const char*)enc_iv, decryptedData);
+    
+    Serial.printf("Decrypted string of %d bytes\n", decryptedLength);
+
     #if defined(DEBUG) && DEBUG > 0
-    Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
+    Serial.printf("Saving %i bytes to config\n", decryptedLength);
     #endif
-    auto error = deserializeJson(doc, content);
+    auto error = deserializeJson(doc, decryptedData);
+
+      
 
     if(error.code() == DeserializationError::Ok){
+        #if defined(DEBUG) && DEBUG > 0
+        Serial.println("Restoring JSON");
+        //serializeJson(doc,Serial);
+        Serial.println();
+        #endif
+         bool failed = false;
+        string secString = "";
         //if we need to apply certs do so and clear it
         if(!doc["security"].isNull()){
+            //string userStr = "";
+            //serializeJson(doc["security"], userStr);
+            JsonArray users = docSecurity.to<JsonArray>();
+            //users.set(doc["security"].as<JsonArray>());
+            // int sourceUsers = doc["security"].as<JsonArray>().size();
+            
+            for(auto user: doc["security"].as<JsonArray>()){
+                Serial.printf("Restoring user %s\n", user["username"].as<const char*>());                
+                docSecurity.add(user);
+            }
+            // int destinationUsers = docSecurity.size();
+            // Serial.printf("Copied %d users. Found %d users in copy\n", sourceUsers, destinationUsers);
+            // serializeJson(docSecurity, secString);
+
+            // Serial.println();
+            // Serial.print(secString.c_str());
+            // Serial.println();
+            //drive->rename(PATH_AUTH_FILE, PATH_AUTH_FILE ".bak");
+            File sourceFile = drive->open(PATH_AUTH_FILE);
+            File destFile = drive->open(PATH_AUTH_FILE ".b", FILE_WRITE);
+            static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
+            while( sourceFile.read( buf, FILESYSTEM_BUFFER_SIZE) ) {
+                destFile.write( buf, FILESYSTEM_BUFFER_SIZE );
+            }
+            destFile.close();
+            sourceFile.close(); 
+
+            drive->remove(PATH_AUTH_FILE);
+            
             File security = drive->open(PATH_AUTH_FILE,"w");
-            serializeJson(doc["security"], security);
+            //security.print(userStr.c_str());
+            serializeJson(docSecurity, security);           
+            Serial.printf("Serialized security (%d bytes in json) to file with %d bytes...\n", docSecurity.memoryUsage(), security.position());
             security.close();
+            
+            //test and rollback if failed
+           
+            File securityVerify = drive->open(PATH_AUTH_FILE,"r");
+            DynamicJsonDocument docSec(2048);
+            auto testError = deserializeJson(docSec, securityVerify);
+            securityVerify.close();
+            if(testError.code() != DeserializationError::Ok || docSec.isNull()){
+                failed = true;
+                Serial.printf("Error occured deserializing updated security: %s, rolling back\n", testError.c_str());
+                
+            } else{
+                Serial.printf("Sucessfully deserialized updated security: %s.\n", testError.c_str());
+                // if(sourceUsers != docSec.as<JsonArray>().size()){
+                //     Serial.printf("Error, user count %d doesn't match import %d\n", docSec.as<JsonArray>().size(), sourceUsers);
+                //     serializeJson(docSec, Serial);
+                //     Serial.println();
+                //     failed = true;                    
+                // } else{
+                    for(auto userAccount : docSec.to<JsonArray>()){
+                        if(userAccount["username"].isNull()){
+                            Serial.printf("Error, username field not found");
+                            failed = true;
+                            break;
+                        }
+                    }
+                // }
+            }
+            if(failed){ //rollback
+                File sourceFile = drive->open(PATH_AUTH_FILE ".b");
+                File destFile = drive->open(PATH_AUTH_FILE , FILE_WRITE);
+                static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
+                while( sourceFile.read( buf, FILESYSTEM_BUFFER_SIZE) ) {
+                    destFile.write( buf, FILESYSTEM_BUFFER_SIZE );
+                }
+                destFile.close();
+                sourceFile.close(); 
+                response->setStatusCode(500);   
+                Serial.println("Quitting restore!");             
+                
+            } else // commit / remove backup
+            {
+                //serializeJson(docSec, Serial);
+                Serial.println();
+                Serial.printf("Removing backup file: %s.\n", PATH_AUTH_FILE ".b");
+                drive->remove(PATH_AUTH_FILE ".b");
+            
+            }
         }
-        if(!doc["config"].isNull()){
-            File config = drive->open(PATH_SYSTEM_CONFIG,"w");
-            serializeJson(doc["config"], config);
-            config.close();
+        if(!failed && !doc["config"].isNull()){
+            Serial.println("Restoring config");
+
+            if(drive->exists(PATH_SYSTEM_CONFIG))
+                drive->remove(PATH_SYSTEM_CONFIG);
+            docConfig = doc["config"].as<JsonObject>();
+            File configFile = drive->open(PATH_SYSTEM_CONFIG,"w");
+            serializeJson(docConfig, configFile);
+            configFile.close();
+
+            Serial.println("Saved System Configuration:");
+            serializeJson(docConfig, Serial);
+            Serial.println();
         }
-        if(!doc["public"].isNull()){
-            File publicPages = drive->open(PATH_PUBLIC_PAGES,"w");
+        if(!failed && !doc["public"].isNull()){            
+            Serial.println("Restoring public pages");
+
+            File publicPagesFile = drive->open(PATH_PUBLIC_PAGES,"w");
             for(auto page: doc["public"].as<JsonArray>())
-                publicPages.println(page.as<const char*>());
-            publicPages.close();
-        }
-        if(!doc["devices"].isNull()){
-            File devices = drive->open(PATH_DEVICE_CONFIG,"w");
-            for(auto device: doc["devices"].as<JsonArray>())
-                devices.println(device.as<const char*>());
-            devices.close();
-        }
+                publicPagesFile.println(page.as<const char*>());
+            publicPagesFile.close();
 
+            Serial.println("Saved Public Pages:");
+            serializeJson(doc["public"], Serial);
+            Serial.println();
+        }
+        if(!failed && !doc["devices"].isNull()){
+            Serial.println("Restoring devices");
 
-        response->setStatusCode(200);
-        logger.logInfo(string_format("%s restored configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+            docDevices = doc["devices"];
+            File devicesFile = drive->open(PATH_DEVICE_CONFIG,"w");
+            serializeJson(docDevices, devicesFile);
+            devicesFile.close();
+
+            Serial.println("Saved Devices:");
+            serializeJson(docDevices, Serial);
+            Serial.println();
+        }
+        
+        response->setStatusCode(failed ? 500 : 200);
+        if(!failed)
+            logger.logInfo(string_format("%s restored configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
     } else{
         response->setStatusCode(500);
         // String errorText = "Error saving configuration: ";
@@ -430,4 +585,72 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
         #endif
     }    
 
+    free(decryptedData);  
+
+}
+
+
+void esp32_config_controller::FactoryReset(HTTPRequest *request, HTTPResponse *response){
+    Serial.printf("\n\n********************\n** STARTING FACTORY RESET **\n********************\n");
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+
+    if(drive->exists(PATH_SYSTEM_CONFIG))
+        drive->remove(PATH_SYSTEM_CONFIG);
+
+    if(drive->exists(PATH_DEVICE_CONFIG))
+        drive->remove(PATH_DEVICE_CONFIG);
+
+    if(drive->exists(PATH_PUBLIC_PAGES))
+        drive->remove(PATH_PUBLIC_PAGES);
+
+    
+    static uint8_t  buf[FILESYSTEM_BUFFER_SIZE];
+    //default system config
+    File sourceConfig = drive->open(PATH_FACTORY_SYSTEM_CONFIG, FILE_READ);
+    File destConfig = drive->open(PATH_SYSTEM_CONFIG, FILE_WRITE);
+
+    int bytesRead = 0;
+    while( true ) {
+        bytesRead = sourceConfig.read( buf, FILESYSTEM_BUFFER_SIZE);
+        if(bytesRead <= 0) break;
+        destConfig.write( buf, bytesRead );
+        
+    }
+    destConfig.close();
+    sourceConfig.close(); 
+
+    //default device config
+    File sourceDevice = drive->open(PATH_FACTORY_DEVICE_CONFIG, FILE_READ);
+    File destDevice = drive->open(PATH_DEVICE_CONFIG, FILE_WRITE);
+
+    
+    while( true ) {
+        bytesRead = sourceDevice.read( buf, FILESYSTEM_BUFFER_SIZE);
+        if(bytesRead <= 0) break;   
+        destDevice.write( buf, bytesRead );
+        
+    }
+    destDevice.close();
+    sourceDevice.close(); 
+
+    //default public config
+    File sourcePublic = drive->open(PATH_FACTORY_PUBLIC_PAGES, FILE_READ);
+    File destPublic = drive->open(PATH_PUBLIC_PAGES, FILE_WRITE);
+
+    while( true ) {
+        bytesRead = sourcePublic.read( buf, FILESYSTEM_BUFFER_SIZE);
+        if(bytesRead <= 0) break;
+        destPublic.write( buf, bytesRead );
+        
+    }
+    destPublic.close();
+    sourcePublic.close(); 
+
+    if(drive->exists(PATH_AUTH_FILE))
+        drive->remove(PATH_AUTH_FILE);
+
+    response->setStatusCode(200);
+    response->print("Reset");
+    Serial.println("Reset controller to factory defaults. Resetting...");
+    ESP.restart();
 }
