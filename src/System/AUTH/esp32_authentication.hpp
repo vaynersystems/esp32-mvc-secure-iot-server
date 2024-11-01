@@ -2,7 +2,6 @@
 #include "string"
 #include "System/Config.h"
 #include "System/AUTH/esp32_sha256.h"
-#include <SPIFFS.h>
 #include "ArduinoJson.h"
 #include "esp32_filesystem.hpp"
 using namespace std;

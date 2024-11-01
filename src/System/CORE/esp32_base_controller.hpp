@@ -137,13 +137,14 @@ class esp32_base_controller {
         }
 
         void LoadModel() {
+            auto disk = filesystem.getDisk(SYSTEM_DRIVE);
             std::string jsonPath = controllerTemplate.templateContentFilePath;
             jsonPath.erase(jsonPath.length() - 5);
             jsonPath.append(".json");
             int idx = jsonPath.find_last_of('/') - 1;
             jsonPath.at(idx) = 'M';//replace V with M (view with model)
-            if (!SPIFFS.exists(jsonPath.c_str())) return;//nothing to do
-            File dataFile = SPIFFS.open(jsonPath.c_str());
+            if (!disk->exists(jsonPath.c_str())) return;//nothing to do
+            File dataFile = disk->open(jsonPath.c_str());
             DynamicJsonDocument doc(dataFile.size() * 2);
             DeserializationError err = deserializeJson(doc, dataFile);
             dataFile.close();

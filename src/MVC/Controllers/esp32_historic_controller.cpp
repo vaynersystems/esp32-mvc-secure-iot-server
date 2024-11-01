@@ -12,7 +12,7 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     File f = drive->open(PATH_DEVICE_CONFIG,"r");
     if(!f){
         #if defined(DEBUG) && DEBUG > 0
-        Serial.printf("Failed to open config file on spiffs\n");
+        Serial.printf("Failed to open config file on %s\n", drive.label());
         #endif
         return;
     }

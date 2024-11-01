@@ -34,7 +34,7 @@ void esp32_mqtt_client::start()
                 certManager = new esp32_cert_nvs();        
         
         else
-            certManager = new esp32_cert_spiffs();        
+            certManager = new esp32_cert_fs();        
         
         //initialize certificates
         certManager->loadCertificates(); 
