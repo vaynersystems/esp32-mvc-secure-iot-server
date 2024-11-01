@@ -1,7 +1,6 @@
 #ifndef _ESP32_SERVER_H
 #define _ESP32_SERVER_H
 
-#include "SPIFFS.h"
 #include "../Config.h"
 
 #include "System/AUTH/ArduinoJWT.h"
@@ -19,7 +18,7 @@
 #include "esp32_socket.hpp"
 #include "esp32_config.hpp"
 #include <System/AUTH/CERT/esp32_cert_nvs.hpp>
-#include <System/AUTH/CERT/esp32_cert_spiffs.hpp>
+#include <System/AUTH/CERT/esp32_cert_fs.hpp>
 
 using namespace httpsserver;
 

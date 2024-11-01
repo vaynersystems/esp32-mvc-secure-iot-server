@@ -12,7 +12,7 @@ void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response
     File f = drive->open(PATH_SYSTEM_CONFIG,"r+w");
     if(!f){
         #if defined(DEBUG) && DEBUG > 0
-        Serial.printf("Failed to open config file on spiffs\n");
+        Serial.printf("Failed to open config file on %s\n", drive.label());
         #endif
         return;
     }

@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.6.1"
+#define FIRMWARE_VERSION "0.7.0"
 #define FIRMWARE_DATE __DATE__
 #define PROGRAM_TAG "esp32-mvc"
 
@@ -28,14 +28,7 @@
 /* SD */
 typedef enum {sd_spi, sd_mmc} sd_type;
 #define USE_SD
-#define SD_TYPE sd_mmc
-//#define SD_DISK ((SD_TYPE == sd_spi) ? SD : SD_MMC)
-// #if !defined(BOARD_HAS_SDMMC) //if board does not support sdmmc, default back to SPI
-//     #if SD_TYPE == sd_mmc
-//         #undef SD_TYPE
-//         #define SD_TYPE sd_spi
-//     #endif
-// #endif
+#define SD_TYPE sd_spi
 
 #define ENABLE_EDITOR 1
 #define SOCKET_MAX 5
@@ -44,11 +37,11 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define FILESYSTEM_BUFFER_SIZE 512
 
 //debug info
- #define DEBUG 1
+// #define DEBUG 1
 // #define DEBUG_DEVICE 0
 // #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0
- #define DEBUG_SECURITY 4
+// #define DEBUG_SECURITY 4
 // #define DEBUG_FILESYSTEM 0
 // #define DEBUG_SOCKET 0
 // #define DEBUG_LCD 1
@@ -74,8 +67,15 @@ typedef enum {sd_spi, sd_mmc} sd_type;
     #define PIN_SDA 21
     #define PIN_SCL 22
 #elif CONFIG_IDF_TARGET_ESP32S3
-    #define PIN_SDA 10
-    #define PIN_SCL 11
-#endif
+    #define PIN_SDA 11
+    #define PIN_SCL 10
 
+    #define PIN_SDMMC_DAT0 40
+    #define PIN_SDMMC_DAT1 41
+    #define PIN_SDMMC_DAT2 42
+    #define PIN_SDMMC_DAT3 47
+    #define PIN_SDMMC_CLK  38
+    #define PIN_SDMMC_CMD  39
+    
+#endif
 

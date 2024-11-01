@@ -2,10 +2,9 @@
 #define _ESP32_CERT_SPIFFS_H
 #include "esp32_cert_base.hpp"
 #include <SSLCert.hpp>
-#include "SPIFFS.h"
 #include "string_helper.h"
 
-class esp32_cert_spiffs : public esp32_cert_base{
+class esp32_cert_fs : public esp32_cert_base{
 
 public:
     inline bool hasPrivateKey();
@@ -28,8 +27,8 @@ public:
         const char* validTo);
 
 private:
-    const char *SPIFFS_PUBLIC_KEY_PATH = "/INT/cert.cer";
-    const char *SPIFFS_PRIVATE_KEY_PATH = "/INT/key.der";
+    const char *FS_PUBLIC_KEY_PATH = "/INT/cert.cer";
+    const char *FS_PRIVATE_KEY_PATH = "/INT/key.der";
 };
 
 #endif

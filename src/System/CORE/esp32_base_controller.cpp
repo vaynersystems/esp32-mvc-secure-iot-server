@@ -9,7 +9,6 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
     #ifdef DEBUG
     Serial.printf("Template file %s result %s\n", info.path().c_str(), file ? " Open " : "Failed");
     #endif
-    //File f = SPIFFS.open(string_format("%s%s", PATH_SITE_ROOT, "/T/_template.html").c_str());
     res->setStatusCode(200);
     res->setStatusText("OK");
     res->setHeader("Content-Type", "text/html");

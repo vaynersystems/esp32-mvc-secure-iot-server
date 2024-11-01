@@ -6,9 +6,14 @@
 #include "SD.h"
 #include "SPI.h"
 #include <esp32_filesystem_objects.h>
-const int CS = 10;
+#include <driver/sdmmc_host.h>
+#include <sdmmc_cmd.h>
+
 esp32_file_system filesystem;
 const char* infoTypes[] = {"SPIFFS","SD"};
+#ifdef USE_SD
+SPIClass SDSPI(FSPI);
+#endif
 bool esp32_fileio::start(){
     int retries = 0;
     if (!SPIFFS.begin(true)) {
@@ -25,21 +30,55 @@ bool esp32_fileio::start(){
     #ifdef USE_SD
 
     if(SD_TYPE == sd_type::sd_spi){
+        
+        SDSPI.begin(GPIO_NUM_38,GPIO_NUM_40, GPIO_NUM_39, GPIO_NUM_47);
         while(retries++ < 3 && !sdConnected)            
-            sdConnected = SD.begin(CS,SPI,4000000);
+            sdConnected = SD.begin(GPIO_NUM_47,SDSPI,4000000);
 
         if(!sdConnected) {
-            #ifdef DEBUG
+            //#ifdef DEBUG
             Serial.println("SD Initialization failed!");
-            #endif
+            //#endif
         } else{
             filesystem.addDisk(SD, "sd",dt_SD);   
         }
     } else if(SD_TYPE == sd_type::sd_mmc){
-        #if defined(CONFIG_IDF_TARGET_ESP32S3)
-        SD_MMC.setPins(38,39,40,41,42,47);
-        while(retries++ < 3 && !sdConnected)
-            sdConnected = SD_MMC.begin();
+        #if defined(CONFIG_IDF_TARGET_ESP32S3)      
+        
+        // sdmmc_slot_config_t slot = SDMMC_SLOT_CONFIG_DEFAULT();
+        // slot.clk = GPIO_NUM_38;
+        // slot.cmd = GPIO_NUM_39;
+        // slot.d0 =  GPIO_NUM_40;
+        // slot.d1 = GPIO_NUM_41;
+        // slot.d2 = GPIO_NUM_42;
+        // slot.d3 = GPIO_NUM_47;
+        // slot.width = 1;                
+        // slot.flags |= SDMMC_SLOT_FLAG_INTERNAL_PULLUP;        
+
+        // auto slotInitResult = sdmmc_host_init_slot(SDMMC_HOST_SLOT_0, &slot);
+        // if(slotInitResult != ESP_OK){
+        //     Serial.printf("SD MMC Slot Init falied: 0x%04X\n", slotInitResult);
+        // } else{
+        //     sdmmc_host_t host = SDMMC_HOST_DEFAULT();
+        //     host.max_freq_khz = 400;
+           
+        //     sdmmc_card_t card;
+        //     auto cardInitResult = sdmmc_card_init(&host, &card);
+
+        //     if((cardInitResult != ESP_OK)){
+        //         Serial.printf("SD MMC Card Init falied: 0x%04X\n", cardInitResult);
+        //     }
+        //     else{
+        //         Serial.printf("SD MMC Initialized\n");
+        //     }            
+        // }
+
+        SD_MMC.setPins(PIN_SDMMC_CLK, PIN_SDMMC_CMD, PIN_SDMMC_DAT0,PIN_SDMMC_DAT1,PIN_SDMMC_DAT2,PIN_SDMMC_DAT3);        
+        
+        while(retries++ < 3 && !sdConnected){
+            sdConnected = SD_MMC.begin("/sd", true);
+            delay(200);
+        }
 
         if(!sdConnected) {
             #ifdef DEBUG
