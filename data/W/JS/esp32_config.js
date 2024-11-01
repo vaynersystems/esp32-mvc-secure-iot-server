@@ -247,6 +247,8 @@ function loadSettings(){
     const hostNameElement = document.getElementById('host-name');
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    const enableEditorElement = document.getElementById('enable-editor');
+    const enableFingerprintsElement = document.getElementById('enable-fingerprints');
     const mqttConstraintsElement = document.getElementById('mqtt-constraints-warning');
     const mqttPublishSectionElement = document.getElementById('mqtt-publish-section');
     
@@ -272,6 +274,11 @@ function loadSettings(){
 
     if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
     if(hostEnableMDNSElement !== null) hostEnableMDNSElement.checked = activeConfig.system.enableMDNS;
+
+    if(enableEditorElement !== null) enableEditorElement.checked = activeConfig.system.features.enableEditor;
+    if(enableFingerprintsElement !== null) enableFingerprintsElement.checked = activeConfig.system.features.enableFingerprints;
+
+    
 
     if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
@@ -360,6 +367,9 @@ function seveSettingsFromForm(){
     config.system.ntp.timezone = document.getElementById('time-zone').value;
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+
+    const enableEditorElement = document.getElementById('enable-editor');
+    const enableFingerprintsElement = document.getElementById('enable-fingerprints');
    
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     const loggingRetentionElement = document.getElementById('logging-retention');
@@ -372,8 +382,11 @@ function seveSettingsFromForm(){
     const mqttSubscribeEnabledElement = document.getElementById('mqtt-subscribe-enabled');
     
     
-    if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
-    if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
+    if(hostEnableSSLElement !== null) config.system.enableSSL = hostEnableSSLElement.checked;
+    if(hostEnableMDNSElement !== null) config.system.enableMDNS = hostEnableMDNSElement.checked;
+
+    if(enableEditorElement !== null) config.system.features.enableEditor = enableEditorElement.checked;
+    if(enableFingerprintsElement !== null) config.system.features.enableFingerprints = enableFingerprintsElement.checked;
 
     if(loggingFrequencyElement !== null) activeConfig.system.logging.frequency = loggingFrequencyElement.value;
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
@@ -766,6 +779,11 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.mqtt.port = 8883;
     }
 
+    if(persistedConfig.system.features === undefined){
+        persistedConfig.system.features = {};
+        persistedConfig.system.features.enableEditor = true;
+        persistedConfig.system.features.enableFingerprints = false;
+    }
     if(persistedConfig.server === undefined)
         persistedConfig.server = {};
 
@@ -789,6 +807,8 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('host-enable-mdns');
     invalidateOnChange('host-name');
 
+    invalidateOnChange('enable-editor');
+    invalidateOnChange('enable-fingerprints');
 
     invalidateOnChange('network-mode');
     invalidateOnChange('wifi-network');

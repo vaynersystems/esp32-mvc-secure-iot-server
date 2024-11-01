@@ -47,46 +47,7 @@
         margin: 5px 5px 0 0;
     }
     
-    @media screen and (min-width:700px) {
-        .menu-item ul li{
-            i{
-                display: none;
-            }
-            span{
-                display: block;
-                }        
-        }
     
-    }
-    @media screen and (max-width:699px) {
-        .menu-item ul li{
-            padding: 4px 2px;
-            i{
-                display: block;
-                font-size: 2.5em;
-                padding: .25em;
-            }
-            span{
-                display: none;
-            }
-        } 
-        .config-menu{
-            min-width: 55px;
-
-        }
-        .menu-header{
-            display: none;
-        }
-        .menu-item{
-            padding: 15px 0px;
-        }
-        .content{
-            padding: 20px 0;
-        }
-        .pending-changes{
-            font-size: 13px;
-        }
-    }
 </style>
 <div class="config-view">
 
@@ -134,66 +95,9 @@
     configurationSting = `$_DEVICE_DATA`; 
     if(configurationSting[0] == '$'){
         configurationSting = `{
-            "devices":
-                [
-                    {
-                        "id": "1",
-                        "name": "Pool thermometer",
-                        "type": "Thermometer",
-                        "pin": "32",
-                        "signal": "high"
-                    },
-                    {
-                        "id": "2",
-                        "name": "Pool Pump",
-                        "type": "Switch",
-                        "pin": "25",
-                        "signal": "high",
-                        "trigger": {
-                            "active": true,
-                            "source": "1",
-                            "type": "<",
-                            "value": "75",
-                            "threshold": "5"
-                        }
-                    },
-                    {
-                        "id": "3",
-                        "name": "Pool Heater",
-                        "type": "Switch",
-                        "pin": "26",
-                        "signal": "high",
-                        "trigger": {
-                            "active": true,
-                            "source": 2,
-                            "type": "=",
-                            "value": "1",
-                            "threshold": ""
-                        }
-                    }
-                ],
-            "schedules": [
-                {
-                    "name": "Summer Week",
-                    "devices": [
-                        "1",
-                        "2",
-                        "3"
-                    ],
-                    "days": [
-                        "1",
-                        "2",
-                        "3",
-                        "4",
-                        "5"
-                    ],
-                    "start": "06:30",
-                    "end": "10:00",
-                    "id": 1
-                    }
-            ]
-            }
-            `;
+            "devices": [],
+            "schedules": []
+        }`;
     }   
     if(configurationSting.length > 10 && configurationSting[0] !== '$'){
         persistedDevices = JSON.parse(configurationSting);

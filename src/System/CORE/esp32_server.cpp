@@ -31,7 +31,7 @@ bool esp32_server::start() {
             _certManager = new esp32_cert_nvs();        
     
     else
-        _certManager = new esp32_cert_spiffs();        
+        _certManager = new esp32_cert_fs();        
     
     //initialize certificates
     _certManager->loadCertificates();   
@@ -58,18 +58,23 @@ bool esp32_server::start() {
     middleware->middlewareSetTokenizer((char*)_certManager->getCert()->getPKData());
     //load exclusions list
     middleware->initPublicPages();
-    //_router->RegisterHandlers(SPIFFS, PATH_SITE_ROOT, 3);
     _router->RegisterHandler( "/", HTTPMETHOD_GET, &esp32_router::handleRoot);
 
     _router->RegisterHandler( "/list", HTTPMETHOD_GET, &esp32_router::handleFileList);
     _router->RegisterHandler( "/logout", HTTPMETHOD_GET, &esp32_router::dummyPageHandler);
     
     //edit page handler.
-    //TODO: add system config variable to control if handlers are registered
-    _router->RegisterHandler( "/edit", HTTPMETHOD_GET, &esp32_router::handleEditor);
-    _router->RegisterHandler( "/edit", HTTPMETHOD_PUT, &esp32_router::handleFileUpload);
-    _router->RegisterHandler( "/edit", HTTPMETHOD_POST, &esp32_router::handleFileUpload);
-    _router->RegisterHandler( "/edit", HTTPMETHOD_DELETE, &esp32_router::handleFileUpload);    
+    bool enableEditor = true;
+    if(!systemConfig["features"].isNull()){
+        if(!systemConfig["features"]["enableEditor"].isNull())
+            enableEditor = systemConfig["features"]["enableEditor"].as<bool>();
+    }
+    if(enableEditor){
+        _router->RegisterHandler( "/edit", HTTPMETHOD_GET, &esp32_router::handleEditor);
+        _router->RegisterHandler( "/edit", HTTPMETHOD_PUT, &esp32_router::handleFileUpload);
+        _router->RegisterHandler( "/edit", HTTPMETHOD_POST, &esp32_router::handleFileUpload);
+        _router->RegisterHandler( "/edit", HTTPMETHOD_DELETE, &esp32_router::handleFileUpload);            
+    }
     
     ResourceNode* node404 = new ResourceNode("", "GET", &esp32_router::handle404);
     ResourceNode* nodeRoot = new ResourceNode("", "GET", &esp32_router::handleRoot);
@@ -127,20 +132,7 @@ void esp32_server::step()
     if(_restartMillis > 0 && (esp_timer_get_time()/1000) > _restartMillis) {
         logger.logInfo("Restarting controller due to configuration 'restartAfter' parameter.");
         esp_restart();
-    } 
-
-    if(_lastReporStatus + 10000 < millis()){
-        _lastReporStatus = millis();
-        // Serial.printf("Server Staus: %s.\nSecure Server Status %s\n",
-        //     unsecureServer->isRunning() ? "Running" : "Stopped",
-        //     secureServer->isRunning() ? "Running" : "Stopped"
-        // );
-        Serial.printf("Server Staus: %s.\nSecure Server Status %s\n",
-            unsecureServer->hasActiveSocket() ? "Running" : "Stopped",
-            secureServer->hasActiveSocket() ? "Running" : "Stopped"
-        );
-    }
-        
+    }         
 }
 
 void esp32_server::registerNode(HTTPNode *node)
@@ -166,9 +158,9 @@ bool esp32_server::importCertFromTemporaryStorage()
 /// @param validTo format is YYYYMMDDHHMMSS
 void esp32_server::generateCertificate(const char *deviceName, const char *companyName, const char *validFrom, const char *validTo)
 {
-    esp32_cert_spiffs *spiffsCertManager = new esp32_cert_spiffs();
-    spiffsCertManager->generateTemporaryCertificate(deviceName, companyName, validFrom, validTo);    
+    esp32_cert_fs *fsCertManager = new esp32_cert_fs();
+    fsCertManager->generateTemporaryCertificate(deviceName, companyName, validFrom, validTo);    
 
-    delete spiffsCertManager;
+    delete fsCertManager;
 }
 

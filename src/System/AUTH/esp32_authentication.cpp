@@ -99,10 +99,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
 
-    if(error){
-        //if("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
-    }else {
+    if(!error){
         JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
 
         if(!existingUser.isNull()){
@@ -205,7 +202,6 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
  
     if(error){
         Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
         return false;
     }
     #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 3
