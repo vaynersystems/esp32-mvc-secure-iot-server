@@ -29,7 +29,7 @@ extern esp32_pin_manager pinManager;
 class esp32_devices{
 
 public:
-    /// @brief Load device configuration from SPIFFS volume
+    /// @brief Load device configuration from system FS volume
     esp32_devices(){};
     void onInit();
 

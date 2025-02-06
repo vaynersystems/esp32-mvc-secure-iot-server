@@ -37,7 +37,7 @@ bool esp32_cert_nvs::hasPublicCert()
 void esp32_cert_nvs::loadCertificates()
 {   
     //generateCert("esp32-dev","Fun company"); return;
-    //get public and private keys from spiffs. get lengths, generate new cert object
+    //get public and private keys from system disk. get lengths, generate new cert object
     if(!hasPublicCert() || !hasPrivateKey()) {
         generateCert("esp32-dev","Fun company");
         return;

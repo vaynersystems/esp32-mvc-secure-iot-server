@@ -25,30 +25,6 @@ body{
     overflow: auto;
     margin-right: 11px;
 }
-.menu-item{
-   
-    /* color:#fff; */
-    font-size: 20px;
-    padding:15px 10px;    
-}
-.menu-item ul{
-    list-style: none;
-    margin: 0px;
-    padding: 5px 0px;
-}
-.menu-item li{
-    padding: 4px 13px;
-    font-size: 14px;
-}
-.menu-item .selected{
-    background-color: var(--secondary-background);
-    color: var(--secondary-color);
-}
-.menu-item li:hover{
-    background-color: var(--secondary-background);
-    color: var(--secondary-color);
-    cursor: pointer;
-}
 #config-content{
     display: flex;
     flex-grow: 1;
@@ -57,27 +33,6 @@ body{
 }
 
 
-.section-collection{
-    display: none;
-}
-.section{
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;                
-    overflow-x: scroll;
-}
-.section-content{
-    overflow-y: auto;
-    display: flex;
-    flex-direction: column;
-}
-.section-header{
-    font-size: 20px;
-    border-radius: 0 10px 0 0;
-    color: var(--primary-color);
-    background-color: var(--primary-background);
-    padding: 10px;
-}
 
 .config-content, #config-content{
     display: flex;
@@ -97,46 +52,6 @@ body{
     margin: 5px 5px 0 0;
 }
 
-#error{
-    color:red;
-}
-.wait{
-    margin: 0 15px;
-    width: 4px;
-    height: 16px;
-    border-radius: 10px;
-    background: #cef13d;
-    -webkit-animation-name: spin;
-    -webkit-animation-duration: 4000ms;
-    -webkit-animation-iteration-count: infinite;
-    -webkit-animation-timing-function: linear;
-    -moz-animation-name: spin;
-    -moz-animation-duration: 4000ms;
-    -moz-animation-iteration-count: infinite;
-    -moz-animation-timing-function: linear;
-    -ms-animation-name: spin;
-    -ms-animation-duration: 4000ms;
-    -ms-animation-iteration-count: infinite;
-    -ms-animation-timing-function: linear;
-    
-    animation-name: spin;
-    animation-duration: 4000ms;
-    animation-iteration-count: infinite;
-    animation-timing-function: linear;
-    display: none;
-}
-@-moz-keyframes spin {
-    from { -moz-transform: rotate(0deg); }
-    to { -moz-transform: rotate(360deg); }
-}
-@-webkit-keyframes spin {
-    from { -webkit-transform: rotate(0deg); }
-    to { -webkit-transform: rotate(360deg); }
-}
-@keyframes spin {
-    from {transform:rotate(0deg);}
-    to {transform:rotate(360deg);}
-}
 
 #device-list{
     flex-grow: 1;

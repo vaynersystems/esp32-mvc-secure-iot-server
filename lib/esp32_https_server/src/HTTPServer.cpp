@@ -47,7 +47,9 @@ uint8_t HTTPServer::start() {
 bool HTTPServer::isRunning() {
   return _running;
 }
-
+bool HTTPServer::hasActiveSocket() {
+  return _socket != NULL;
+}
 /**
  * This method stops the server
  */

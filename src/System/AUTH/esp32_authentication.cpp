@@ -24,6 +24,7 @@ esp32_user_auth_info esp32_authentication::authenticateUser(const char* username
         #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 0
         Serial.println("Authorization file does not exist..");
         #endif
+
         if(strlen(password) == 64) //ecoded password, must reject
             return info;
         if(strlen(username) < 3 || strlen(username) > 32) return info;
@@ -98,10 +99,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
     DeserializationError error = deserializeJson(doc, authFile);
     authFile.close();
 
-    if(error){
-        //if("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
-    }else {
+    if(!error){
         JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
 
         if(!existingUser.isNull()){
@@ -203,10 +201,12 @@ bool esp32_authentication::verifyPassword(const char* username, const char* pass
     authFile.close();
  
     if(error){
-        //Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
-        //SPIFFS.remove(PATH_AUTH_FILE);
+        Serial.printf("Error occured deserializing authorization file: [%i]%s\n", error.code(), error.c_str()); 
         return false;
     }
+    #if defined(DEBUG_SECURITY) && DEBUG_SECURITY > 3
+        serializeJson(doc,Serial);
+    #endif
 
     JsonVariant existingUser = findUser(doc.as<JsonArray>(),username);
  

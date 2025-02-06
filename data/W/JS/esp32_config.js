@@ -247,6 +247,8 @@ function loadSettings(){
     const hostNameElement = document.getElementById('host-name');
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+    const enableEditorElement = document.getElementById('enable-editor');
+    const enableFingerprintsElement = document.getElementById('enable-fingerprints');
     const mqttConstraintsElement = document.getElementById('mqtt-constraints-warning');
     const mqttPublishSectionElement = document.getElementById('mqtt-publish-section');
     
@@ -272,6 +274,11 @@ function loadSettings(){
 
     if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
     if(hostEnableMDNSElement !== null) hostEnableMDNSElement.checked = activeConfig.system.enableMDNS;
+
+    if(enableEditorElement !== null) enableEditorElement.checked = activeConfig.system.features.enableEditor;
+    if(enableFingerprintsElement !== null) enableFingerprintsElement.checked = activeConfig.system.features.enableFingerprints;
+
+    
 
     if(loggingFrequencyElement !== null) loggingFrequencyElement.value = activeConfig.system.logging.frequency;
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
@@ -349,8 +356,8 @@ function seveSettingsFromForm(){
     var config = persistedConfig;
    
     //schedules
-    if(config.schedules === undefined)
-        config.schedules = [];
+    // if(config.schedules === undefined)
+    //     config.schedules = [];
 
     //system
     if(config.system === undefined)
@@ -360,6 +367,9 @@ function seveSettingsFromForm(){
     config.system.ntp.timezone = document.getElementById('time-zone').value;
     const hostEnableSSLElement = document.getElementById('host-enable-ssl');
     const hostEnableMDNSElement = document.getElementById('host-enable-mdns');
+
+    const enableEditorElement = document.getElementById('enable-editor');
+    const enableFingerprintsElement = document.getElementById('enable-fingerprints');
    
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
     const loggingRetentionElement = document.getElementById('logging-retention');
@@ -372,8 +382,11 @@ function seveSettingsFromForm(){
     const mqttSubscribeEnabledElement = document.getElementById('mqtt-subscribe-enabled');
     
     
-    if(hostEnableSSLElement !== null) config.system.enableSSL = document.getElementById('host-enable-ssl').checked;
-    if(hostEnableMDNSElement !== null) config.system.enableMDNS = document.getElementById('host-enable-mdns').checked;
+    if(hostEnableSSLElement !== null) config.system.enableSSL = hostEnableSSLElement.checked;
+    if(hostEnableMDNSElement !== null) config.system.enableMDNS = hostEnableMDNSElement.checked;
+
+    if(enableEditorElement !== null) config.system.features.enableEditor = enableEditorElement.checked;
+    if(enableFingerprintsElement !== null) config.system.features.enableFingerprints = enableFingerprintsElement.checked;
 
     if(loggingFrequencyElement !== null) activeConfig.system.logging.frequency = loggingFrequencyElement.value;
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
@@ -459,7 +472,7 @@ function saveSettings(config){
             var response = request.responseText;
             if(request.status == 200){
                 pendingChanges = false;
-                showModal('Settings saved sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', 
+                showModal('ESP32 Settings Saved', 'Settings saved sucessfully. \nRestart device to apply settings? '
                 [
                     {text:'No',action: () => { closeModal();} }, 
                     {
@@ -497,6 +510,26 @@ function reload(){
     }, 5000))
     ;
 }
+
+function restoreFactory(){
+    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+    const url = base + "/" + 'FactoryReset';
+    const confirmed = confirm("Are you sure you want to overwrite all of your settings?");
+    if(!confirmed) return;
+    showLoading();
+    fetch(url)
+    .then(() => {
+        hideLoading();
+        window.location.href = '/';
+        
+    })
+    .catch( () => {
+        console.error('Failed to reload after factory restore');
+        hideLoading(); //reload
+        window.location.reload();
+    } );
+}
+
 
 function updateFirmware(){
     var input = document.getElementById("updateFirmware");
@@ -547,7 +580,7 @@ function updateFirmware(){
 
                                 ]);
                             } else if(request.status = 500){
-                                showModal('ESP32 Firmware Update Failed', 'Firmware update failed!',
+                                showModal( 'Firmware update failed!','ESP32 Firmware Update Failed',
                                     [
                                         {text:'Ok',action: () => { closeModal();} }
                                     ]);
@@ -574,54 +607,46 @@ function restoreSettings() {
             alert("You did not select any file to restore");
         } else {
             reader.onload = function () {
-                var json;
-                try {
-                    json = JSON.parse(reader.result);
-                } catch (e) {
-                    alert("Not a valid backup file");
-                    return;
-                }
-                if (json.type === "esp32-backup") {
-                    var writeToDevice = confirm("You are about to overwrite your device settings. Are you sure you want to continue?");
-                    if(writeToDevice){
-                        console.log('calling backend to restore from backup ', json);
-                        const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
-                        const url = base + "/" + 'Restore';
-                        request.open("POST", url, true);
-                        request.setRequestHeader("Content-type", "application/json");
-                        request.onreadystatechange = function () {
-                            if (request.readyState == request.DONE) {
-                                hideLoading();
-                                //hideWait('page');
-                                if (request.status == 401) {
-                                    showModal('<p class="error">' + request.statusText + '</p>', 'Unauthorized');                
-                                    return;
-                                }
-                                var response = request.responseText;
-                                if(request.status == 200){
-                                    pendingChanges = false;
-                                    showModal('Settings restored sucessfully. \nRestart device to apply settings? ','ESP32 Settings Saved', 
-                                    [
-                                        {text:'No',action: () => { closeModal();} }, 
-                                        {
-                                            text:'Yes', 
-                                            action: () => {
-                                                reset(true);closeModal(); 
-                                                setTimeout( reload,5000)
-                                            }
-                                        }
-
-                                    ]);
-                                }
-                                                
+                var writeToDevice = confirm("You are about to overwrite your device settings. Are you sure you want to continue?");
+                if(writeToDevice){
+                    console.log('calling backend to restore from backup ', reader.result);
+                    const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
+                    const url = base + "/" + 'Restore';
+                    request.open("POST", url, true);
+                    request.setRequestHeader("Content-type", "application/octet-stream");
+                    request.onreadystatechange = function () {
+                        if (request.readyState == request.DONE) {
+                            hideLoading();
+                            //hideWait('page');
+                            if (request.status == 401) {
+                                showModal('<p>Error Occured: Unauthorized </p><p class="error">' + request.statusText + '</p>', 'Unauthorized');                
+                                return;
                             }
+                            var response = request.responseText;
+                            if(request.status == 200){
+                                pendingChanges = false;
+                                showModal('ESP32 Settings Saved', 'Settings restored sucessfully. \nRestart device to apply settings? ',
+                                [
+                                    {text:'No',action: () => { closeModal();} }, 
+                                    {
+                                        text:'Yes', 
+                                        action: () => {
+                                            reset(true);closeModal(); 
+                                            setTimeout( reload,5000)
+                                        }
+                                    }
+
+                                ]);
+                            }
+                                            
                         }
-                        request.send(JSON.stringify(json));
                     }
+                    request.send(reader.result);
+                //     }
                         
                 }
             };
-            reader.readAsText(input.files[0]);
+            reader.readAsArrayBuffer(input.files[0]);
         }
     }
 }
@@ -718,9 +743,9 @@ function esp32_config_init(configDataSting){
         persistedConfig.type = 'esp32-config';
     }
 
-    if(persistedConfig.devices === undefined){
-        persistedConfig.devices = [];
-    }
+    // if(persistedConfig.devices === undefined){
+    //     persistedConfig.devices = [];
+    // }
 
     if(persistedConfig.wifi === undefined || persistedConfig.wifi.mode === undefined){
         persistedConfig.wifi = {};
@@ -754,6 +779,11 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.mqtt.port = 8883;
     }
 
+    if(persistedConfig.system.features === undefined){
+        persistedConfig.system.features = {};
+        persistedConfig.system.features.enableEditor = true;
+        persistedConfig.system.features.enableFingerprints = false;
+    }
     if(persistedConfig.server === undefined)
         persistedConfig.server = {};
 
@@ -777,6 +807,8 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('host-enable-mdns');
     invalidateOnChange('host-name');
 
+    invalidateOnChange('enable-editor');
+    invalidateOnChange('enable-fingerprints');
 
     invalidateOnChange('network-mode');
     invalidateOnChange('wifi-network');

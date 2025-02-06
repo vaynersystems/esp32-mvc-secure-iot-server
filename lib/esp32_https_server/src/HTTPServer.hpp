@@ -35,6 +35,7 @@ public:
   uint8_t start();
   void stop();
   bool isRunning();
+  bool hasActiveSocket();
 
   void loop();
 

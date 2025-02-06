@@ -20,6 +20,7 @@
             <div class="menu-header">System</div>
             <ul>
                 <li id="system">General</li>
+                <li id="features">Features</li>
                 <li id="logging">Logging</li>
                 <li id="mqtt">MQTT</li>
                 <li id="ntp">NTP</li>
@@ -33,6 +34,7 @@
                 <li id="certificates">Certificates</li>
                 <li id="backup">Backup</li>
                 <li id="restore">Restore</li>
+                <li id="factory-reset">Factory</li>
                 <li id="reset">Reset</li>
                 <li id="update-firmware">Update</li>
             </ul>
@@ -156,6 +158,19 @@
                 <div class="grid-2">
                     <span>Enable MDNS</span>
                     <input type="checkbox" name="host-enable-mdns" id="host-enable-mdns"/>                        
+                </div>                           
+            </div>
+        </div>
+        <div class="section" name="features">
+            <div class="section-header">Features</div>
+            <div class="section-content">                
+                <div class="grid-2">
+                    <span>Enable Editor</span>
+                    <input type="checkbox" name="enable-editor" id="enable-editor"/>                        
+                </div> 
+                <div class="grid-2">
+                    <span>Enable Fingerprints</span>
+                    <input type="checkbox" name="enable-fingerprints" id="enable-fingerprints"/>                        
                 </div>                           
             </div>
         </div>
@@ -385,6 +400,12 @@
                     It is the default, but if security is paramount, use SPIFFS store and be sure to encrypt your flash when building.
                 </div>
 
+                <div class="hint">
+                    <p>Backups are encrypted using your private key.</p>
+                    <p>If you you change the device's certificate, previous backups will be invalidated.</p>
+    
+                </div>
+                
                 <div class="grid-2">
                     <div>I want to </div>
                     <div class="row">
@@ -401,6 +422,11 @@
 
         <div class="section" name="backup">
             <div class="section-header">Backup</div>
+            <div class="hint">
+                <p>Backups are encrypted using your private key.</p>
+                <p>If you you change the device's certificate, previous backups will be invalidated.</p>
+
+            </div>
             <div class="section-content">
                 <a href="esp32_config/Backup" download="backup.dat" target="_blank">Download a copy</a> of your configuration so you can restore.
             </div>
@@ -417,6 +443,16 @@
             <div class="section-content">
                 <label for="reset-button">Reset device</label>
                 <button name="reset-button" onclick="reset()">Reset</button>                
+            </div>
+        </div>
+
+        <div class="section" name="factory-reset">
+            <div class="section-header">Restore to Factory Settings</div>
+            <div class="section-content">
+                <div class="row info">This action will erase your devices, schedules, and custom configurations.</div>
+                <div style="padding-top:20px;">
+                    <button id="restoreFactory" onclick="restoreFactory();">Factory reset</button>
+                </div>                
             </div>
         </div>
 
