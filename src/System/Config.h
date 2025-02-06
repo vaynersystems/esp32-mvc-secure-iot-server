@@ -1,6 +1,6 @@
 #pragma once
 
-#define FIRMWARE_VERSION "0.7.0"
+#define FIRMWARE_VERSION "0.7.1"
 #define FIRMWARE_DATE __DATE__
 #define PROGRAM_TAG "esp32-mvc"
 
@@ -67,8 +67,8 @@ typedef enum {sd_spi, sd_mmc} sd_type;
     #define PIN_SDA 21
     #define PIN_SCL 22
 #elif CONFIG_IDF_TARGET_ESP32S3
-    #define PIN_SDA 11
-    #define PIN_SCL 10
+    #define PIN_SDA 13
+    #define PIN_SCL 12
 
     #define PIN_SDMMC_DAT0 40
     #define PIN_SDMMC_DAT1 41
