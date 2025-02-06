@@ -1,0 +1,33 @@
+{
+  "wifi": {
+    "mode": "client",
+    "dhcp": true,
+    "network": "dd-wrt",
+    "password": "4409420820"
+  },
+  "type": "esp32-config",
+  "preferences": {
+    "lastPage": "logging"
+  },
+  "system": {
+    "hostname": "ESP32-HOST",
+    "ntp": {
+      "server": "us.pool.ntp.org",
+      "timezone": "-5"
+    },
+    "logging": {
+      "frequency": "300",
+      "retention": "2",
+      "level": 2,
+      "location": "0"
+    },
+    "enableSSL": true,
+    "enableMDNS": true
+  },
+  "server": {
+    "disableWifiTimer": "never",
+    "certificates": {
+      "source": "nvs"
+    }
+  }
+}
