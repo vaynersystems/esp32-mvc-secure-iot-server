@@ -130,7 +130,7 @@ void esp32_system_start(){
     lcd.setDetails("Starting disk management..");
     disk.start();    
 
-    // //Connect to wifi
+    //Connect to wifi
     lcd.setDetails("Connecting to Wifi..");
     wifi.start();   
     
@@ -148,12 +148,12 @@ void esp32_system_start(){
     lcd.setDetails("Init MQTT");
     //Create MQTT Client
     xTaskCreate(mqttClientTask, "mqttclient",MQTT_CLIENT_STACK_SIZE, NULL, tskIDLE_PRIORITY, mqttClientTaskHandle);
-    //example use of psram
-    //byte* psram = (uint8_t*)ps_calloc(100000, sizeof(uint32_t));
+   
+    //Register shutdown handler
     esp_register_shutdown_handler(onShutdown);
 
-    logger.logInfo(string_format("System started @ %s\n", getCurrentTime().c_str()));
-    
+    //Done
+    logger.logInfo(string_format("System started @ %s\n", getCurrentTime().c_str()));    
     lcd.set("System started",getCurrentTime().c_str());
 
 }
