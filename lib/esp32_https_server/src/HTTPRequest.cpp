@@ -113,11 +113,34 @@ bool HTTPRequest::requestComplete() {
 /**
  * This function will drop whatever is remaining of the request body
  */
-void HTTPRequest::discardRequestBody() {
-  byte buf[16];
+#ifndef HTTPS_DISCARD_BODY_TIMEOUT_MS
+#define HTTPS_DISCARD_BODY_TIMEOUT_MS 2000
+#endif
+#ifndef HTTPS_DISCARD_BODY_MAX_BYTES
+#define HTTPS_DISCARD_BODY_MAX_BYTES 65536
+#endif
+
+/**
+ * Skips an unread request body. Bounded in time and size: a client that announced a body and
+ * never sent it (or a huge/negative Content-Length) used to keep this loop - and with it the whole
+ * server task - spinning forever. Returns false if the body was not fully consumed; the caller
+ * must then close the connection rather than parse leftover body bytes as the next request.
+ */
+bool HTTPRequest::discardRequestBody() {
+  byte buf[64];
+  unsigned long start = millis();
+  size_t discarded = 0;
   while(!requestComplete()) {
-    readBytes(buf, 16);
+    if (millis() - start > HTTPS_DISCARD_BODY_TIMEOUT_MS || discarded > HTTPS_DISCARD_BODY_MAX_BYTES) {
+      return false;
+    }
+    size_t got = readBytes(buf, sizeof(buf));
+    if (got == 0) {
+      delay(2);
+    }
+    discarded += got;
   }
+  return true;
 }
 
 std::string HTTPRequest::getBasicAuthUser() {

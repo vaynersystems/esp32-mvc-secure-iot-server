@@ -1,5 +1,10 @@
 #include "HTTPConnection.hpp"
 
+// Longest a single socket read/write may wait for the client.
+#ifndef HTTPS_SOCKET_IO_TIMEOUT_MS
+#define HTTPS_SOCKET_IO_TIMEOUT_MS 3000
+#endif
+
 namespace httpsserver {
 
 HTTPConnection::HTTPConnection(ResourceResolver * resResolver):
@@ -38,10 +43,18 @@ int HTTPConnection::initialize(int serverSocketID, HTTPHeaders *defaultHeaders) 
 
     // Build up SSL Connection context if the socket has been created successfully
     if (_socket >= 0) {
-      HTTPS_LOGI("New connection. Socket FID=%d", _socket);
+      HTTPS_LOGI("New %s connection. Socket FID=%d", isSecure() ? "HTTPS" : "HTTP", _socket);
+      // The server handles every connection from one task, so a client that stops
+      // reading or writing must not be able to block it forever.
+      struct timeval ioTimeout;
+      ioTimeout.tv_sec = HTTPS_SOCKET_IO_TIMEOUT_MS / 1000;
+      ioTimeout.tv_usec = (HTTPS_SOCKET_IO_TIMEOUT_MS % 1000) * 1000;
+      setsockopt(_socket, SOL_SOCKET, SO_RCVTIMEO, &ioTimeout, sizeof(ioTimeout));
+      setsockopt(_socket, SOL_SOCKET, SO_SNDTIMEO, &ioTimeout, sizeof(ioTimeout));
       _connectionState = STATE_INITIAL;
       _httpHeaders = new HTTPHeaders();
       refreshTimeout();
+      _openedAt = millis();
       return _socket;
     }
      
@@ -219,6 +232,20 @@ int HTTPConnection::updateBuffer() {
   return 0;
 }
 
+void HTTPConnection::evict() {
+  if (_connectionState == STATE_WEBSOCKET && _wsHandler != nullptr) {
+    _wsHandler->onClose();
+    delete _wsHandler;
+    _wsHandler = nullptr;
+  }
+  closeConnection();
+}
+
+bool HTTPConnection::isIdleKeepAlive() {
+  return _requestsServed > 0 && _connectionState == STATE_INITIAL && !isClosed() &&
+         _bufferProcessed == _bufferUnusedIdx && _parserLine.text.empty() && !canReadData();
+}
+
 bool HTTPConnection::canReadData() {
   fd_set sockfds;
   FD_ZERO( &sockfds );
@@ -329,6 +356,10 @@ void HTTPConnection::readLine(int lengthLimit) {
           return;
         }
       }
+      // The \r is the last byte received so far: its \n is still on the way. Return and
+      // continue next round. (This used to loop here forever - neither branch consumed the
+      // \r - freezing the whole server whenever a request split right after a \r.)
+      return;
     } else {
       _parserLine.text += newChar;
       _bufferProcessed += 1;
@@ -409,6 +440,9 @@ void HTTPConnection::loop() {
           break;
         }
         _httpResource = _parserLine.text.substr(spaceAfterMethodIdx + 1, spaceAfterResourceIdx - _httpMethod.length() - 1);
+        _httpVersion11 = _parserLine.text.compare(spaceAfterResourceIdx + 1, std::string::npos, "HTTP/1.1") == 0;
+        _headerCount = 0;
+        _headerBytes = 0;
 
         _parserLine.parsingFinished = false;
         _parserLine.text = "";
@@ -421,6 +455,8 @@ void HTTPConnection::loop() {
 
       while (_bufferProcessed < _bufferUnusedIdx && !isClosed()) {
         readLine(HTTPS_REQUEST_MAX_HEADER_LENGTH);
+        // Line not complete yet (it ends in a \r whose \n has not arrived): wait for more data.
+        if (!_parserLine.parsingFinished) break;
         if (_parserLine.parsingFinished && _connectionState != STATE_ERROR) {
 
           if (_parserLine.text.empty()) {
@@ -432,6 +468,13 @@ void HTTPConnection::loop() {
             _parserLine.text = "";
             break;
           } else {
+            // Unbounded headers let one client exhaust the heap (each new name is allocated).
+            _headerBytes += _parserLine.text.length() + 2;
+            if (++_headerCount > HTTPS_REQUEST_MAX_HEADERS || _headerBytes > HTTPS_REQUEST_MAX_HEADER_BYTES) {
+              HTTPS_LOGW("Too many or too large request headers. FID=%d", _socket);
+              raiseError(431, "Request Header Fields Too Large");
+              break;
+            }
             int idxColon = _parserLine.text.find(':');
             if ( (idxColon != std::string::npos) && (_parserLine.text[idxColon+1]==' ') ) {
               _httpHeaders->set(new HTTPHeader(
@@ -478,7 +521,11 @@ void HTTPConnection::loop() {
                 [](unsigned char c){ return ::tolower(c); }
               );
             }
-            if (std::string("keep-alive").compare(connectionHeaderValue)==0) {
+            // HTTP/1.1 connections are persistent unless the client says "close" (RFC 9112);
+            // HTTP/1.0 ones only with an explicit "keep-alive".
+            bool http11 = _httpVersion11;
+            if (std::string("keep-alive").compare(connectionHeaderValue)==0 ||
+                (http11 && std::string("close").compare(connectionHeaderValue)!=0)) {
               //HTTPS_LOGD("Keep-Alive activated. FID=%d", _socket);
               _isKeepAlive = true;
             } else {
@@ -540,13 +587,29 @@ void HTTPConnection::loop() {
           // because otherwise it would be parsed in the next request.
           if (!req.requestComplete()) {
             HTTPS_LOGW("Callback function did not parse full request body");
-            req.discardRequestBody();
+            if (!req.discardRequestBody()) {
+              // Body never (fully) arrived: close instead of reusing the connection.
+              _isKeepAlive = false;
+            }
           }
 
           // Finally, after the handshake is done, we create the WebsocketHandler and change the internal state.
-          if(websocketRequested) {
+          // Only if the handshake callback actually ran (101): when a middleware refused the request
+          // (e.g. not logged in) the upgrade must not happen. This used to switch to websocket mode
+          // regardless, so /socket worked without authentication.
+          bool upgraded = websocketRequested && res.getStatusCode() == 101;
+          if (websocketRequested && !upgraded) {
+            _isKeepAlive = false; // send the refusal and close
+          }
+          if(upgraded) {
             _wsHandler = ((WebsocketNode*)resolvedResource.getMatchingNode())->newHandler();
-            if(_wsHandler == NULL || _wsHandler->closed()) return;
+            if(_wsHandler == NULL || _wsHandler->closed()) {
+              // No handler available (all websocket slots in use): do not leave the connection
+              // half-upgraded.
+              if (_wsHandler != NULL) { delete _wsHandler; _wsHandler = nullptr; }
+              closeConnection();
+              return;
+            }
             _wsHandler->initialize(this);  // make websocket with this connection 
             _connectionState = STATE_WEBSOCKET;
           } else {
@@ -568,11 +631,14 @@ void HTTPConnection::loop() {
                 _connectionState = STATE_BODY_FINISHED;
               }
             } else {
-              if (res.isResponseBuffered()) {
-                // If the response could be buffered:
-                res.setHeader("Connection", "keep-alive");
+              bool streamedComplete = res.isCompleteWithKnownLength();
+              if (res.isResponseBuffered() || streamedComplete) {
+                // If the response could be buffered (or was streamed with an exact
+                // Content-Length, so the client knows where it ends):
+                if (!streamedComplete) res.setHeader("Connection", "keep-alive");
                 res.finalize();
                 if (_clientState != CSTATE_CLOSED) {
+                  _requestsServed++;
                   // Refresh the timeout for the new request
                   refreshTimeout();
                   // Reset headers for the new connection

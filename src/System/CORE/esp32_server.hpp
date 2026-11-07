@@ -38,6 +38,10 @@ public:
     HTTPServer *unsecureServer;
     
     SSLCert * getCertificate();
+    bool sslEnabled() const { return _enableSSL; }
+    // SHA-256 of the device certificate, "AB:CD:..." - lets a user check the browser's
+    // self-signed certificate warning against what the device reports.
+    std::string certificateFingerprint();
     bool importCertFromTemporaryStorage();
     void generateCertificate(const char * deviceName, const char* companyName, const char* validFrom, const char* validTo);
     esp32_middleware* middleware;  

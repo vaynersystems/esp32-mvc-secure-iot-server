@@ -52,7 +52,11 @@ function selectWifiMode(wifiMode){
         
         //load name, password, ip, subnet for access point
         document.getElementById('wifi-network-name').value = config.wifi.ap.name;
-        document.getElementById('wifi-network-ap-password').value = config.wifi.ap.password;
+        // The device never sends secrets; it only says whether one is stored.
+        const apPasswordElement = document.getElementById('wifi-network-ap-password');
+        apPasswordElement.value = '';
+        apPasswordElement.placeholder = config.wifi.ap?.passwordSet ? 'saved - leave blank to keep' : 'not set (open)';
+        document.getElementById('wifi-network-ap-open').checked = false;
         document.getElementById('wifi-network-ap-ip').value = config.wifi.ap.ip;
         document.getElementById('wifi-network-ap-subnet').value = config.wifi.ap.subnet;
     } else {
@@ -66,7 +70,7 @@ function selectWifiMode(wifiMode){
         if(networkPasswordElement === undefined) return;
         const config = persistedConfig;
         var networkName = config.wifi.network;
-        var networkPassword = config.wifi.password ?? ''; 
+
         if(networkName === undefined)
             getAvailableWifiNetworks();
         else
@@ -77,8 +81,8 @@ function selectWifiMode(wifiMode){
             option.textContent = networkName + "(persisted)";
             networkNameElement.appendChild(option);
         }
-        const maskedPassword = networkPassword.length === 0 ? '' : '*'.repeat(networkPassword.length);
-        networkPasswordElement.setAttribute('value', maskedPassword);
+        networkPasswordElement.value = '';
+        networkPasswordElement.placeholder = config.wifi.passwordSet ? 'saved - leave blank to keep' : 'not set';
     }
     pendingChanges = true;
 }
@@ -260,6 +264,7 @@ function loadSettings(){
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
     const loggingLocationElement = document.getElementById('logging-location');
+    const loggingDnsElement = document.getElementById('logging-dns');
 
     const mqttEnabledElement = document.getElementById('mqtt-enabled');
     const mqttHostElement = document.getElementById('mqtt-broker');
@@ -284,6 +289,7 @@ function loadSettings(){
     if(loggingRetentionElement !== null) loggingRetentionElement.value = activeConfig.system.logging.retention;
     if(loggingLevelElement !== null) loggingLevelElement.value = activeConfig.system.logging.level;
     if(loggingLocationElement !== null) loggingLocationElement.value = activeConfig.system.logging.location;
+    if(loggingDnsElement !== null) loggingDnsElement.checked = activeConfig.system.logging.dns === true;
     
 
 
@@ -375,6 +381,7 @@ function seveSettingsFromForm(){
     const loggingRetentionElement = document.getElementById('logging-retention');
     const loggingLevelElement = document.getElementById('logging-level');
     const loggingLocationElement = document.getElementById('logging-location');
+    const loggingDnsElement = document.getElementById('logging-dns');
     const mqttHostElement = document.getElementById('mqtt-broker');
     const mqttPortElement = document.getElementById('mqtt-port');
     const mqttInsecureElement = document.getElementById('mqtt-insecure');   
@@ -392,6 +399,7 @@ function seveSettingsFromForm(){
     if(loggingRetentionElement !== null) activeConfig.system.logging.retention = loggingRetentionElement.value;
     if(loggingLevelElement !== null) activeConfig.system.logging.level = loggingLevelElement.value;
     if(loggingLocationElement !== null) activeConfig.system.logging.location = loggingLocationElement.value;
+    if(loggingDnsElement !== null) activeConfig.system.logging.dns = loggingDnsElement.checked;
 
     if(mqttHostElement !== null) activeConfig.system.mqtt.broker = mqttHostElement.value;
     if(mqttPortElement !== null) activeConfig.system.mqtt.port = mqttPortElement.value;
@@ -424,7 +432,9 @@ function seveSettingsFromForm(){
         const hasExtraInfo = fullNetworkString.indexOf('(') > 0;
         const networkName = hasExtraInfo ? fullNetworkString.substring(0,fullNetworkString.indexOf('(')) : fullNetworkString;
         config.wifi.network = networkName;
-        config.wifi.password = docPassword.replaceAll('*','').length > 0 ?  docPassword : config.wifi.password;
+        // Blank keeps the stored password (the server fills it in); a new network with
+        // a blank password is saved as an open network.
+        config.wifi.password = docPassword;
         config.wifi.dhcp = document.getElementById('wifi-network-dhcp-yes').checked;
         if(!config.wifi.dhcp){
             if(!checkOctects('wifi-network-client-ip')) return;
@@ -442,12 +452,16 @@ function seveSettingsFromForm(){
         if(config.wifi.ap === undefined)
             config.wifi.ap = {};
         config.wifi.ap.name = document.getElementById('wifi-network-name')?.value;
-        config.wifi.ap.password = document.getElementById('wifi-network-ap-password')?.value;
+        const apPassword = document.getElementById('wifi-network-ap-password')?.value ?? '';
+        const apOpen = document.getElementById('wifi-network-ap-open')?.checked ?? false;
+        if(!apOpen && apPassword.length > 0 && (apPassword.length < 8 || apPassword.length > 63)) {
+            alert('Access Point password must be 8 to 63 characters long');
+            return;
+        }
+        config.wifi.ap.password = apOpen ? '' : apPassword; // blank keeps the stored one
+        config.wifi.ap.passwordClear = apOpen;
         config.wifi.ap.ip = document.getElementById('wifi-network-ap-ip')?.value;
         config.wifi.ap.subnet = document.getElementById('wifi-network-ap-subnet')?.value;
-        if(config.wifi.ap.password.length < 8) {
-            alert('Acess Point password should be at leat 8 characters long');
-        }
     }
     config.type = 'esp32-config'
     saveSettings(config);
@@ -472,7 +486,7 @@ function saveSettings(config){
             var response = request.responseText;
             if(request.status == 200){
                 pendingChanges = false;
-                showModal('ESP32 Settings Saved', 'Settings saved sucessfully. \nRestart device to apply settings? '
+                showModal('ESP32 Settings Saved', 'Settings saved successfully. \nRestart device to apply settings? ',
                 [
                     {text:'No',action: () => { closeModal();} }, 
                     {
@@ -502,13 +516,8 @@ function saveSettings(config){
 }
 
 function reload(){
-    hideWait();
-    fetch('/')
-    .then(() => window.location.reload())
-    .catch( () => setTimeout(() => {
-        reload
-    }, 5000))
-    ;
+    // Poll until the restarted device answers (system.js), then reload the page.
+    waitForDeviceRestart(120000, 0);
 }
 
 function restoreFactory(){
@@ -722,6 +731,7 @@ function esp32_config_init(configDataSting){
     }
     const themeSelectorElement = document.getElementById('system-theme');
     if(themeSelectorElement !== null){
+        themeSelectorElement.value = currentTheme();
         themeSelectorElement.addEventListener('change', (event) => setTheme(event.target.value));
     }
     const loggingFrequencyElement = document.getElementById('device-logging-frequency');
@@ -771,6 +781,7 @@ function esp32_config_init(configDataSting){
         persistedConfig.system.logging.retention = 7; //default retention to 1 week
         persistedConfig.system.logging.level = 2; //default to logging errors, warnings, and info        
         persistedConfig.system.logging.location = 0;
+        persistedConfig.system.logging.dns = false;
     }
     if(persistedConfig.system.mqtt === undefined){
         persistedConfig.system.mqtt = {};
@@ -831,10 +842,10 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('logging-retention');
     invalidateOnChange('logging-level');
     invalidateOnChange('logging-location');
+    invalidateOnChange('logging-dns');
 
     invalidateOnChange('ntp-host-name');
     invalidateOnChange('time-zone');
-    invalidateOnChange('system-theme');
 
     invalidateOnChange('disable-wifi-timer');
     invalidateOnChange('restart-after');
@@ -851,47 +862,16 @@ function esp32_config_init(configDataSting){
 
 ///
 
+// Site theme: stored per browser and applied through <html data-theme>, which theme.css keys on.
+// _template.html applies the saved value before first paint on every page.
+function currentTheme(){
+    const t = document.documentElement.getAttribute('data-theme');
+    return (t === 'dark' || t === 'auto') ? t : 'light';
+}
 function setTheme(theme){
-
-    if(theme == 'light'){
-        document.body.style.setProperty('--primary-color','#191955');
-        document.body.style.setProperty('--primary-border', 'rgb(164, 190, 216)');
-        document.body.style.setProperty('--primary-background','#f4f5f1');
-        document.body.style.setProperty('--secondary-color','#d0e9d1');
-        document.body.style.setProperty('--secondary-background','#191955');
-        document.body.style.setProperty('--primary-control-color','#053f16');
-        document.body.style.setProperty('--primary-control-background','#ffffff');
-        document.body.style.setProperty('--primary-button-color','#edeeef');
-        document.body.style.setProperty('--primary-button-background','#0b2d64');
-        document.body.style.setProperty('--secondary-button-color','#edeeef');
-        document.body.style.setProperty('--secondary-button-background','#1d8e56');
-        document.body.style.setProperty('--secondary-button-background-hover','#11633a');
-        document.body.style.setProperty('--modal-color','#234233');
-        document.body.style.setProperty('--modal-background', '#31863147');
-        document.body.style.setProperty('--modal-header-color','#fff');
-        document.body.style.setProperty('--modal-header-background','#1d8e56');
-    }
-    else{
-        document.body.style.setProperty('--secondary-color','#191955');
-        document.body.style.setProperty('--secondary-border', 'rgb(164, 190, 216)');
-        document.body.style.setProperty('--secondary-background','#f4f5f1');
-        document.body.style.setProperty('--primary-color','#f6f6ff');
-        document.body.style.setProperty('--primary-background','#050520');
-        document.body.style.setProperty('--primary-control-color','#ffffff');
-        document.body.style.setProperty('--primary-control-background','#0c0c4e');
-        document.body.style.setProperty('--secondary-button-color','#0b2d64');
-        document.body.style.setProperty('--secondary-button-background','#edeeef');
-        document.body.style.setProperty('--primary-button-color','#edeeef');
-        document.body.style.setProperty('--primary-button-background','#1d8e56');
-        document.body.style.setProperty('--primary-button-background-hover','#11633a');
-        document.body.style.setProperty('--modal-color','#fff');
-        document.body.style.setProperty('--modal-background', 'rgba(3, 45, 9, 0.4)');
-        document.body.style.setProperty('--modal-header-color','#fff');
-        document.body.style.setProperty('--modal-header-background','#1d8e56');
-
-        
-
-    }
+    if(theme !== 'dark' && theme !== 'auto') theme = 'light';
+    document.documentElement.setAttribute('data-theme', theme);
+    try { localStorage.setItem('site-theme', theme); } catch(e) { /* private mode: applies to this page only */ }
 }
 
 function checkPendingChanges(){

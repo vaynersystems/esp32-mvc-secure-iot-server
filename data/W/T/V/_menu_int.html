@@ -15,9 +15,12 @@
     .items{
         display: none;
         flex-direction: column;        
-        background-color: var(--primary-color);
+        background-color: var(--submenu-background);
+        border: solid 1px var(--submenu-border);
+        box-shadow: var(--overlay-shadow);
         margin-top:4px;
         width: fit-content;
+        a:hover{ background-color: var(--submenu-hover); }
     }
     .button-small{
         color: var(--primary-header-color);        
@@ -59,8 +62,7 @@
     } */
     .menu-group[selected] 
     {
-        background: rgb(255,255,255);
-        background: linear-gradient(180deg, rgba(255,255,255,.3) 0%, rgba(244,248,255,.3) 32px, rgba(255,255,255,0) 33px, rgba(254,254,255,0) 100%);
+        background: linear-gradient(180deg, var(--menu-selected-highlight) 0%, var(--menu-selected-highlight) 32px, transparent 33px, transparent 100%);
         .items{
             display: flex;
             position: relative;
@@ -77,10 +79,28 @@
         .button-large{
             display: none;
         }
+        /* Icons come from an internet font; without it (e.g. on the device's own Wi-Fi) show text. */
+        .no-icon-font .button-small{
+            display: none;
+        }
+        .no-icon-font .button-large{
+            display: inline;
+            font-size: 15px;
+        }
     }
 </style>
 
-<script src="https://kit.fontawesome.com/1bc8b5378d.js" crossorigin="anonymous"></script>
+<script src="https://kit.fontawesome.com/1bc8b5378d.js" crossorigin="anonymous"
+    onerror="document.documentElement.classList.add('no-icon-font')"></script>
+<script type="text/javascript">
+    // The icon font is fetched from the internet. If it has not loaded a few seconds after the
+    // page (no internet, blocked), use text labels so the menu stays readable.
+    window.addEventListener('load', () => setTimeout(() => {
+        const iconsReady = window.FontAwesome !== undefined ||
+            (document.fonts && document.fonts.check && (document.fonts.check('900 16px "Font Awesome 6 Free"') || document.fonts.check('900 16px "Font Awesome 6 Pro"')));
+        if (!iconsReady) document.documentElement.classList.add('no-icon-font');
+    }, 3000));
+</script>
 <div class="menu-container">    
 </div>
 <script type="text/javascript">

@@ -29,6 +29,40 @@
 typedef enum {sd_spi, sd_mmc} sd_type;
 #define USE_SD
 #define SD_TYPE sd_spi
+// SD over SPI wiring. Override with -D flags in platformio.ini if your board differs.
+#if defined(CONFIG_IDF_TARGET_ESP32S3)
+  #ifndef SD_SPI_HOST
+  #define SD_SPI_HOST FSPI
+  #endif
+  #ifndef SD_PIN_SCK
+  #define SD_PIN_SCK  GPIO_NUM_38
+  #endif
+  #ifndef SD_PIN_MISO
+  #define SD_PIN_MISO GPIO_NUM_40
+  #endif
+  #ifndef SD_PIN_MOSI
+  #define SD_PIN_MOSI GPIO_NUM_39
+  #endif
+  #ifndef SD_PIN_CS
+  #define SD_PIN_CS   GPIO_NUM_47
+  #endif
+#else // classic ESP32: default VSPI pins
+  #ifndef SD_SPI_HOST
+  #define SD_SPI_HOST VSPI
+  #endif
+  #ifndef SD_PIN_SCK
+  #define SD_PIN_SCK  GPIO_NUM_18
+  #endif
+  #ifndef SD_PIN_MISO
+  #define SD_PIN_MISO GPIO_NUM_19
+  #endif
+  #ifndef SD_PIN_MOSI
+  #define SD_PIN_MOSI GPIO_NUM_23
+  #endif
+  #ifndef SD_PIN_CS
+  #define SD_PIN_CS   GPIO_NUM_5
+  #endif
+#endif
 
 #define ENABLE_EDITOR 1
 #define SOCKET_MAX 5
@@ -36,7 +70,7 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 
 #define FILESYSTEM_BUFFER_SIZE 512
 
-//debug info
+//debug info. Off by default: the serial output is for development, not for a deployed device.
 // #define DEBUG 1
 // #define DEBUG_DEVICE 0
 // #define DEBUG_SCHEDULE 1

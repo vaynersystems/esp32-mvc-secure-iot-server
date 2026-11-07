@@ -1,3 +1,4 @@
+#include "request_body.h"
 #include "esp32_devices_controller.hpp"
 extern esp32_pin_manager pinManager;
 
@@ -33,10 +34,10 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
 
     for(auto pin : pins){
         pinData.append(string_format(
-            "{\"pin\": %d, \"analog\": %d, \"mode\": %d}, ",
+            "{\"pin\": %d, \"analog\": %s, \"output\": %s}, ",
             pin.gpioPin,
-            pin.isAnalog?"":" not",
-            pin.pinMode == GPIO_MODE_INPUT?" not":""
+            pin.isAnalog ? "true" : "false",
+            pin.pinMode == GPIO_MODE_INPUT ? "false" : "true"
         ));
     }
     if(pinData.length() > 2) pinData = pinData.substr(0,pinData.length() - 2);
@@ -113,14 +114,12 @@ bool esp32_devices_controller::SaveDeviceData(HTTPRequest* request, HTTPResponse
     
     DynamicJsonDocument doc(length * 2);
     string content;
-    char * buf = new char[32];
-    while(true){
-        
-        int bytesRead = request->readBytes((byte*)buf,32); 
-        if(bytesRead <= 0) break;       
-        content.append(buf,bytesRead);
+    // Read the whole body (it can arrive after the headers over HTTPS).
+    if(!readRequestBody(request, content)){
+        response->setStatusCode(400);
+        response->setStatusText("Incomplete request body");
+        return false;
     }
-    delete[] buf;
 
     #ifdef DEBUG
     Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());

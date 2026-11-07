@@ -41,6 +41,13 @@ void esp32_cert_fs::loadCertificates()
     priFile.readBytes(privateKey, priFile.size());
 
     _cert = new SSLCert((unsigned char *)publicKey, pubFile.size(),(unsigned char *)privateKey, priFile.size());
+    // Move certificates this device generated with RSA to ECDSA (much faster TLS handshakes).
+    if(isSelfIssuedRsa(_cert)){
+        Serial.println("Replacing the self-signed RSA certificate with an ECDSA one");
+        delete _cert;
+        _cert = nullptr;
+        generateCert("esp32-dev","Fun company");
+    }
 }
 
 void esp32_cert_fs::generateCert(const char* deviceName, const char* companyName, const char* validFrom, const char* validTo)
@@ -52,24 +59,28 @@ void esp32_cert_fs::generateCert(const char* deviceName, const char* companyName
 
 void esp32_cert_fs::generateTemporaryCertificate(const char *deviceName, const char *companyName, const char *validFrom, const char *validTo)
 {
-    SSLCert* tempCert = new SSLCert(*_cert);
-    
+    // Generate without saving over the live certificate (the filesystem store's generateCert
+    // also wrote /INT/cert and key), write only the temporary files, then restore the previous
+    // certificate. _cert may be null here: copying *_cert crashed the device.
+    SSLCert* previous = _cert;
+    _cert = nullptr;
     Serial.printf("Generating temp cert...\n");
-    generateCert(deviceName, companyName, validFrom, validTo);
-    // SAVING TO FS TEMP LOCATION
+    esp32_cert_base::generateCert(deviceName, companyName, validFrom, validTo);
+    SSLCert* generated = _cert;
+    _cert = previous;
+    if(generated == nullptr || generated->getCertLength() == 0 || generated->getPKLength() == 0){
+        Serial.println("Temporary certificate generation failed");
+        return;
+    }
     auto drive = filesystem.getDisk(0);
-
-    Serial.printf("Saving temp certificates to disk\n");
     auto pubFile = drive->open(PUBLIC_TEMP_PATH, "w", true);
     auto priFile = drive->open(PRIVATE_TEMP_PATH, "w", true);    
-    
-    pubFile.write(_cert->getCertData(), _cert->getCertLength());
+    pubFile.write(generated->getCertData(), generated->getCertLength());
     pubFile.close();
-    
-    priFile.write(_cert->getPKData(), _cert->getPKLength());
+    priFile.write(generated->getPKData(), generated->getPKLength());
     priFile.close();
-
-    _cert = tempCert; //restore cert
+    generated->clear();
+    delete generated;
 }
 
 void esp32_cert_fs::saveCertificates(){

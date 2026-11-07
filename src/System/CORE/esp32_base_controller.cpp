@@ -46,12 +46,7 @@ inline void esp32_base_controller::GenericIndex(HTTPRequest* req, HTTPResponse* 
         
         contentidx = line.indexOf(HTML_REF_CONST_CONTENT);
         if (contentidx >= 0){ 
-            esp32_router::handlePagePart_Content(req, res, line, this);
-            // res->print(line.substring(0, contentidx));
-            // if (!this->controllerTemplate.RenderTemplate(req,res))
-            //     esp32_router::handle404(req, res);//if not able to render template, handle with 404
-            // res->println(line.substring(contentidx + sizeof(HTML_REF_CONST_CONTENT) - 1));
-
+            esp32_router::handlePagePart_Content(req, res, line, this);           
         }
         if (contentidx > 0) {
             continue;

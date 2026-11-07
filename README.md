@@ -12,7 +12,9 @@
 
 1. Upload binary/elf file
 
-1. Monitor to see IP address assigned. If not configured, network will be available with the same netowrk name and password
+1. Open the serial monitor. It shows the device's address and the SHA-256 fingerprint of its certificate. If no Wi-Fi network is configured, the device starts an open access point named `ESP32Host-XXXXXX`; join it and your phone or laptop shows a page linking to the HTTPS login.
+
+1. Create the administrator. A new device has no users, so the serial monitor also prints a one-time **setup code** (it is printed again every minute). Log in with the username and password you want, and enter the setup code when the login page asks for it. That account becomes the administrator. Your browser will warn about the device's self-signed certificate; check that its fingerprint matches the one on the serial monitor before continuing.
 
 ## Editor
 
@@ -612,3 +614,7 @@ We will need to implement the index controller for a detailed view.
 
 #### Missing template (html) file.
     ![Missing Template](documentation/images/issues-missing-tempalte)
+
+## License
+
+MIT License, Copyright (c) 2024-2026 Lev Vayner. You may use, change and distribute this project, including in commercial products, as long as the copyright notice and the license text in [LICENSE](LICENSE) are included with every copy or substantial portion. Bundled third-party code keeps its own license, listed in the same file.

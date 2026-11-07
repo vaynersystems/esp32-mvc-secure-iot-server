@@ -17,8 +17,6 @@ HTTPMultipartBodyParser::HTTPMultipartBodyParser(HTTPRequest * req):
 {
   auto contentType = _request->getHeader("Content-Type");
 #ifdef DEBUG_MULTIPART_PARSER      
-  Serial.print("Content type: ");
-  Serial.println(contentType.c_str());
 #endif
   auto boundaryIndex = contentType.find("boundary=");
   if(boundaryIndex == std::string::npos) {

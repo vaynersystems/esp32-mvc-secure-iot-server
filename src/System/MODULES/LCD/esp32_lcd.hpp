@@ -36,7 +36,7 @@ struct esp32_lcd_message{
 class esp32_lcd{
     public:
 
-    void begin(int sda, int scl);
+    bool begin(int sda, int scl);
     void loop();
 
     void setTitle(const char * text, esp32_lcd_mode mode = elm_text, bool clearLine = true);

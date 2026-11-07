@@ -38,6 +38,11 @@ public:
   virtual void closeConnection();
   virtual bool isSecure();
 
+  // Optional check of the server name (SNI) a client asks for, made before the TLS
+  // handshake. Returning false closes the connection without any cryptography.
+  typedef bool (*ServerNameFilter)(const char* serverName);
+  static void setServerNameFilter(ServerNameFilter filter);
+
 protected:
   friend class HTTPRequest;
   friend class HTTPResponse;
@@ -50,6 +55,8 @@ protected:
 private:
   // SSL context for this connection
   SSL * _ssl;
+  static ServerNameFilter _serverNameFilter;
+  bool serverNameAllowed(int socket);
 
 };
 

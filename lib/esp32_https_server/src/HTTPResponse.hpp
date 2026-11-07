@@ -46,6 +46,10 @@ public:
 
   bool isResponseBuffered();
   void finalize();
+  // True when the response was streamed (too large for the buffer) with a Content-Length
+  // set by the handler and exactly that many body bytes were sent: the connection can be
+  // kept alive for the next request.
+  bool isCompleteWithKnownLength();
 
   ConnectionContext * _con;
   
@@ -60,6 +64,7 @@ private:
   HTTPHeaders _headers;
   bool _headerWritten;
   bool _isError;
+  size_t _bodyBytesSent;   // body bytes written to the connection (headers excluded)
 
   // Response cache
   byte * _responseCache;

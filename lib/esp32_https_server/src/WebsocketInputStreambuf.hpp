@@ -29,7 +29,8 @@ public:
   virtual ~WebsocketInputStreambuf();
 
   int_type underflow();
-  void discard();
+  // Skips the rest of the payload. Returns false if it did not arrive within the deadline.
+  bool discard();
   size_t getRecordSize();
 
 private:

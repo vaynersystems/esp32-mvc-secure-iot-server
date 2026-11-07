@@ -49,8 +49,7 @@
             {"name": "D34 (analog)", "value":34},
             {"name": "D35 (analog)", "value":35}
         ],
-        "Source": "pin",
-        "Unique": true
+        "Source": "pin"
     },
     {
         "Name": "MQTT Publish",

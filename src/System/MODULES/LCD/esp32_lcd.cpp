@@ -1,21 +1,30 @@
 #include "esp32_lcd.hpp"
 #include <WiFi.h>
+#include "System/esp32_diag.h"
 
 #include "System/MODULES/DEVICES/esp32_devices.hpp"
 #include "System/MODULES/SCHEDULING/esp32_scheduling_manager.hpp"
 
 extern esp32_scheduling_manager scheduleManager;
 extern esp32_devices deviceManager;
+extern SemaphoreHandle_t lcdMutex;
 
-void esp32_lcd::begin(int sda, int scl)
+bool esp32_lcd::begin(int sda, int scl)
 {
-    _lcd.begin(LCD_WIDTH,2,LCD_5x8DOTS, sda, scl);
+    // begin() checks that the display's PCF8574 answers on I2C. Without one, leave the LCD
+    // off: every later write would only wait on the bus.
+    if(!_lcd.begin(LCD_WIDTH,2,LCD_5x8DOTS, sda, scl)){
+        Serial.printf("No LCD found on I2C (SDA %d, SCL %d); display disabled.\n", sda, scl);
+        _initialized = false;
+        return false;
+    }
+    _initialized = true; // clear() below needs it
     clear();        
     //Serial.println("Initialized LCD");
     _messages.push_back(esp32_lcd_message("IP Address:","IP"));
     _messages.push_back(esp32_lcd_message("Time:", "TIME"));   
     _messages.push_back(esp32_lcd_message("Uptime:", "UPTIME"));   
-    _initialized = true; 
+    return true;
 }
 
 void esp32_lcd::loop()
@@ -23,7 +32,9 @@ void esp32_lcd::loop()
     if(!_initialized) return;
 
     if(_updatePending){
+        DIAG_LCD("lcd:clear");
         clear();
+        DIAG_LCD("lcd:print-title-details");
         
         _lcd.setCursor(0,0);         
         _lcd.print(_title);
@@ -45,7 +56,9 @@ void esp32_lcd::loop()
         //go to next message if time
         if(_lastMessageTime + _messageTimeout < millis()){
             //Serial.printf("Printing the %d%s message\n", _messageIdx + 1, _messageIdx + 1 == 1 ? "st" : _messageIdx + 1 == 2 ? "nd": _messageIdx + 1 == 3 ? "rd" : "th" );
+            DIAG_LCD("lcd:explode-message");
             auto parts = explode(string(_messages[_messageIdx].messageText), ":", true);
+            DIAG_LCD("lcd:build-message");
             
             setTitle( parts[0].c_str(), elm_messages);
             if (strcmp(_messages[_messageIdx].messageParam.c_str(), "IP") == 0)
@@ -73,7 +86,14 @@ void esp32_lcd::loop()
                     if(strcmp(_messages[_messageIdx].messageParam.substr(0,5).c_str(), "DEV #") == 0){  
                         int deviceId = parseInt(_messages[_messageIdx].messageParam.substr(5));
                         //TODO: move to device manager
-                        auto snapshotFile = deviceManager.getLastSnapshot();
+                        DIAG_LCD("lcd:device-snapshot");
+                        // The device task writes the snapshot; copy it under the shared lock.
+                        StaticJsonDocument<1024> snapshotFile;
+                        if(xSemaphoreTake(lcdMutex, 200 / portTICK_PERIOD_MS) == pdTRUE){
+                            snapshotFile = deviceManager.getLastSnapshot();
+                            xSemaphoreGive(lcdMutex);
+                        }
+                        DIAG_LCD("lcd:device-value");
                         JsonArray devicesInSnapshot = (snapshotFile)["series"].as<JsonArray>();
                         char digitFormat[] = "%d";
 
@@ -153,6 +173,7 @@ void esp32_lcd::loop()
     if(details.length() <= LCD_WIDTH)
         return;
 
+    DIAG_LCD("lcd:scroll");
     _lcd.setCursor(0,1);
 
     //Serial.printf("Checking if offset %d needs to be reset: %s\n", _offset, _offset >= LCD_WIDTH ? "Yes" : "No");
