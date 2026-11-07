@@ -32,6 +32,8 @@
 #include "ArduinoJWT.h"
 #include "base64.hpp"
 #include "esp32_sha256.h"
+#include <vector>
+#include "esp32_key_derivation.h"
 #include "string_helper.h"
 
 // The standard JWT header already base64 encoded. Equates to {"alg": "HS256", "typ": "JWT"}
@@ -128,8 +130,13 @@ bool ArduinoJWT::decodeJWT(string& jwt,  string& payload) {
             // }
             //char jsonPayload[payloadLength];
             //Serial.printf("Received token string \n%s\n for processing\n", jwt.c_str());
-            if(decodeJWT(jwt.c_str(), _payload, getJWTPayloadLength(jwt.c_str()))) {
-                payload = _payload;
+            // Sized from the token itself (it used to decode into a fixed 127-byte buffer with
+            // no length check). The device's own tokens are ~150 bytes; anything large is refused.
+            int payloadLength = getJWTPayloadLength(jwt.c_str());
+            if(payloadLength <= 1 || payloadLength > 1024) return false;
+            std::vector<char> decoded(payloadLength + 1, 0);
+            if(decodeJWT(jwt.c_str(), decoded.data(), payloadLength)) {
+                payload = decoded.data();
 #ifdef DEBUG
                 Serial.printf("Sucessfully decoded JWT token payload: [%s]\n",payload.c_str());
 #endif      //free(jsonPayload);
@@ -197,7 +204,10 @@ bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
   *(ptr) = 0;
 
   // Do the signatures match?
-  if(strcmp((char*)tokens[2].c_str(), (char*)base64Signature) == 0) {
+  size_t expectedLength = strlen((char*)base64Signature);
+  bool signatureValid = tokens[2].length() == expectedLength &&
+    constant_time_equals((const uint8_t*)tokens[2].c_str(), base64Signature, expectedLength);
+  if(signatureValid) {
     // Decode the payload
     decode_base64((unsigned char*)tokens[1].c_str(), (unsigned char*)payload);
     payload[payloadLength - 1] = 0;

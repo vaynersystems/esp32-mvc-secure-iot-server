@@ -46,7 +46,12 @@
 
 // Maximum of header lines that are parsed
 #ifndef HTTPS_REQUEST_MAX_HEADERS
-#define HTTPS_REQUEST_MAX_HEADERS               20
+#define HTTPS_REQUEST_MAX_HEADERS               40
+#endif
+
+// Total size of all header lines of one request
+#ifndef HTTPS_REQUEST_MAX_HEADER_BYTES
+#define HTTPS_REQUEST_MAX_HEADER_BYTES          8192
 #endif
 
 // Maximum length of the request line (GET /... HTTP/1.1)

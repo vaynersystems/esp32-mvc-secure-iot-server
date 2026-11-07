@@ -13,6 +13,7 @@ HTTPResponse::HTTPResponse(ConnectionContext * con):
   _statusText = "OK";
   _headerWritten = false;
   _isError = false;
+  _bodyBytesSent = 0;
 
   _responseCacheSize = con->getCacheSize();
   _responseCachePointer = 0;
@@ -69,9 +70,22 @@ bool HTTPResponse::isResponseBuffered() {
   return _responseCache != NULL;
 }
 
+bool HTTPResponse::isCompleteWithKnownLength() {
+  if (_isError || !_headerWritten || isResponseBuffered()) return false;
+  if (getHeader("Connection") == "close") return false;
+  std::string length = getHeader("Content-Length");
+  if (length.empty()) return false;
+  return strtoul(length.c_str(), NULL, 10) == _bodyBytesSent;
+}
+
 void HTTPResponse::finalize() {
   if (isResponseBuffered()) {
     drainBuffer();
+  } else if (!_headerWritten) {
+    // Unbuffered (non keep-alive) response that never wrote a body, e.g. a redirect that
+    // only sets a status and Location. Without this the client got no response at all.
+    _headers.set(new HTTPHeader("Content-Length", "0"));
+    printHeader();
   }
 }
 
@@ -151,15 +165,18 @@ size_t HTTPResponse::writeBytesInternal(const void * data, int length, bool skip
         return length;
       } else {
         // .., and the buffer is too small. This is the point where we switch from
-        // caching to streaming
-        if (!_headerWritten) {
+        // caching to streaming. Without a Content-Length the end of the body can only be
+        // marked by closing the connection; with one, the connection can be reused.
+        if (!_headerWritten && getHeader("Content-Length").empty()) {
           setHeader("Connection", "close");
         }
         drainBuffer(true);
       }
     }
 
-    return _con->writeBuffer((byte*)data, length);
+    size_t written = _con->writeBuffer((byte*)data, length);
+    if (!skipBuffer) _bodyBytesSent += written;
+    return written;
   } else {
     return 0;
   }
@@ -177,8 +194,7 @@ void HTTPResponse::drainBuffer(bool onOverflow) {
     HTTPS_LOGD("Draining response buffer");
     // Check for 0 as it may be an overflow reaction without any data that has been written earlier
     if(_responseCachePointer > 0) {
-      // FIXME: Return value?
-      _con->writeBuffer((byte*)_responseCache, _responseCachePointer);
+      _bodyBytesSent += _con->writeBuffer((byte*)_responseCache, _responseCachePointer);
     }
     delete[] _responseCache;
     _responseCache = NULL;

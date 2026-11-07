@@ -36,7 +36,7 @@ public:
   size_t readBytes(byte * buffer, size_t length);
   size_t getContentLength();
   bool   requestComplete();
-  void   discardRequestBody();
+  bool   discardRequestBody(); // false if the body could not be fully skipped (close the connection)
   ResourceParameters * getParams();
   HTTPHeaders *getHTTPHeaders();
   std::string getBasicAuthUser();

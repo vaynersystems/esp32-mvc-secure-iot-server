@@ -27,32 +27,43 @@ WebsocketHandler* esp32_socket::createSocket(){
 void esp32_socket::onMessage(WebsocketInputStreambuf * input){
     //timer
     unsigned long startTime = millis();
-    // Get the input message
-    ostringstream ss;
+    // Read the message with a size limit: the page only sends small service requests.
+    static const size_t MAX_MESSAGE = 4096;
+    std::istream in(input);
     string msg;
-    ss << input;
-    msg = ss.str();    
-    //Serial.printf("[%s] Received web socket message %s\n", className, msg.c_str());    
+    char chunk[256];
+    while (in.read(chunk, sizeof(chunk)) || in.gcount() > 0) {
+        msg.append(chunk, in.gcount());
+        if (msg.size() > MAX_MESSAGE) {
+            close(); // message too big
+            return;
+        }
+    }
     StaticJsonDocument<2048> message;
-    deserializeJson(message, msg);
+    if (deserializeJson(message, msg) != DeserializationError::Ok) return;
 
-    
+    // Only string fields: as<const char*>() is NULL for numbers/objects, and building a
+    // std::string from NULL crashed the device.
+    const char* service = message["service"] | (const char*)nullptr;
+    const char* params = message["message"] | (const char*)nullptr;
+    if (service == nullptr || params == nullptr) return; // not a service request: ignore
+    // (Other messages used to be relayed to every connected client, letting any sender push
+    // content into other users' pages.)
+
     esp32_service_route route;
-    if(!message["service"].isNull() && !message["message"].isNull()){        
-        route.service = message["service"].as<const char*>();
-        route.params = message["message"].as<const char *>();
-        sendToClient(this->_clientId, esp32_router::handleServiceRequest(route));
-        //sendToAllClients(esp32_router::handleServiceRequest(route));
-        #ifdef DEBUG_SOCKET
-        Serial.printf("[%s] Client [%d]. Processed websocket message in %d ms\n", className, this->_clientId, millis() - startTime);
-        #endif
-        
-    } 
-    else {
-        sendToAllClients(msg);
-        #ifdef DEBUG_SOCKET
-        Serial.printf("[%s]All clientsProcessed websocket message in %d ms\n", className, millis() - startTime);
-        #endif
+    route.service = service;
+    route.params = params;
+    sendToClient(this->_clientId, esp32_router::handleServiceRequest(route));
+    #ifdef DEBUG_SOCKET
+    Serial.printf("[%s] Client [%d]. Processed websocket message in %d ms\n", className, this->_clientId, millis() - startTime);
+    #endif
+}
+
+esp32_socket::~esp32_socket(){
+    for(int i = 0; i < SOCKET_MAX; i++) {
+        if (activeClients[i] == this) {
+            activeClients[i] = nullptr;
+        }
     }
 }
 

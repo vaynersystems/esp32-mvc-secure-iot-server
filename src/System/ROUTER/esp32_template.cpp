@@ -6,30 +6,15 @@
 void esp32_template::SetTemplateVariable(const __FlashStringHelper *name, const char *value)
 {
     auto nameString = string((const char*)(pgm_read_ptr(&name)));
-	auto itr = templateVars.begin();
-	for (auto element : templateVars) {
-		if (element.first.c_str() != pgm_read_ptr(name)) continue;
-		//if found
-		element.second = value;
-		return;
-	}
-    //Serial.printf("Adding parameter %s\n", nameString.c_str());
-	templateVars.emplace(nameString, value);
+	// Assign through the map: the old loop changed a copy of the entry, so setting a
+	// variable a second time silently kept the first value.
+	templateVars[nameString] = value == nullptr ? "" : value;
 }
 
 // TODO: rework to "Set Model Variable". Need to be able to specify model path
 void esp32_template::SetTemplateVariable(std::string name, std::string value)
 {
-	//auto itr = templateVars.begin();
-	std::map<string,string>::iterator itr = templateVars.begin();
-	for (pair<string,string> element : templateVars) {
-		if (strcmp(element.first.c_str() , name.c_str()) != 0)  continue;
-		//if found
-		element.second = value;
-		return;
-	}
-
-	templateVars.emplace(name, value);
+	templateVars[name] = value;
 }
 
 void esp32_template::ClearVariables(){
@@ -98,7 +83,7 @@ bool esp32_template:: RenderTemplate(HTTPRequest* req, HTTPResponse* res)
 			//for (auto element : templateVars) {
 //                auto element = ;
 				int idxStart = line.indexOf((*(itr)).first.c_str()); //check for variable
-				if (idxStart > 0) //if found
+				if (idxStart >= 0) //if found (0 is a variable at the start of the line)
 				    line.replace((*(itr)).first.c_str(), (*(itr)).second.c_str());
                 itr++;
 			}

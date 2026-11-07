@@ -77,7 +77,11 @@
                     </div>
                     <div class="grid-2">
                         <div>Secure your Access Point (optional password)</div>
-                        <input type="text" name="wifi-network-ap-password" id="wifi-network-ap-password">
+                        <input type="password" name="wifi-network-ap-password" id="wifi-network-ap-password" autocomplete="new-password" maxlength="63">
+                    </div>
+                    <div class="grid-2">
+                        <div>Open access point (remove the saved password)</div>
+                        <input type="checkbox" name="wifi-network-ap-open" id="wifi-network-ap-open">
                     </div>
                     <div class="grid-2">
                         <div>IP Address of the access point</div>
@@ -215,6 +219,11 @@
                 </div>   
 
                 <div class="grid-2">
+                    <span>Log Portal DNS Queries</span>
+                    <input type="checkbox" name="logging-dns" id="logging-dns"/>
+                </div>
+
+                <div class="grid-2">
                     <span>Device Log Frequency</span>
                     <select id="device-logging-frequency">
                         <option value="15">15 seconds</option>
@@ -345,9 +354,10 @@
                     <select name="system-theme" id="system-theme">
                         <option value='light'>Light</option>
                         <option value='dark'>Dark</option>
+                        <option value='auto'>Match device setting</option>
                     </select>                      
                 </div>        
-                <div class="hint">This functionality is in early development.</div>                
+                <div class="hint">The theme applies right away and is remembered by this browser only; it is not part of the device configuration.</div>                
             </div>
         </div>
         <div class="section" name="boot">

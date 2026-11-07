@@ -12,6 +12,8 @@
 #include <mbedtls/x509.h>
 #include <mbedtls/x509_crt.h>
 #include <mbedtls/x509_csr.h>
+#include <mbedtls/ecp.h>
+#include <vector>
 
 #define HTTPS_SERVER_ERROR_KEYGEN 0x0F
 #define HTTPS_SERVER_ERROR_KEYGEN_RNG 0x02
@@ -152,7 +154,9 @@ enum SSLKeySize {
   /** \brief RSA key with 2048 bit */
   KEYSIZE_2048 = 2048,
   /** \brief RSA key with 4096 bit */
-  KEYSIZE_4096 = 4096
+  KEYSIZE_4096 = 4096,
+  /** \brief ECDSA key on curve P-256 (secp256r1): far cheaper TLS handshakes than RSA */
+  KEYTYPE_ECDSA_P256 = 256
 };
 
 /**
@@ -174,6 +178,13 @@ enum SSLKeySize {
  * Setting the `HTTPS_DISABLE_SELFSIGNING` compiler flag will remove this function from the library
  */
 int createSelfSignedCert(SSLCert &certCtx, SSLKeySize keySize, std::string dn, std::string validFrom = "20190101000000", std::string validUntil = "20300101000000");
+
+/**
+ * \brief As above, plus subjectAltName entries (DNS names and IPv4 addresses, a.b.c.d as
+ * uint32 in network order, e.g. from IPAddress). Browsers match the server name against these.
+ */
+int createSelfSignedCert(SSLCert &certCtx, SSLKeySize keySize, std::string dn, std::string validFrom, std::string validUntil,
+  const std::vector<std::string> &altDnsNames, const std::vector<uint32_t> &altIPv4);
 
 #endif // !HTTPS_DISABLE_SELFSIGNING
 

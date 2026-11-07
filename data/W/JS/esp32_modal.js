@@ -93,14 +93,12 @@
         for(property of viewModel){
             if(property.Validation !== undefined){
                 //check that field conditions are met
-                if(property.Condition1 !== undefined){
-                    if(viewModel.find(f => f.Name == property.Condition1)?.Value !== property.ConditionValue1)
-                    continue;                    
-                }
-                if(property.Condition2 !== undefined){
-                    if(viewModel.find(f => f.Name == property.Condition2)?.Value !== property.ConditionValue2)
-                    continue;                    
-                }
+                // A hidden field is not validated. Evaluated as the form shows or hides fields, so a
+                // condition on an option's attribute ("Device Type.group") is checked too.
+                if(property.Condition1 !== undefined && !_conditionMet(viewModel, property.Condition1, property.ConditionValue1))
+                    continue;
+                if(property.Condition2 !== undefined && !_conditionMet(viewModel, property.Condition2, property.ConditionValue2))
+                    continue;
                 for(var rule of property.Validation){
                     var errorsFoundInField = false;
                     switch(rule.Type){
@@ -132,9 +130,9 @@
                             }
                         break;
                         case "Max":
-                            if(property.Value === undefined || property.Value === null || property.Value < rule.Value)
+                            if(property.Value === undefined || property.Value === null || property.Value > rule.Value)
                             {
-                                formErrors.push(property.Name + "can be at most" + rule.Value + ".");  
+                                formErrors.push(property.Name + " can be at most " + rule.Value + ".");  
                                 errorsFoundInField = true;
                             }
                         break;
@@ -163,6 +161,20 @@
             return false;
         }
         return true;
+    }
+
+    /**
+     * Whether a field's condition holds. "Field" compares that field's value; "Field.attribute"
+     * compares an attribute of the option selected in that field, such as a device type's group.
+     */
+    function _conditionMet(viewModel, condition, value){
+        if(!condition.includes('.'))
+            return viewModel.find(f => f.Name == condition)?.Value == value;
+        const fieldName = condition.substring(0, condition.indexOf('.'));
+        const attribute = condition.substring(condition.indexOf('.') + 1);
+        const field = viewModel.find(f => f.Name == fieldName);
+        const option = field?.Data?.find(d => d['value'] == field.Value);
+        return option !== undefined && option[attribute] == value;
     }
 
     function showModal(title, content, actions){

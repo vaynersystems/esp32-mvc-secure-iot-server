@@ -7,6 +7,11 @@
 DerivedController<esp32_logs_controller> esp32_logs_controller::reg("esp32_logs");
 
 void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
+    // System logs record logins and configuration changes: administrators only.
+    if(req->getHeader(HEADER_GROUP) != "ADMIN"){
+        res->setStatusCode(403);
+        return;
+    }
     
     vector<esp32_file_info_extended> files;
     auto drive = filesystem.getDisk(logger.location());
@@ -36,6 +41,10 @@ void esp32_logs_controller::Index(HTTPRequest* req, HTTPResponse* res) {
 /// @param req 
 /// @param res 
 void esp32_logs_controller::Action(HTTPRequest* req, HTTPResponse* res) {
+    if(req->getHeader(HEADER_GROUP) != "ADMIN"){
+        res->setStatusCode(403);
+        return;
+    }
     if (route.action.compare("Logs") == 0) {        
         Logs(req,res);        
     }

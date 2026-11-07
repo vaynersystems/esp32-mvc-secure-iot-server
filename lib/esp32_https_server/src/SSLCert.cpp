@@ -1,4 +1,5 @@
 #include "SSLCert.hpp"
+#include <mbedtls/oid.h>
 
 namespace httpsserver {
 
@@ -42,12 +43,19 @@ void SSLCert::setCert(unsigned char * certData, uint16_t length) {
 }
 
 void SSLCert::clear() {
-  for(uint16_t i = 0; i < _certLength; i++) _certData[i]=0;
-  delete _certData;
+  // Arrays from new[] (key and certificate generation): wipe, then delete[] (was delete).
+  if (_certData != NULL) {
+    for(uint16_t i = 0; i < _certLength; i++) _certData[i]=0;
+    delete[] _certData;
+    _certData = NULL;
+  }
   _certLength = 0;
 
-  for(uint16_t i = 0; i < _pkLength; i++) _pkData[i] = 0;
-  delete _pkData;
+  if (_pkData != NULL) {
+    for(uint16_t i = 0; i < _pkLength; i++) _pkData[i] = 0;
+    delete[] _pkData;
+    _pkData = NULL;
+  }
   _pkLength = 0;
 }
 
@@ -81,7 +89,8 @@ static int gen_key(SSLCert &certCtx, SSLKeySize keySize) {
   // Initialize the private key
   mbedtls_pk_context key;
   mbedtls_pk_init( &key );
-  int resPkSetup = mbedtls_pk_setup( &key, mbedtls_pk_info_from_type( MBEDTLS_PK_RSA ) );
+  bool ecdsa = keySize == KEYTYPE_ECDSA_P256;
+  int resPkSetup = mbedtls_pk_setup( &key, mbedtls_pk_info_from_type( ecdsa ? MBEDTLS_PK_ECKEY : MBEDTLS_PK_RSA ) );
   if ( resPkSetup != 0) {
     mbedtls_ctr_drbg_free( &ctr_drbg );
     mbedtls_entropy_free( &entropy );
@@ -89,13 +98,15 @@ static int gen_key(SSLCert &certCtx, SSLKeySize keySize) {
   }
 
   // Actual key generation 
-  int resPkGen = mbedtls_rsa_gen_key(
-    mbedtls_pk_rsa( key ),
-    mbedtls_ctr_drbg_random,
-    &ctr_drbg,
-    keySize,
-    65537
-  );
+  int resPkGen = ecdsa
+    ? mbedtls_ecp_gen_key(MBEDTLS_ECP_DP_SECP256R1, mbedtls_pk_ec( key ), mbedtls_ctr_drbg_random, &ctr_drbg)
+    : mbedtls_rsa_gen_key(
+        mbedtls_pk_rsa( key ),
+        mbedtls_ctr_drbg_random,
+        &ctr_drbg,
+        keySize,
+        65537
+      );
   if ( resPkGen != 0) {
     mbedtls_pk_free( &key );
     mbedtls_ctr_drbg_free( &ctr_drbg );
@@ -151,7 +162,35 @@ static int gen_key(SSLCert &certCtx, SSLKeySize keySize) {
  *
  * Based on programs/x509/cert_write.c
  */
-static int cert_write(SSLCert &certCtx, std::string dn, std::string validityFrom, std::string validityTo) {
+// DER for subjectAltName: SEQUENCE { [2] dNSName ..., [7] iPAddress ... }
+static std::vector<unsigned char> encodeSubjectAltName(const std::vector<std::string> &dnsNames, const std::vector<uint32_t> &ipv4) {
+  std::vector<unsigned char> body;
+  for (const auto &name : dnsNames) {
+    if (name.empty() || name.length() > 127) continue;
+    body.push_back(0x82);
+    body.push_back((unsigned char)name.length());
+    body.insert(body.end(), name.begin(), name.end());
+  }
+  for (uint32_t ip : ipv4) {
+    const unsigned char* b = (const unsigned char*)&ip; // network order a.b.c.d
+    body.push_back(0x87); body.push_back(4);
+    body.insert(body.end(), b, b + 4);
+  }
+  std::vector<unsigned char> der;
+  der.push_back(0x30);
+  if (body.size() < 128) {
+    der.push_back((unsigned char)body.size());
+  } else {
+    der.push_back(0x82);
+    der.push_back((unsigned char)(body.size() >> 8));
+    der.push_back((unsigned char)(body.size() & 0xFF));
+  }
+  der.insert(der.end(), body.begin(), body.end());
+  return der;
+}
+
+static int cert_write(SSLCert &certCtx, std::string dn, std::string validityFrom, std::string validityTo,
+                      const std::vector<std::string> &altDnsNames, const std::vector<uint32_t> &altIPv4) {
   int funcRes = 0;
   int stepRes = 0;
 
@@ -216,16 +255,50 @@ static int cert_write(SSLCert &certCtx, std::string dn, std::string validityFrom
     goto error_after_cert;
   }
 
-  // Make this a CA certificate
-  stepRes = mbedtls_x509write_crt_set_basic_constraints( &crt, 1, 0 );
+  // A server (leaf) certificate, not a CA: browsers treat a CA certificate presented by a
+  // server as an error on top of it being self-signed.
+  stepRes = mbedtls_x509write_crt_set_basic_constraints( &crt, 0, -1 );
   if (stepRes != 0) {
     funcRes = HTTPS_SERVER_ERROR_CERTGEN_VALIDITY;
     goto error_after_cert;
   }
+  {
+    bool ecdsa = mbedtls_pk_get_type(&key) == MBEDTLS_PK_ECKEY || mbedtls_pk_get_type(&key) == MBEDTLS_PK_ECDSA;
+    unsigned int keyUsage = MBEDTLS_X509_KU_DIGITAL_SIGNATURE | (ecdsa ? 0 : MBEDTLS_X509_KU_KEY_ENCIPHERMENT);
+    stepRes = mbedtls_x509write_crt_set_key_usage( &crt, keyUsage );
+    if (stepRes != 0) {
+      funcRes = HTTPS_SERVER_ERROR_CERTGEN_VALIDITY;
+      goto error_after_cert;
+    }
+    // extendedKeyUsage: serverAuth
+    static const unsigned char ekuServerAuth[] = { 0x30, 0x0A, 0x06, 0x08, 0x2B, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01 };
+    stepRes = mbedtls_x509write_crt_set_extension( &crt, MBEDTLS_OID_EXTENDED_KEY_USAGE, MBEDTLS_OID_SIZE(MBEDTLS_OID_EXTENDED_KEY_USAGE),
+      0, ekuServerAuth, sizeof(ekuServerAuth) );
+    if (stepRes != 0) {
+      funcRes = HTTPS_SERVER_ERROR_CERTGEN_VALIDITY;
+      goto error_after_cert;
+    }
+    if (!altDnsNames.empty() || !altIPv4.empty()) {
+      std::vector<unsigned char> san = encodeSubjectAltName(altDnsNames, altIPv4);
+      stepRes = mbedtls_x509write_crt_set_extension( &crt, MBEDTLS_OID_SUBJECT_ALT_NAME, MBEDTLS_OID_SIZE(MBEDTLS_OID_SUBJECT_ALT_NAME),
+        0, san.data(), san.size() );
+      if (stepRes != 0) {
+        funcRes = HTTPS_SERVER_ERROR_CERTGEN_VALIDITY;
+        goto error_after_cert;
+      }
+    }
+  }
 
-  // Initialize the serial number
+  // Random serial number. A fixed serial ("1") with the same issuer name on every new
+  // certificate makes Firefox refuse the new one outright (SEC_ERROR_REUSED_ISSUER_AND_SERIAL).
   mbedtls_mpi_init( &serial );
-  stepRes = mbedtls_mpi_read_string( &serial, 10, "1" );
+  {
+    unsigned char serialBytes[16];
+    stepRes = mbedtls_ctr_drbg_random( &ctr_drbg, serialBytes, sizeof(serialBytes) );
+    serialBytes[0] &= 0x7F; // positive
+    serialBytes[0] |= 0x01; // and never zero
+    if (stepRes == 0) stepRes = mbedtls_mpi_read_binary( &serial, serialBytes, sizeof(serialBytes) );
+  }
   if (stepRes != 0) {
     funcRes = HTTPS_SERVER_ERROR_CERTGEN_SERIAL;
     goto error_after_cert_serial;
@@ -285,6 +358,11 @@ error_after_entropy:
 }
 
 int createSelfSignedCert(SSLCert &certCtx, SSLKeySize keySize, std::string dn, std::string validFrom, std::string validUntil) {
+  return createSelfSignedCert(certCtx, keySize, dn, validFrom, validUntil, std::vector<std::string>(), std::vector<uint32_t>());
+}
+
+int createSelfSignedCert(SSLCert &certCtx, SSLKeySize keySize, std::string dn, std::string validFrom, std::string validUntil,
+  const std::vector<std::string> &altDnsNames, const std::vector<uint32_t> &altIPv4) {
 
   // Add the private key
   int keyRes = gen_key(certCtx, keySize);
@@ -294,7 +372,7 @@ int createSelfSignedCert(SSLCert &certCtx, SSLKeySize keySize, std::string dn, s
   }
 
   // Add the self-signed certificate
-  int certRes = cert_write(certCtx, dn, validFrom, validUntil);
+  int certRes = cert_write(certCtx, dn, validFrom, validUntil, altDnsNames, altIPv4);
   if (certRes != 0) {
     // Cert writing failed, reset the pk and return failure code
     certCtx.setPK(NULL, 0);

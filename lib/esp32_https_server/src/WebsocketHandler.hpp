@@ -80,6 +80,10 @@ private:
   ConnectionContext * _con;
   bool _receivedClose; // True when we have received a close request.
   bool _sentClose; // True when we have sent a close request.
+  // Frame header bytes received so far: a header can be split across TCP segments, so it is
+  // gathered here and only parsed once complete (2 + up to 8 length + 4 mask bytes).
+  uint8_t _header[14];
+  uint8_t _headerLength = 0;
 };
 
 }

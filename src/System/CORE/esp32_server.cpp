@@ -1,6 +1,17 @@
 #include "esp32_server.hpp"
 #include <HTTPMiddlewareFunction.hpp>
 #include <esp_task_wdt.h>
+#include "mbedtls/md.h"
+#ifndef HTTPS_MAX_CONNECTIONS
+  #ifdef BOARD_HAS_PSRAM
+    #define HTTPS_MAX_CONNECTIONS 8   // TLS buffers go to PSRAM
+  #else
+    #define HTTPS_MAX_CONNECTIONS 4   // each TLS connection needs ~40 KB of internal RAM
+  #endif
+#endif
+#include "esp32_wifi.h"
+#include <HTTPSConnection.hpp>
+#include "System/AUTH/esp32_authentication.hpp"
 
 #include "ArduinoOTA.h"
 esp32_server::esp32_server() : unsecureServer(new HTTPServer())
@@ -11,7 +22,7 @@ esp32_server::esp32_server() : unsecureServer(new HTTPServer())
 
 bool esp32_server::start() {
     //check if ssl setting is enabled
-    StaticJsonDocument<512> systemConfig;
+    DynamicJsonDocument systemConfig(2048);
     esp32_config::getConfigSection("system", &systemConfig);    
 
     if(systemConfig["enableSSL"].isNull())
@@ -20,7 +31,7 @@ bool esp32_server::start() {
         _enableSSL = systemConfig["enableSSL"].as<bool>();
 
     // check for certificate storage location
-    StaticJsonDocument<256> serverConfig;
+    DynamicJsonDocument serverConfig(1024);
     esp32_config::getConfigSection("server", &serverConfig);
     logger.logDebug(string_format("Setting certificate storage to %s",
         serverConfig["certificates"]["source"].isNull() ? "NVS by default" : serverConfig["certificates"]["source"].as<const char*>()
@@ -35,6 +46,9 @@ bool esp32_server::start() {
     
     //initialize certificates
     _certManager->loadCertificates();   
+    if(_enableSSL)
+        Serial.printf("HTTPS certificate SHA-256 fingerprint: %s\n", certificateFingerprint().c_str());
+    esp32_authentication::announceSetupCode();
 
     _restartMillis = serverConfig["restartAfter"].isNull() ? 0 : atoi(serverConfig["restartAfter"].as<const char*>()) * 1000 * 3600; // to seconds, then to hours
     #ifdef DEBUG 
@@ -44,7 +58,16 @@ bool esp32_server::start() {
     #endif
 
     if(_enableSSL){       
-        secureServer = new HTTPSServer(_certManager->getCert());        
+        // While the device runs its own access point, DNS sends every name to it, so phones
+        // open TLS connections for google.com and the like all the time. Each would fail on
+        // the certificate anyway, but only after a ~0.5-1 s handshake that blocks the server.
+        // Refuse those by their server name before any cryptography.
+        HTTPSConnection::setServerNameFilter([](const char* serverName) -> bool {
+            return !esp32_wifi::captivePortalActive() || !esp32_wifi::isForeignHost(serverName);
+        });
+        // More slots on PSRAM boards (library default 4): pages with a live view hold a
+        // websocket open, and with TLS buffers in PSRAM internal RAM no longer limits the count.
+        secureServer = new HTTPSServer(_certManager->getCert(), 443, HTTPS_MAX_CONNECTIONS);        
         secureServer->addMiddleware(middleware->middlewareAuthentication);
         secureServer->addMiddleware(middleware->middlewareAuthorization);
     } 
@@ -55,7 +78,7 @@ bool esp32_server::start() {
     _router = new esp32_router();
     middleware = new esp32_middleware();
     
-    middleware->middlewareSetTokenizer((char*)_certManager->getCert()->getPKData());
+    middleware->middlewareSetTokenizer(_certManager->getCert()->getPKData(), _certManager->getCert()->getPKLength());
     //load exclusions list
     middleware->initPublicPages();
     _router->RegisterHandler( "/", HTTPMETHOD_GET, &esp32_router::handleRoot);
@@ -125,6 +148,12 @@ bool esp32_server::isRunning() {
 unsigned long _lastReporStatus = 0;
 void esp32_server::step()
 {
+    // Repeat the setup code now and then: the serial monitor is often opened after boot.
+    static unsigned long lastSetupAnnouncement = 0;
+    if(millis() - lastSetupAnnouncement > 60000UL){
+        lastSetupAnnouncement = millis();
+        esp32_authentication::announceSetupCode();
+    }
     if(_enableSSL)
         secureServer->loop();
     unsecureServer->loop();  
@@ -140,6 +169,19 @@ void esp32_server::registerNode(HTTPNode *node)
     if(_enableSSL)
         secureServer->registerNode(node);
     unsecureServer->registerNode(node);
+}
+
+std::string esp32_server::certificateFingerprint()
+{
+    SSLCert* cert = getCertificate();
+    if(cert == nullptr || cert->getCertLength() == 0) return "";
+    uint8_t hash[32];
+    if(mbedtls_md(mbedtls_md_info_from_type(MBEDTLS_MD_SHA256), cert->getCertData(), cert->getCertLength(), hash) != 0)
+        return "";
+    char out[32 * 3];
+    for(int i = 0; i < 32; i++)
+        sprintf(out + i * 3, i < 31 ? "%02X:" : "%02X", hash[i]);
+    return std::string(out);
 }
 
 SSLCert *esp32_server::getCertificate()

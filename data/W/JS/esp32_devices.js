@@ -94,7 +94,7 @@ class esp32_devices{
                             {text:'No', action: () => {closeModal()}}, 
                             {text: 'Yes', action: () => 
                                 { 
-                                    activeConfig = activeConfig.schedules.filter(e => e.id != scheduleItem.id);
+                                    activeConfig.schedules = activeConfig.schedules.filter(e => e.id != scheduleItem.id);
                                     pendingChanges = true;
                                     closeModal();
                                     this.openScheduleView();
@@ -148,7 +148,7 @@ class esp32_devices{
                                 setTimeout(() => {
                                     reset(true);closeModal(); 
                                     showWait();
-                                    setTimeout( () => reload,10000);
+                                    setTimeout(reload, 10000);
                                 }, 500);
                             }
                         }
@@ -223,7 +223,11 @@ class esp32_devices{
                 {
                     Source: 'pin', 
                     Field: 'Data', 
-                    Value: pins.filter(ac => ac.pin !== device.pin).map(ac => Object.create({'name': ac.pin, 'value': ac.pin}))
+                    // A pin can drive only one device: offer the pins no other device uses,
+                    // which keeps this device's own pin in the list.
+                    Value: pins
+                        .filter(p => !activeConfig.devices.some(d => d.id !== device.id && d.pin == p.pin))
+                        .map(p => ({'name': p.pin, 'value': p.pin}))
                 }
             ],
             this.saveDevice,
@@ -262,12 +266,8 @@ class esp32_devices{
 /* END OF DEVICES */
 
 function reload(){
-    fetch('/')
-    .then(() => window.location.reload())
-    .catch( () => setTimeout(() => {
-        reload
-    }, 5000))
-    ;
+    // Poll until the restarted device answers (system.js), then reload the page.
+    waitForDeviceRestart(120000, 0);
 }
 
 

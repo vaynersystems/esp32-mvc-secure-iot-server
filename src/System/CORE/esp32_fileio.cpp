@@ -12,7 +12,7 @@
 esp32_file_system filesystem;
 const char* infoTypes[] = {"SPIFFS","SD"};
 #ifdef USE_SD
-SPIClass SDSPI(FSPI);
+SPIClass SDSPI(SD_SPI_HOST);
 #endif
 bool esp32_fileio::start(){
     int retries = 0;
@@ -31,9 +31,9 @@ bool esp32_fileio::start(){
 
     if(SD_TYPE == sd_type::sd_spi){
         
-        SDSPI.begin(GPIO_NUM_38,GPIO_NUM_40, GPIO_NUM_39, GPIO_NUM_47);
+        SDSPI.begin(SD_PIN_SCK, SD_PIN_MISO, SD_PIN_MOSI, SD_PIN_CS);
         while(retries++ < 3 && !sdConnected)            
-            sdConnected = SD.begin(GPIO_NUM_47,SDSPI,4000000);
+            sdConnected = SD.begin(SD_PIN_CS,SDSPI,4000000);
 
         if(!sdConnected) {
             //#ifdef DEBUG
@@ -236,40 +236,51 @@ bool esp32_fileio::DeleteFile(const char * filename){
     return drive->remove(routeInfo.fullyQualifiedPath().c_str());   
 }
 
-void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_extended> routeInfo, httpsserver::HTTPResponse *response){
-    auto drive = filesystem.getDisk(routeInfo.drive());    
-    auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
-    //Serial.printf("Writing %d bytes from  %s located at %s in %s format on drive %d-%s to HTTPResponse\n", file.size(), routeInfo.name().c_str(), routeInfo.fullyQualifiedPath().c_str(), routeInfo.isGZ() ? "GZ" : "RAW", drive->index(), drive->label());
-   
-    if(!file) {
-        auto file = drive->open(routeInfo.fullyQualifiedPath().c_str(), "r");
-        #ifdef DEBUG
-        ESP_LOGE(PROGRAM_TAG, "Error, file not valid read: %d write: %d \n", file.available(), file.availableForWrite());
-        #endif
-        return;
-    }
-    //f.seek(0);
+esp32_served_file esp32_fileio::toServedFile(esp32_route_file_info<esp32_file_info_extended>& routeInfo){
+    esp32_served_file served;
+    served.drive = routeInfo.drive();
+    served.path = routeInfo.fullyQualifiedPath();
+    served.gz = routeInfo.isGZ();
+    served.name = routeInfo.name();
+    served.extension = routeInfo.extension();
+    served.download = routeInfo.isDownload();
+    served.editorRequest = routeInfo.isEditorRequest;
+    return served;
+}
 
-    if (routeInfo.isGZ())
+void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_extended> routeInfo, httpsserver::HTTPResponse *response){
+    writeFileToResponse(toServedFile(routeInfo), response);
+}
+
+bool esp32_fileio::writeFileToResponse(const esp32_served_file& served, httpsserver::HTTPResponse *response){
+    auto drive = filesystem.getDisk(served.drive);    
+    auto file = drive->open(served.path.c_str(), "r");
+    if(!file) {
+        #ifdef DEBUG
+        ESP_LOGE(PROGRAM_TAG, "Error, could not open %s", served.path.c_str());
+        #endif
+        return false;
+    }
+
+    if (served.gz)
         response->setHeader("Content-Encoding", "gzip");
 
     bool noStore = 
-        strstr(file.name(), "list?") != nullptr 
-        || strstr(file.path(), PATH_LOGGING_ROOT) != nullptr 
-        || routeInfo.isEditorRequest
-        || strstr(file.name(), ".json") != nullptr ;
+        strstr(served.path.c_str(), PATH_LOGGING_ROOT) != nullptr 
+        || served.editorRequest
+        || strstr(served.name.c_str(), ".json") != nullptr ;
     response->setHeader("Cache-Control", noStore ? "no-store" : "private, max-age=604800");
-    string extension = routeInfo.extension();
-    if (routeInfo.isDownload())
+    string extension = served.extension;
+    if (served.download)
     {
         char dispStr[128];
-        sprintf(dispStr, " attachment; filename = \"%s\"", routeInfo.name().c_str());
+        snprintf(dispStr, sizeof(dispStr), " attachment; filename = \"%s\"", served.name.c_str());
         response->setHeader("Content - Disposition", dispStr);
         extension = "application/octet-stream";
     }
     else
     {
-        if(extension.find_first_of(".gz") != extension.npos)
+        if(extension.length() > 3 && extension.compare(extension.length() - 3, 3, ".gz") == 0)
             extension = extension.substr(0,extension.length() - 3);
             
         if (strcmp(extension.c_str(), "htm") == 0)
@@ -282,17 +293,37 @@ void esp32_fileio::writeFileToResponse(esp32_route_file_info<esp32_file_info_ext
     }
     response->setHeader("Content-Type", extension);
     response->setStatusCode(200);
-    char buff[32];
+    // An exact length lets the connection stay open for the browser's next file instead of
+    // a new TLS handshake (~0.9 s) per file. If sending stops early the server sees the
+    // shortfall and closes the connection, so the client never misreads the stream.
+    response->setHeader("Content-Length", to_string((unsigned)file.size()));
+    // 1 KB chunks: over HTTPS every write is its own TLS record, and 32-byte writes made a
+    // 36 KB stylesheet into ~1150 records and as many tiny TCP segments.
+    // Stop at the first failed read or write: a write fails when the client stopped reading
+    // (each attempt waits for the socket timeout), and carrying on froze the whole server.
+    static char buff[1024]; // files are served one at a time by the server task
+    size_t sent = 0, total = file.size();
     while (true)
     {
-
-        uint16_t bytestoRead = file.available() < sizeof(buff) ? file.available() : sizeof(buff);
-        if (bytestoRead == 0)
+        size_t available = file.available();
+        size_t bytesToRead = available < sizeof(buff) ? available : sizeof(buff);
+        if (bytesToRead == 0)
             break;
-        file.readBytes(buff, bytestoRead);
-        response->write((uint8_t *)buff, bytestoRead);
-        //Serial.printf("Wrote %u bytes at %d of %d from %s\n", bytestoRead, f.position(), f.size(), f.name());
+        size_t bytesRead = file.read((uint8_t *)buff, bytesToRead);
+        if (bytesRead == 0) {
+            ESP_LOGW(PROGRAM_TAG, "Read failed after %u of %u bytes of %s", sent, total, served.name.c_str());
+            break;
+        }
+        size_t written = response->write((uint8_t *)buff, bytesRead);
+        if (written != bytesRead) {
+            Serial.printf("Stopped sending %s after %u of %u bytes: client is not accepting data\n",
+                served.name.c_str(), (unsigned)sent, (unsigned)total);
+            break;
+        }
+        sent += written;
     }
+    file.close();
+    return true;
 }
 
 void esp32_fileio::writeFileToResponse(const char * filename, httpsserver::HTTPResponse *response)

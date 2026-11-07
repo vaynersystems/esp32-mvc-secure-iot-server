@@ -2,8 +2,8 @@
   "wifi": {
     "mode": "client",
     "dhcp": true,
-    "network": "dd-wrt",
-    "password": "4409420820"
+    "network": "NETWORK_NAME",
+    "password": "NETWORK_PASSWORD"
   },
   "type": "esp32-config",
   "preferences": {
@@ -19,7 +19,8 @@
       "frequency": "300",
       "retention": "2",
       "level": 2,
-      "location": "0"
+      "location": "0",
+      "dns": false
     },
     "enableSSL": true,
     "enableMDNS": true

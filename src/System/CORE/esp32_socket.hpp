@@ -23,6 +23,9 @@ public:
     esp32_socket(int clientId){
         _clientId = clientId;
     }
+    // The server can free a handler without calling onClose() (server-side close, receive
+    // error, eviction); unregistering here keeps activeClients from holding a freed pointer.
+    ~esp32_socket();
     
     // This method is called by the webserver to instantiate a new handler for each
     // client that connects to the websocket endpoint

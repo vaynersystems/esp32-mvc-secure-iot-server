@@ -1,30 +1,54 @@
+#include "request_body.h"
 #include "esp32_config_controller.hpp"
 #include "esp32_crypt.h"
 
+#ifndef BACKUP_MAX_SIZE
+#define BACKUP_MAX_SIZE (64 * 1024)
+#endif
+// Backups made before v2 have a predictable key and no integrity check, so a forged one could
+// add an administrator. Build with -D BACKUP_ALLOW_LEGACY_RESTORE=1 only to migrate an old backup.
+#ifndef BACKUP_ALLOW_LEGACY_RESTORE
+#define BACKUP_ALLOW_LEGACY_RESTORE 0
+#endif
+
 
 DerivedController<esp32_config_controller> esp32_config_controller::reg("esp32_config");
+
+static void redactSecrets(JsonDocument& doc);
 
 void esp32_config_controller::Index(HTTPRequest* request, HTTPResponse* response) {
     
     title = "Module Configuration Page";
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
-    File f = drive->open(PATH_SYSTEM_CONFIG,"r+w");
+    File f = drive->open(PATH_SYSTEM_CONFIG,"r");
     if(!f){
         #if defined(DEBUG) && DEBUG > 0
         Serial.printf("Failed to open config file on %s\n", drive->label());
         #endif
         return;
     }
-    char buff[64];
-    string configData= "";
-    int bytesRead = 0;
-    do{
-        bytesRead = f.readBytes(buff,sizeof(buff));
-        configData.append(buff,bytesRead);
-    } while(bytesRead > 0);
+    DynamicJsonDocument doc(f.size() * 3 + 1024);
+    deserializeJson(doc, f);
+    f.close();
+    // Never embed the Wi-Fi passwords in the page (LoadConfigData redacts them too).
+    redactSecrets(doc);
+    string json;
+    serializeJson(doc, json);
 
-    
+    // The page places this inside a JavaScript template literal: escape what would end it or
+    // be evaluated (backslash, backtick, ${) and "<" so "</script>" cannot close the script tag.
+    string configData;
+    configData.reserve(json.size() + 32);
+    for(size_t i = 0; i < json.size(); i++){
+        char c = json[i];
+        if(c == '\\') configData += "\\\\";
+        else if(c == '`') configData += "\\`";
+        else if(c == '$') configData += "\\$";
+        else if(c == '<') configData += "\\x3c";
+        else configData += c;
+    }
+
     controllerTemplate.SetTemplateVariable(F("$_CONFIGURATION_DATA"), configData.c_str());
     //controllerTemplate.SetTemplateVariable(F("$_CONFIG_FILE"), PATH_SYSTEM_CONFIG);
     
@@ -178,6 +202,55 @@ void esp32_config_controller::GetAvailableWifi(HTTPRequest* request, HTTPRespons
     response->setStatusCode(200);
 }
 
+// Configuration values that are never sent to the browser.
+// Each is replaced by "" plus a "<key>Set" flag saying whether a value is stored.
+static JsonObject secretParent(JsonDocument& doc, int index, const char*& key){
+    switch(index){
+        case 0: key = "password"; return doc["wifi"].as<JsonObject>();
+        case 1: key = "password"; return doc["wifi"]["ap"].as<JsonObject>();
+    }
+    key = nullptr;
+    return JsonObject();
+}
+static const int SECRET_COUNT = 2;
+
+static void redactSecrets(JsonDocument& doc){
+    for(int i = 0; i < SECRET_COUNT; i++){
+        const char* key;
+        JsonObject parent = secretParent(doc, i, key);
+        if(parent.isNull()) continue;
+        bool isSet = strlen(parent[key] | "") > 0;
+        parent[key] = "";
+        parent[string(key) + "Set"] = isSet;
+    }
+}
+
+/// @brief Fill secrets the browser left blank from the stored configuration.
+/// @brief "<key>Clear": true removes a stored secret (e.g. make the access point open).
+/// @brief A different Wi-Fi network with no password given is an open network, not the old one's.
+static void mergeSecrets(JsonDocument& incoming, JsonDocument& existing){
+    for(int i = 0; i < SECRET_COUNT; i++){
+        const char* key;
+        JsonObject parent = secretParent(incoming, i, key);
+        if(parent.isNull()) continue;
+        string setFlag = string(key) + "Set", clearFlag = string(key) + "Clear";
+        bool clear = parent[clearFlag] | false;
+        parent.remove(setFlag);
+        parent.remove(clearFlag);
+        if(clear){ parent[key] = ""; continue; }
+        if(strlen(parent[key] | "") > 0) continue; // new value given
+
+        const char* existingKey;
+        JsonObject existingParent = secretParent(existing, i, existingKey);
+        if(existingParent.isNull()) { parent[key] = ""; continue; }
+        if(i == 0 && strcmp(parent["network"] | "", existingParent["network"] | "") != 0){
+            parent[key] = "";
+            continue;
+        }
+        parent[key] = existingParent[existingKey].as<std::string>(); // copy: existing is freed after save
+    }
+}
+
 /// @brief Load configuration information from json file on disk
 /// @param req 
 /// @param res 
@@ -190,17 +263,23 @@ void esp32_config_controller::LoadConfigData(HTTPRequest* request, HTTPResponse*
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
     File f = drive->open(PATH_SYSTEM_CONFIG,"r");
-    byte buff[32];
-    int bytesToRead = 0;
-    while(true){
-        bytesToRead = f.available() > sizeof(buff) ? sizeof(buff) : f.available();
-        if(bytesToRead <= 0) break;
-        f.readBytes((char*)buff,bytesToRead);
-        response->write(buff,bytesToRead);
+    DynamicJsonDocument doc(f.size() * 2 + 512);
+    auto error = deserializeJson(doc, f);
+    f.close();
+    if(error){
+        response->setStatusCode(500);
+        response->setStatusText(error.c_str());
+        return;
     }
-    f.close();    
+    // Secrets never go back to the browser: only whether one is stored.
+    redactSecrets(doc);
 
+    string out;
+    serializeJson(doc, out);
+    response->setHeader("Content-Type", "application/json");
+    response->setHeader("Cache-Control", "no-store");
     response->setStatusCode(200);
+    response->print(out.c_str());
 }
 
 /// @brief Save configuration json to disk
@@ -215,19 +294,17 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
     }
     const int length = request->getContentLength();
     
-    DynamicJsonDocument doc(length * 2);
+    DynamicJsonDocument doc(length * 2 + 512);
     string content;
-    char * buf = new char[32];
-    while(true){
-        
-        int bytesRead = request->readBytes((byte*)buf,32); 
-        if(bytesRead <= 0) break;       
-        content.append(buf,bytesRead);
+    // Read the whole body (it can arrive after the headers over HTTPS).
+    if(!readRequestBody(request, content)){
+        response->setStatusCode(400);
+        response->setStatusText("Incomplete request body");
+        return false;
     }
-    delete[] buf;
 
     #if defined(DEBUG) && DEBUG > 0
-    Serial.printf("Saving %i bytes to config\n%s\n", content.length(),content.c_str());
+    Serial.printf("Saving %i bytes to config\n", content.length());
     #endif
     auto error = deserializeJson(doc, content);
 
@@ -246,6 +323,18 @@ bool esp32_config_controller::SaveConfigData(HTTPRequest* request, HTTPResponse*
             }
         }
         auto drive = filesystem.getDisk(0);
+        // The page never receives secrets, so a blank one means "keep what is stored".
+        File existingFile = drive->open(PATH_SYSTEM_CONFIG, "r");
+        DynamicJsonDocument existing(existingFile.size() * 2 + 512);
+        deserializeJson(existing, existingFile);
+        existingFile.close();
+        mergeSecrets(doc, existing);
+        if(doc.overflowed()){
+            response->setStatusCode(500);
+            response->setStatusText("Configuration too large");
+            return false;
+        }
+
         File f = drive->open(PATH_SYSTEM_CONFIG, "w");
         serializeJson(doc,f);
         f.close();
@@ -300,14 +389,12 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
     #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Generating certificate...\n");
     #endif
-    char * buf = new char[32];
-    while(true){
-        
-        int bytesRead = request->readBytes((byte*)buf,32); 
-        if(bytesRead <= 0) break;       
-        content.append(buf,bytesRead);
+    // Read the whole body (it can arrive after the headers over HTTPS).
+    if(!readRequestBody(request, content)){
+        response->setStatusCode(400);
+        response->setStatusText("Incomplete request body");
+        return;
     }
-    delete[] buf;
 
     auto error = deserializeJson(doc, content);
 
@@ -319,10 +406,10 @@ void esp32_config_controller::GenerateCertificate(HTTPRequest *request, HTTPResp
             return;
         }
 
-        deviceName = doc["device"].as<const char*>();
-        companyName = doc["company"].as<const char*>();
-        validFrom = doc["from"].as<const char*>();
-        validTo = doc["to"].as<const char*>();
+        deviceName = doc["device"] | "";
+        companyName = doc["company"] | "";
+        validFrom = doc["from"] | "20240101000000";
+        validTo = doc["to"] | "20350101000000";
         #if defined(DEBUG) && DEBUG > 0
         Serial.printf(".. parsed \n\tdevice: %s\n\t company %s\n\t valid-from: %s\n\t valid-to: %s\n",
             deviceName.c_str(), companyName.c_str(), validFrom.c_str(), validTo.c_str()
@@ -367,17 +454,23 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     }
 
     //package config, auth, public files into one
-    DynamicJsonDocument doc(8192);
-    DynamicJsonDocument docPublic(2048);
-    DynamicJsonDocument docSecurity(1024);
-    DynamicJsonDocument docConfig(2048);
-    DynamicJsonDocument docDevices(2048);
-
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
 
     File authorize = drive->open(PATH_AUTH_FILE, "r");
-    deserializeJson(docSecurity,authorize);
+    // size the user database from the file so no user is silently dropped from the backup
+    DynamicJsonDocument docSecurity(authorize.size() * 2 + 1024);
+    auto securityError = deserializeJson(docSecurity,authorize);
     authorize.close();
+    if(securityError || docSecurity.overflowed()){
+        response->setStatusCode(500);
+        response->setStatusText("Failed to read user database for backup");
+        return;
+    }
+
+    DynamicJsonDocument doc(8192 + docSecurity.capacity());
+    DynamicJsonDocument docPublic(2048);
+    DynamicJsonDocument docConfig(2048);
+    DynamicJsonDocument docDevices(2048);
 
     File config = drive->open(PATH_SYSTEM_CONFIG, "r");
     deserializeJson(docConfig,config);
@@ -399,34 +492,79 @@ void esp32_config_controller::Backup(HTTPRequest *request, HTTPResponse *respons
     doc["devices"] = docDevices;
     doc["public"] = docPublic;
     doc["type"] = "esp32-backup";
+    if(doc.overflowed()){
+        response->setStatusCode(500);
+        response->setStatusText("Backup too large");
+        return;
+    }
 
     
 
-    char enc_key[32] = {0}; //null terminated
-    char enc_iv[16] =  {0};
-    memcpy(enc_key,server.getCertificate()->getPKData(),sizeof(enc_key));
-    memcpy(enc_iv,server.getCertificate()->getPKData(),sizeof(enc_iv));
+    // Keys are derived from the whole device private key; a random IV is used per backup
+    // and the file is authenticated so a modified backup is rejected on restore.
+    uint8_t encKey[DERIVED_KEY_SIZE], macKey[DERIVED_KEY_SIZE];
+    auto cert = server.getCertificate();
+    if(!derive_device_key(cert->getPKData(), cert->getPKLength(), KEY_LABEL_BACKUP_ENC, encKey) ||
+       !derive_device_key(cert->getPKData(), cert->getPKLength(), KEY_LABEL_BACKUP_MAC, macKey)){
+        response->setStatusCode(500);
+        response->setStatusText("Backup key unavailable");
+        return;
+    }
 
-    string backupData = "", backupDataEncrypted = "";
-    unsigned char * encryptedData;
+    string backupData = "";
     serializeJson(doc,backupData);
-    size_t dataLength = ecrypted_string_length(backupData.c_str());
-
-    encryptedData = (unsigned char *)malloc(dataLength);
-
-    encrypt_string(backupData.c_str(), (uint8_t*)enc_key,  (uint8_t*)enc_iv, encryptedData);
-    Serial.printf("Encypted string of %d bytes to %d bytes.\n",
-        backupData.length(), dataLength
-    );
-    
-    response->write(encryptedData, dataLength);
-    delete[] encryptedData;
+    size_t sealedLength = backup_sealed_length(backupData.length());
+    uint8_t* sealedData = (uint8_t*)malloc(sealedLength);
+    bool sealed = sealedData != nullptr && backup_seal(
+        (const uint8_t*)backupData.data(), backupData.length(), encKey, macKey, sealedData, &sealedLength);
+    memset(encKey, 0, sizeof(encKey));
+    memset(macKey, 0, sizeof(macKey));
+    if(!sealed){
+        free(sealedData);
+        response->setStatusCode(500);
+        response->setStatusText("Failed to encrypt backup");
+        return;
+    }
 
     char dispStr[128];
     sprintf(dispStr, " attachment; filename = \"%s\"", "backup.json");
     response->setHeader("Content-Disposition", dispStr);    
     response->setHeader("Content-Type","application/octet-stream");
     response->setStatusCode(200);
+    response->write(sealedData, sealedLength);
+    free(sealedData);
+}
+
+/// @brief Copy a file on the system drive, writing exactly the bytes read.
+static bool copySystemFile(const char* from, const char* to){
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    File sourceFile = drive->open(from, "r");
+    if(!sourceFile) return false;
+    File destFile = drive->open(to, FILE_WRITE);
+    if(!destFile){ sourceFile.close(); return false; }
+    static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
+    size_t total = 0, expected = sourceFile.size();
+    bool ok = true;
+    while(true){
+        size_t readLength = sourceFile.read(buf, FILESYSTEM_BUFFER_SIZE);
+        if(readLength == 0) break;
+        if(destFile.write(buf, readLength) != readLength){ ok = false; break; }
+        total += readLength;
+    }
+    destFile.close();
+    sourceFile.close();
+    return ok && total == expected;
+}
+
+/// @brief A restorable user list must be a non-empty array where every entry has a username and password.
+static bool isValidUserList(JsonArray users){
+    if(users.isNull() || users.size() == 0) return false;
+    for(JsonObject user : users){
+        if(user.isNull()) return false;
+        if(!user["username"].is<const char*>() || strlen(user["username"].as<const char*>()) == 0) return false;
+        if(!user["password"].is<const char*>() || strlen(user["password"].as<const char*>()) == 0) return false;
+    }
+    return true;
 }
 
 void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *response)
@@ -438,45 +576,81 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
     }
     const int length = request->getContentLength();
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
-    //DynamicJsonDocument doc(length * 2);
-    DynamicJsonDocument doc(8192);
+    DynamicJsonDocument doc(length * 2 + 8192);
     DynamicJsonDocument docPublic(2048);
-    DynamicJsonDocument docSecurity(2048);
+    DynamicJsonDocument docSecurity(length * 2 + 2048);
     DynamicJsonDocument docConfig(2048);
     DynamicJsonDocument docDevices(2048);
     
+    if(length <= 0 || length > BACKUP_MAX_SIZE){
+        response->setStatusCode(400);
+        response->setStatusText("Invalid backup size");
+        return;
+    }
     unsigned char * backupDataEncrypted  = (unsigned char *)malloc(length);
-    memset((void *)backupDataEncrypted, 0, length + 1);
+    unsigned char * decryptedData = (unsigned char *)malloc(length + 1);
+    if(backupDataEncrypted == nullptr || decryptedData == nullptr){
+        free(backupDataEncrypted);
+        free(decryptedData);
+        response->setStatusCode(500);
+        return;
+    }
+    memset(decryptedData, 0, length + 1);
     unsigned char * buf = new unsigned char[FILESYSTEM_BUFFER_SIZE];
-    size_t readLength = 0;
     size_t fieldLength = 0;
-    while(true){            
-        readLength = request->readBytes((byte*)buf,FILESYSTEM_BUFFER_SIZE); 
-        if(readLength <= 0) continue;
-
+    unsigned long lastData = millis();
+    while(fieldLength < (size_t)length && !request->requestComplete()){
+        size_t toRead = min((size_t)FILESYSTEM_BUFFER_SIZE, (size_t)length - fieldLength);
+        size_t readLength = request->readBytes((byte*)buf, toRead);
+        if(readLength == 0){
+            if(millis() - lastData > 10000) break; // upload stalled: stop instead of spinning forever
+            delay(2);
+            continue;
+        }
+        lastData = millis();
         memcpy(&backupDataEncrypted[fieldLength], buf, readLength);
         fieldLength += readLength;
-        
-        if(request->requestComplete()) break;
     }     
     delete[] buf;
-    
-    #if defined(DEBUG) && DEBUG > 3
-    #endif
-    Serial.printf("Decrypting string of %d bytes. Read %d bytes\n", length, fieldLength);
 
-    char enc_key[32] = {0}; //null terminated
-    char enc_iv[16] =  {0};
-    memcpy(enc_key,server.getCertificate()->getPKData(),sizeof(enc_key));
-    memcpy(enc_iv,server.getCertificate()->getPKData(),sizeof(enc_iv));
-    
-    unsigned char * decryptedData = (unsigned char *)malloc(length + 1);
-    memset(decryptedData, 0, length + 1);
-
-    auto decryptedLength = decrypt_string(backupDataEncrypted, length, (const char*)enc_key,  (const char*)enc_iv, decryptedData);
     #if defined(DEBUG) && DEBUG > 3
-    Serial.printf("Decrypted string of %d bytes\n", decryptedLength);
+    Serial.printf("Decrypting backup of %d bytes. Read %d bytes\n", length, fieldLength);
     #endif
+
+    auto cert = server.getCertificate();
+    size_t decryptedLength = 0;
+    bool opened = false;
+    if(backup_is_v2(backupDataEncrypted, fieldLength)){
+        uint8_t encKey[DERIVED_KEY_SIZE], macKey[DERIVED_KEY_SIZE];
+        opened = derive_device_key(cert->getPKData(), cert->getPKLength(), KEY_LABEL_BACKUP_ENC, encKey) &&
+                 derive_device_key(cert->getPKData(), cert->getPKLength(), KEY_LABEL_BACKUP_MAC, macKey) &&
+                 backup_open(backupDataEncrypted, fieldLength, encKey, macKey, decryptedData, &decryptedLength);
+        memset(encKey, 0, sizeof(encKey));
+        memset(macKey, 0, sizeof(macKey));
+    }
+    #if BACKUP_ALLOW_LEGACY_RESTORE
+    else if(fieldLength > 0 && fieldLength % 16 == 0){
+        // Backups made before v2 used a key/IV taken from the first bytes of the private key.
+        // That key is predictable, so these files are not authenticated; allowed only for migration.
+        logger.logInfo("Restoring legacy (unauthenticated) backup format");
+        char enc_key[32] = {0};
+        char enc_iv[16] =  {0};
+        memcpy(enc_key,cert->getPKData(),sizeof(enc_key));
+        memcpy(enc_iv,cert->getPKData(),sizeof(enc_iv));
+        decrypt_string(backupDataEncrypted, fieldLength, (const char*)enc_key,  (const char*)enc_iv, decryptedData);
+        decryptedData[fieldLength] = 0;
+        decryptedLength = fieldLength;
+        opened = true;
+    }
+    #endif
+    free(backupDataEncrypted);
+
+    if(!opened){
+        free(decryptedData);
+        response->setStatusCode(400);
+        response->setStatusText("Backup could not be verified. It was modified or made by another device.");
+        return;
+    }
 
     #if defined(DEBUG) && DEBUG > 0
     Serial.printf("Saving %i bytes to config\n", decryptedLength);
@@ -500,69 +674,58 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
                 #if defined(DEBUG) && DEBUG > 3
                 Serial.printf("Restoring user %s\n", user["username"].as<const char*>());                
                 #endif
-                docSecurity.add(user);
+                users.add(user);
             }
-            File sourceFile = drive->open(PATH_AUTH_FILE);
-            File destFile = drive->open(PATH_AUTH_FILE ".b", FILE_WRITE);
-            static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
-            while( sourceFile.read( buf, FILESYSTEM_BUFFER_SIZE) ) {
-                destFile.write( buf, FILESYSTEM_BUFFER_SIZE );
-            }
-            destFile.close();
-            sourceFile.close(); 
 
-            drive->remove(PATH_AUTH_FILE);
-            
-            File security = drive->open(PATH_AUTH_FILE,"w");
-            //security.print(userStr.c_str());
-            serializeJson(docSecurity, security);        
-            #if defined(DEBUG) && DEBUG > 3   
-            Serial.printf("Serialized security (%d bytes in json) to file with %d bytes...\n", docSecurity.memoryUsage(), security.position());
-            #endif
-            security.close();
-            
-            //test and rollback if failed           
-            File securityVerify = drive->open(PATH_AUTH_FILE,"r");
-            DynamicJsonDocument docSec(2048);
-            auto testError = deserializeJson(docSec, securityVerify);
-            securityVerify.close();
-            if(testError.code() != DeserializationError::Ok || docSec.isNull()){
+            // Validate before touching the existing user database: never write a truncated
+            // list, and never write one that would lock every user out.
+            if(docSecurity.overflowed() || !isValidUserList(users)){
                 failed = true;
-                Serial.printf("Error occured deserializing updated security: %s, rolling back\n", testError.c_str());
-                
-            } else{
-                Serial.printf("Sucessfully deserialized updated security: %s.\n", testError.c_str());
-                for(auto userAccount : docSec.to<JsonArray>()){
-                    if(userAccount["username"].isNull()){
-                        Serial.printf("Error, username field not found");
-                        failed = true;
-                        break;
-                    }
+                logger.logError("Restore rejected: user list in backup is empty or invalid");
+            }
+
+            bool hadUsers = !failed && drive->exists(PATH_AUTH_FILE);
+            if(hadUsers && !copySystemFile(PATH_AUTH_FILE, PATH_AUTH_FILE ".b")){
+                failed = true;
+                logger.logError("Restore aborted: could not back up current user database");
+            }
+
+            if(!failed){
+                File security = drive->open(PATH_AUTH_FILE,"w");
+                size_t written = serializeJson(docSecurity, security);        
+                #if defined(DEBUG) && DEBUG > 3   
+                Serial.printf("Serialized security (%d bytes in json) to file with %d bytes...\n", docSecurity.memoryUsage(), written);
+                #endif
+                security.close();
+
+                //test and rollback if failed           
+                File securityVerify = drive->open(PATH_AUTH_FILE,"r");
+                DynamicJsonDocument docSec(docSecurity.capacity());
+                auto testError = deserializeJson(docSec, securityVerify);
+                securityVerify.close();
+                if(written == 0 || testError.code() != DeserializationError::Ok || !isValidUserList(docSec.as<JsonArray>())){
+                    failed = true;
+                    Serial.printf("Error verifying restored user database: %s, rolling back\n", testError.c_str());
+                }
+
+                if(failed){ //rollback
+                    if(hadUsers)
+                        copySystemFile(PATH_AUTH_FILE ".b", PATH_AUTH_FILE);
+                    else
+                        drive->remove(PATH_AUTH_FILE);
+                    #if defined(DEBUG)
+                    Serial.println("Quitting restore!");             
+                    #endif
                 }
             }
-            if(failed){ //rollback
-                File sourceFile = drive->open(PATH_AUTH_FILE ".b");
-                File destFile = drive->open(PATH_AUTH_FILE , FILE_WRITE);
-                static uint8_t buf[FILESYSTEM_BUFFER_SIZE];
-                while( sourceFile.read( buf, FILESYSTEM_BUFFER_SIZE) ) {
-                    destFile.write( buf, FILESYSTEM_BUFFER_SIZE );
-                }
-                destFile.close();
-                sourceFile.close(); 
-                response->setStatusCode(500);   
-                #if defined(DEBUG)
-                Serial.println("Quitting restore!");             
-                #endif
-                
-            } else // commit / remove backup
-            {
+            if(hadUsers){
                 #if defined(DEBUG) && DEBUG > 1
-                Serial.println();
                 Serial.printf("Removing backup file: %s.\n", PATH_AUTH_FILE ".b");
                 #endif
                 drive->remove(PATH_AUTH_FILE ".b");
-            
             }
+            if(failed)
+                response->setStatusCode(500);
         }
         if(!failed && !doc["config"].isNull()){
             Serial.println("Restoring config");

@@ -1,3 +1,4 @@
+#include <map>
 #ifndef _ESP32_ROUTER_CPP
 #define _ESP32_ROUTER_CPP
 #include "esp32_router.h"
@@ -55,6 +56,11 @@ void esp32_router::handleCORS(HTTPRequest *req, HTTPResponse *res)
 
 void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
 {
+    // Lists every file on every drive (internal ones included): administrators only.
+    if(req->getHeader(HEADER_GROUP) != "ADMIN"){
+        res->setStatusCode(403);
+        return;
+    }
     string dir, path, filter, driveStr;
     req->getParams()->getQueryParameter("dir", dir);
     req->getParams()->getQueryParameter("path", path);
@@ -63,7 +69,12 @@ void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
     if(!is_number(driveStr)){
         driveStr="0"; //default to drive 0
     }
-    auto drive = filesystem.getDisk(atoi(driveStr.c_str()));
+    int driveIndex = atoi(driveStr.c_str());
+    if(driveIndex < 0 || driveIndex >= filesystem.driveCount()){
+        res->setStatusCode(400);
+        return;
+    }
+    auto drive = filesystem.getDisk(driveIndex);
 
     res->setHeader("Content-Type", "application/json");
     if (path.length() > 0)
@@ -367,6 +378,7 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res){
 }
 void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const char * overwriteFilePath)
 {
+    clearFileCache(); // a file is about to be written or deleted
     string drive="";
     bool authorized = strcmp(req->getHeader(HEADER_GROUP).c_str(), "ADMIN") == 0;
     if(!authorized){
@@ -531,7 +543,13 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
         //prefix drive if speificed
         if(drive.length() > 0){
             
-            auto fs = filesystem.getDisk(atoi(drive.c_str()));
+            int driveIndex = is_number(drive) ? atoi(drive.c_str()) : -1;
+            if(driveIndex < 0 || driveIndex >= filesystem.driveCount()){
+                res->setStatusCode(400);
+                res->setStatusText("Unknown drive");
+                return;
+            }
+            auto fs = filesystem.getDisk(driveIndex);
             if(path.find(fs->label()) <= 0) //if drive not passed in filename, prefix it
                 path = string_format("/%s%s",fs->label(),path.c_str());   
             #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0           
@@ -596,15 +614,74 @@ void esp32_router::handleRoot(HTTPRequest *req, HTTPResponse *res)
     }
 }
 
+// Resolving a request path costs several SPIFFS lookups (".gz" variant, exists, open for the
+// size) at ~50-100 ms each, and browsers do not cache pages from a site whose certificate they
+// do not trust, so every page view re-fetched every stylesheet and script that way. Remember
+// where public web files resolved; cleared whenever a file is written or deleted.
+static std::map<std::string, esp32_served_file> fileCache;
+static const size_t FILE_CACHE_MAX = 64;
+
+void esp32_router::clearFileCache(){
+    fileCache.clear();
+}
+
+// A "drive=" query value must name an existing drive: the filesystem library indexes its drive
+// list without a bounds check, so ?drive=9 on any file crashed the device.
+bool esp32_router::driveParamValid(const std::string& requestPath){
+    size_t query = requestPath.find('?');
+    if(query == std::string::npos) return true;
+    size_t pos = query;
+    while((pos = requestPath.find("drive=", pos)) != std::string::npos){
+        bool atParamStart = pos > 0 && (requestPath[pos - 1] == '?' || requestPath[pos - 1] == '&');
+        pos += 6;
+        if(!atParamStart) continue;
+        size_t end = requestPath.find('&', pos);
+        std::string value = requestPath.substr(pos, end == std::string::npos ? std::string::npos : end - pos);
+        if(value.empty() || value.size() > 3 || value.find_first_not_of("0123456789") != std::string::npos) return false;
+        if(atoi(value.c_str()) >= filesystem.driveCount()) return false;
+    }
+    return true;
+}
+
+// Non-admins may only read the public web files. Everything else (/INT with users and Wi-Fi
+// settings, /TMP with keys being generated, logs, other drives) is admin-only. Decided on the
+// fully resolved path: the old check compared the raw request with "/spiffs/INT", so
+// "/INT/authorized.dat" (which resolves to /spiffs/INT/...) was served to any logged-in user.
+bool esp32_router::mayReadFile(const std::string& fullyQualifiedPath, bool isAdmin){
+    if(fullyQualifiedPath.find("..") != std::string::npos) return false;
+    if(fullyQualifiedPath.find("//") != std::string::npos) return false;
+    if(isAdmin) return true;
+    static const std::string publicRoot = std::string(PATH_SITE_ROOT) + "/";
+    return fullyQualifiedPath.compare(0, publicRoot.size(), publicRoot) == 0;
+}
+
 void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
 {
     bool isAdminUser = req->getHeader(HEADER_GROUP) == "ADMIN";    
+    std::string requestPath = urlDecode(req->getRequestString());
+    bool editorRequest = strstr(req->getHeader("Refer").c_str(), "edit") != nullptr;
+    bool cacheable = requestPath.find('?') == std::string::npos && !editorRequest;
+
+    if(requestPath.find('\0') != std::string::npos || !driveParamValid(requestPath)){
+        res->setStatusCode(400);
+        res->setStatusText("Bad Request");
+        return;
+    }
+
+    if(cacheable){
+        auto cached = fileCache.find(requestPath);
+        if(cached != fileCache.end() && mayReadFile(cached->second.path, isAdminUser)){
+            if(esp32_fileio::writeFileToResponse(cached->second, res)) return;
+            fileCache.erase(cached); // gone since it was cached: resolve again below
+        }
+    }
+
     //hydrate to check if path is internal, user authorized, and file exists.
-    //Serial.printf("[ESP32_ROUTER] handling file %s\n", req->getRequestString().c_str());
     auto routeInfo = esp32_route_file_info<esp32_file_info_extended>(req);
-    
-    if(routeInfo.isInternal && !isAdminUser){
-        res->setStatusCode(401);
+    std::string resolvedPath = routeInfo.fullyQualifiedPath();
+
+    if(!mayReadFile(resolvedPath, isAdminUser)){
+        res->setStatusCode(isAdminUser ? 400 : 403);
         return;
     }   
 
@@ -613,8 +690,13 @@ void esp32_router::handleFile(HTTPRequest *req, HTTPResponse *res)
         handle404(req, res);
         return;
     }   
-    
-    esp32_fileio::writeFileToResponse(urlDecode(req->getRequestString()).c_str(), res);
+
+    // Reuse what was just resolved instead of looking the file up again. Only public web files
+    // are cached, so a cache hit can never hand an internal file to anyone.
+    esp32_served_file served = esp32_fileio::toServedFile(routeInfo);
+    if(cacheable && mayReadFile(resolvedPath, false) && fileCache.size() < FILE_CACHE_MAX)
+        fileCache[requestPath] = served;
+    esp32_fileio::writeFileToResponse(served, res);
 }
 
 

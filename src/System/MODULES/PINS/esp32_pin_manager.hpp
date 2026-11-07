@@ -69,10 +69,12 @@ static const esp32_pin _esp32_d0wdq6_pins[] = {
         esp32_pin(27),
         esp32_pin(32),
         esp32_pin(33),
-        esp32_pin(34, GPIO_MODE_INPUT),
-        esp32_pin(35, GPIO_MODE_INPUT),
-        esp32_pin(36, GPIO_MODE_INPUT),
-        esp32_pin(39, GPIO_MODE_INPUT),
+        // Input only, with analog (ADC1). The mode must be the third argument: passed second,
+        // it became isAnalog and left these pins marked as outputs.
+        esp32_pin(34, true, GPIO_MODE_INPUT),
+        esp32_pin(35, true, GPIO_MODE_INPUT),
+        esp32_pin(36, true, GPIO_MODE_INPUT),
+        esp32_pin(39, true, GPIO_MODE_INPUT),
 };
 
 class esp32_pin_manager{

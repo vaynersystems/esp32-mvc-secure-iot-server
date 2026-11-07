@@ -26,7 +26,7 @@ public:
 
 	static void middlewareAuthentication(HTTPRequest* req, HTTPResponse* res, std::function<void()> next);
     static void middlewareAuthorization(HTTPRequest* req, HTTPResponse* res, std::function<void()> next);
-    void middlewareSetTokenizer(char* pkData);
+    void middlewareSetTokenizer(const unsigned char* pkData, size_t pkLength);
     int initPublicPages();
    
 private:
