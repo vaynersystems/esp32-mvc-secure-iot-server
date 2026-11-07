@@ -37,7 +37,7 @@ typedef enum {sd_spi, sd_mmc} sd_type;
 #define FILESYSTEM_BUFFER_SIZE 512
 
 //debug info
-// #define DEBUG 1
+#define DEBUG 1
 // #define DEBUG_DEVICE 0
 // #define DEBUG_SCHEDULE 1
 // #define DEBUG_LOGGING 0

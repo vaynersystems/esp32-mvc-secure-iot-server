@@ -77,8 +77,7 @@ class esp32_devices{
                     Value: activeConfig.devices.map(ac => Object.create({'name': ac.name, 'value': ac.id}))
                 }
             ],
-            [
-                
+            [                
                 {
                     'text':'Edit', action: (ev) =>{
                         var scheduleItem = ev.currentTarget.record.Record;
@@ -113,8 +112,7 @@ class esp32_devices{
                         (changed) => pendingChanges = changed,
                         () => pendingChanges = pendingBeforeAdd);
                 }
-            }]
-           
+            }]           
         );
     }
     
@@ -258,9 +256,7 @@ class esp32_devices{
             onCancelCallback,
             null,
             onChangeCallback            
-        );
-    
-        
+        );   
     }
 }
 /* END OF DEVICES */
