@@ -63,6 +63,11 @@
         if (setupRow && setupRow.dataset.setupRequired === 'true') setupRow.style.display = '';
         const loginButtonElement = document.getElementById('login-button');
         loginButtonElement.addEventListener('click', () =>{
+            // The device only accepts passwords of up to 32 characters.
+            if(document.getElementById("password").value.length > 32){
+                showModal('Authentication Error', '<p class="error">Password cannot exceed 32 characters.</p>');
+                return;
+            }
             showLoading();
             getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value,document.getElementById("setup-code").value);
         });

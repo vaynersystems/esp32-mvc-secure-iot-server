@@ -184,8 +184,10 @@ string esp32_logging::getLogFilename(esp32_log_type logType)
     struct tm timeinfo = getDate();
     auto drive = filesystem.getDisk(_location == 0 ? "spiffs" : "sd"); //relying on the simple fact that spiffs is mounted at 0, SD at 1, just as enum, dicey!
    
-    if(timeinfo.tm_year == 70)
-        return ""; // clock not initialized
+    // Clock not set yet (NTP has not answered). This checked tm_year == 70, but west of GMT an
+    // unset clock reads as 31 Dec 1969 local time, so entries went to a "1969-12-31" file.
+    if(time(nullptr) < 1577836800) // 2020-01-01 UTC
+        return "";
     return string_format("%s/%s_%04d-%02d-%02d.log",
         PATH_LOGGING_ROOT, logTypes[logType], timeinfo.tm_year + 1900, timeinfo.tm_mon + 1, timeinfo.tm_mday);
 

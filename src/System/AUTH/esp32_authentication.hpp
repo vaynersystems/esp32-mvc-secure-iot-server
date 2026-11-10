@@ -1,3 +1,5 @@
+#ifndef _ESP32_AUTHENTICATION_H
+#define _ESP32_AUTHENTICATION_H
 
 #include "string"
 #include "System/Config.h"
@@ -14,6 +16,12 @@ struct esp32_user_auth_info{
     bool authenticated = false;
     bool setupRequired = false; // no users exist yet; the first login needs the setup code
 };
+
+// Password length limits, applied by the login page, the user forms and the server alike.
+// The login request only accepts PASSWORD_MAX_LENGTH characters, so a longer password could be
+// saved but never used to log in.
+#define PASSWORD_MIN_LENGTH 8
+#define PASSWORD_MAX_LENGTH 32
 
 enum ChangePasswordResult{
     WrongPassword = 0,
@@ -38,7 +46,12 @@ class esp32_authentication{
     // Log out: rotates the user's session id if it matches, so every token carrying it stops working.
     static bool revokeSession(const char* username, const char* sessionId);
     static bool registerUser(const char* username, const char* password, const char* role, bool enabled = true);
+    // A user changing their own password: the current password must be given.
     static ChangePasswordResult changePassword(const char* username, const char* oldPassword, const char* newPassword);
+    // An administrator setting a user's password: no current password needed.
+    static ChangePasswordResult setPassword(const char* username, const char* newPassword);
+    // Gives every user in the list a new session id, so no token issued before stays valid.
+    static void assignNewSessionIds(JsonArray users);
     //helper methods
     static JsonObject findUser(JsonArray users, const char* userName);
 
@@ -65,3 +78,4 @@ class esp32_authentication{
     
     //static uint8_t *_hash;
 };
+#endif

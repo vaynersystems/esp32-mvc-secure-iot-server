@@ -155,6 +155,8 @@
         controllersText = '[{"group": "Extras", "sort": "4", "name": "Custom Task Manager", "controller": "c_t_m"}, {"group": "System", "sort": "2", "name": "Configuration", "controller": "esp32_config"}, {"group": "Devices", "sort": "0", "name": "Dashboard", "controller": "esp32_dashboard"}, {"group": "Devices", "sort": "0", "name": "History", "controller": "esp32_historic"}, {"group": "Internal", "sort": "5", "name": "Home", "controller": "esp32_home"}, {"group": "Tools", "sort": "3", "name": "Logs", "controller": "esp32_logs"}, {"group": "System", "sort": "2", "name": "Information", "controller": "esp32_system_info"}, {"group": "Users", "sort": "1", "name": "Users", "controller": "esp32_users"}, {"group": "Internal", "sort": "5", "name": "Login", "controller": "login"}]';
 
         var controllers = JSON.parse(controllersText);
+        // Log Off goes in the Account group, after any account pages (e.g. Change Password).
+        controllers.push({"group": "Account", "sort": "5", "name": "Log Off", "controller": "/logout"});
         controllerListElement = document.getElementsByClassName('menu-container');
 
         if(controllerListElement === undefined) return;
@@ -174,9 +176,6 @@
             if(groupElement !== undefined)
                 controllerListElement.appendChild(groupElement);
         }
-        //add account button
-        var groupElement = createMenuGroup('Account', [{"controller":"/logout", "name": "Log Off"}]);
-        controllerListElement.appendChild(groupElement);
     }
 
     /// groupName - string representing the name of the group

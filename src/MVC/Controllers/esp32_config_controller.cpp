@@ -1,6 +1,7 @@
 #include "request_body.h"
 #include "esp32_config_controller.hpp"
 #include "esp32_crypt.h"
+#include "System/AUTH/esp32_authentication.hpp"
 
 #ifndef BACKUP_MAX_SIZE
 #define BACKUP_MAX_SIZE (64 * 1024)
@@ -575,18 +576,20 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
         return;
     }
     const int length = request->getContentLength();
+    // Check the size before sizing anything from it: the documents below are allocated from
+    // the client's Content-Length.
+    if(length <= 0 || length > BACKUP_MAX_SIZE){
+        request->discardRequestBody();
+        response->setStatusCode(400);
+        response->setStatusText("Invalid backup size");
+        return;
+    }
     auto drive = filesystem.getDisk(SYSTEM_DRIVE);
     DynamicJsonDocument doc(length * 2 + 8192);
     DynamicJsonDocument docPublic(2048);
     DynamicJsonDocument docSecurity(length * 2 + 2048);
     DynamicJsonDocument docConfig(2048);
     DynamicJsonDocument docDevices(2048);
-    
-    if(length <= 0 || length > BACKUP_MAX_SIZE){
-        response->setStatusCode(400);
-        response->setStatusText("Invalid backup size");
-        return;
-    }
     unsigned char * backupDataEncrypted  = (unsigned char *)malloc(length);
     unsigned char * decryptedData = (unsigned char *)malloc(length + 1);
     if(backupDataEncrypted == nullptr || decryptedData == nullptr){
@@ -682,6 +685,17 @@ void esp32_config_controller::Restore(HTTPRequest *request, HTTPResponse *respon
             if(docSecurity.overflowed() || !isValidUserList(users)){
                 failed = true;
                 logger.logError("Restore rejected: user list in backup is empty or invalid");
+            }
+            // Keep usernames, roles and password hashes so everyone can still log in with their
+            // password, but give each user a new session id. The backup holds the session ids
+            // from when it was made, so restoring them as-is would bring back tokens that had
+            // since been revoked by logging out or changing a password.
+            if(!failed){
+                esp32_authentication::assignNewSessionIds(users);
+                if(docSecurity.overflowed()){
+                    failed = true;
+                    logger.logError("Restore rejected: user list too large");
+                }
             }
 
             bool hadUsers = !failed && drive->exists(PATH_AUTH_FILE);

@@ -59,7 +59,10 @@ int ArduinoJWT::getJWTLength(string& payload) {
 }
 
 int ArduinoJWT::getJWTLength(char* payload) {
-  return strlen(jwtHeader) + encode_base64_length(strlen(payload)) + encode_base64_length(32) + 2;
+  // header '.' payload '.' signature, plus the terminator encode_base64 writes after the
+  // signature (without the + 1 that terminator went one byte past the end of the buffer
+  // whenever the encoded payload had no '=' padding to strip).
+  return strlen(jwtHeader) + encode_base64_length(strlen(payload)) + encode_base64_length(32) + 2 + 1;
 }
 
 int ArduinoJWT::getJWTPayloadLength(string& jwt) {
@@ -194,7 +197,8 @@ bool ArduinoJWT::decodeJWT(const char* jwt, char* payload, int payloadLength) {
   Sha256.print(tokens[1].c_str());
 
   // Encode the signature as base64
-  unsigned char base64Signature[encode_base64_length(32)];
+  // + 1: encode_base64 writes a terminator after the 44 characters.
+  unsigned char base64Signature[encode_base64_length(32) + 1];
   encode_base64(Sha256.resultHmac(), 32, base64Signature);
   unsigned char* ptr = &base64Signature[0] + encode_base64_length(32);
   // Get rid of any padding and replace / and +

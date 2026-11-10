@@ -1,3 +1,4 @@
+#include <memory>
 #include <map>
 #ifndef _ESP32_ROUTER_CPP
 #define _ESP32_ROUTER_CPP
@@ -48,10 +49,14 @@ void esp32_router::RegisterHandler(String nodeMapPath, String method, HTTPSCallb
 
 void esp32_router::handleCORS(HTTPRequest *req, HTTPResponse *res)
 {
-    // Serial.println(">> CORS here...");
-    res->setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-    res->setHeader("Access-Control-Allow-Origin", "*");
-    res->setHeader("Access-Control-Allow-Headers", "*");
+    // The device's pages call it from its own origin, which never needs a CORS preflight. So no
+    // Access-Control-Allow-* headers: browsers then refuse other websites' scripted requests to
+    // the device (this used to allow any origin). Loading fonts or scripts from a CDN into the
+    // device's pages is governed by the CDN's own headers and is unaffected.
+    req->discardRequestBody();
+    res->setStatusCode(204);
+    res->setStatusText("No Content");
+    res->setHeader("Allow", "GET,POST,PUT,DELETE,OPTIONS");
 }
 
 void esp32_router::handleFileList(HTTPRequest *req, HTTPResponse *res)
@@ -404,9 +409,11 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 // adding
                 while (!parser.endOfField())
                 {
-                    memset(buf, 0, sizeof(buf));
                     size_t readLength = parser.read(buf, sizeof(buf));
-                    filename.append((const char *)buf);
+                    if(readLength == 0) break;
+                    // Append exactly what was read: a full 64-byte read left no terminator, and
+                    // appending it as a C string read past the end of the buffer.
+                    filename.append((const char *)buf, readLength);
                 }
                 filePath = filename;
                 filePath = filePath.erase(0, filePath.find_first_of("/"));
@@ -470,6 +477,8 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
             #endif
             return;
         }
+        // Owns the parser so it is freed on every return below (it leaked on each upload).
+        std::unique_ptr<HTTPMultipartBodyParser> parserOwner(parser);
         string filename, path;
         while (parser->nextField())
         {
@@ -517,9 +526,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
             }else if(name == "drive"){
                 while (!parser->endOfField())
                 {
-                    memset(buf, 0, sizeof(buf));
-                    size_t readLength = parser->read((byte*)buf, 512);
-                    drive.append((const char *)buf);
+                    size_t readLength = parser->read((byte*)buf, sizeof(buf));
+                    if(readLength == 0) break;
+                    drive.append(buf, readLength); // exactly what was read; buf is not terminated
                 }              
                 //if(filename.length() > 0) break;
                 
@@ -529,9 +538,9 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 // adding
                 while (!parser->endOfField())
                 {
-                    memset(buf, 0, sizeof(buf));
-                    size_t readLength = parser->read((byte*)buf, 512);
-                    path.append((const char *)buf);
+                    size_t readLength = parser->read((byte*)buf, sizeof(buf));
+                    if(readLength == 0) break;
+                    path.append(buf, readLength); // exactly what was read; buf is not terminated
                 }  
                 //if(drive.length() > 0) break;               
             }
@@ -540,9 +549,20 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 res->printf("<p>Unexpected field %s</p>", name.c_str());
             }
         }
-        //prefix drive if speificed
+        // The file goes to "<path>/<filename>"; a folder is created at <path>. Join them first
+        // (the editor's save sends no path, only a filename that starts with "/"), so the drive
+        // prefix below is applied once to the whole target and no "//" ends up in it.
+        string target = path;
+        if(req->getMethod() == "POST"){
+            target = filename;
+            if(path.length() > 0){
+                string folder = path;
+                while(folder.length() > 0 && folder[folder.length() - 1] == '/') folder.erase(folder.length() - 1);
+                target = folder + (filename.length() > 0 && filename[0] == '/' ? "" : "/") + filename;
+            }
+        }
+        //prefix drive if specified
         if(drive.length() > 0){
-            
             int driveIndex = is_number(drive) ? atoi(drive.c_str()) : -1;
             if(driveIndex < 0 || driveIndex >= filesystem.driveCount()){
                 res->setStatusCode(400);
@@ -550,22 +570,27 @@ void esp32_router::handleFileUpload(HTTPRequest *req, HTTPResponse *res, const c
                 return;
             }
             auto fs = filesystem.getDisk(driveIndex);
-            if(path.find(fs->label()) <= 0) //if drive not passed in filename, prefix it
-                path = string_format("/%s%s",fs->label(),path.c_str());   
-            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0           
-            Serial.printf("Drive parameter: %s, Path: %s, Filename: %s\n", drive.c_str(), path.c_str(), filename.c_str());
+            // If the target does not already start with this drive ("/spiffs" or "/spiffs/..."),
+            // prefix it. (This was path.find(label) <= 0: find() is unsigned, so that was only
+            // true when the label was at position 0, and the prefix was almost never added.)
+            string drivePrefix = string("/") + fs->label();
+            bool hasDrivePrefix = target.compare(0, drivePrefix.size(), drivePrefix) == 0 &&
+                (target.size() == drivePrefix.size() || target[drivePrefix.size()] == '/');
+            if(!hasDrivePrefix)
+                target = drivePrefix + (target.empty() || target[0] == '/' ? "" : "/") + target;
+            #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
+            Serial.printf("Drive parameter: %s, Target: %s\n", drive.c_str(), target.c_str());
             #endif
         }
 
         unsigned long startWrite = millis();
         if(req->getMethod() == "PUT")
-            savedFile = esp32_fileio::CreateFile(path.c_str());
+            savedFile = esp32_fileio::CreateFile(target.c_str());
 
         if(req->getMethod() == "POST")
         {
-            if(path.length() > 0)
-                filename = path + "/" + filename;
-            if(filename[filename.length() - 1] == '/'){
+            filename = target;
+            if(filename.empty() || filename[filename.length() - 1] == '/'){
                 #if defined(DEBUG_FILESYSTEM) && DEBUG_FILESYSTEM > 0
                 Serial.printf("Filename %s seems to be a directory. Qutting upload");
                 #endif
@@ -730,7 +755,7 @@ void esp32_router::handle404(HTTPRequest *req, HTTPResponse *res)
 void esp32_router::handle401(HTTPRequest *req, HTTPResponse *res)
 {
     req->discardRequestBody();
-    res->setStatusCode(404);
+    res->setStatusCode(401);
     res->setStatusText("Unauthorized");
     res->setHeader("Content-Type", "text/html");
     res->println("<!DOCTYPE html>");

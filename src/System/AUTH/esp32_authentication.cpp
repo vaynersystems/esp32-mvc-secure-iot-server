@@ -159,6 +159,7 @@ bool esp32_authentication::revokeSession(const char* username, const char* sessi
 bool esp32_authentication::registerUser(const char* username, const char* password, const char* role, bool enabled){
     if(username == nullptr || password == nullptr || role == nullptr) return false;
     if(strlen(username) == 0 || strlen(password) == 0) return false;
+    if(strlen(password) > PASSWORD_MAX_LENGTH) return false;
 
     DynamicJsonDocument doc(authDocCapacity());
     if(!loadUsers(doc) || !doc.is<JsonArray>()){
@@ -185,7 +186,7 @@ bool esp32_authentication::registerUser(const char* username, const char* passwo
 ChangePasswordResult esp32_authentication::changePassword(const char* username, const char* oldPassword, const char* newPassword){
     if(username == nullptr || oldPassword == nullptr || newPassword == nullptr)
         return ChangePasswordResult::BadPasswordFormat;
-    if(strlen(newPassword) == 0)
+    if(strlen(newPassword) == 0 || strlen(newPassword) > PASSWORD_MAX_LENGTH)
         return ChangePasswordResult::BadPasswordFormat;
     if(strcmp(oldPassword,newPassword) == 0)
         return ChangePasswordResult::SamePassword;
@@ -210,6 +211,37 @@ ChangePasswordResult esp32_authentication::changePassword(const char* username, 
     existingUser["sid"] = newSessionId(); // invalidate every token issued with the old password
 
     return saveUsers(doc) ? ChangePasswordResult::Ok : ChangePasswordResult::AuthSystemError;
+}
+
+ChangePasswordResult esp32_authentication::setPassword(const char* username, const char* newPassword){
+    if(username == nullptr || newPassword == nullptr)
+        return ChangePasswordResult::BadPasswordFormat;
+    if(strlen(newPassword) == 0 || strlen(newPassword) > PASSWORD_MAX_LENGTH)
+        return ChangePasswordResult::BadPasswordFormat;
+
+    auto drive = filesystem.getDisk(SYSTEM_DRIVE);
+    if (!drive->exists(PATH_AUTH_FILE))
+        return ChangePasswordResult::AuthSystemError;
+
+    DynamicJsonDocument doc(authDocCapacity());
+    if(!loadUsers(doc))
+        return ChangePasswordResult::AuthSystemError;
+
+    JsonObject existingUser = findUser(doc.as<JsonArray>(),username);
+    if(existingUser.isNull())
+        return ChangePasswordResult::WrongPassword;
+
+    existingUser["password"] = hashPassword(newPassword);
+    existingUser["sid"] = newSessionId(); // log the user out everywhere
+
+    return saveUsers(doc) ? ChangePasswordResult::Ok : ChangePasswordResult::AuthSystemError;
+}
+
+void esp32_authentication::assignNewSessionIds(JsonArray users){
+    for(JsonObject user : users){
+        if(user.isNull()) continue;
+        user["sid"] = newSessionId();
+    }
 }
 
 

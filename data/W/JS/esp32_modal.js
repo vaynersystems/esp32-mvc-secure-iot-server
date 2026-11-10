@@ -144,7 +144,9 @@
             }            
         }
 
-        if(validationCallback !== undefined && validationCallback !== null){
+        // Only once the field rules pass: callbacks such as changePassword send the request,
+        // so running them first submitted values the rules had just rejected.
+        if(formErrors.length == 0 && validationCallback !== undefined && validationCallback !== null){
             var validationErrors = validationCallback(viewModel);
             if(validationErrors !== undefined && Array.isArray(validationErrors)){
                 formErrors = [...validationErrors];
@@ -274,7 +276,7 @@
 
         if(modelField.Readonly){
             var fieldValueElement = document.createElement('span');
-            fieldValueElement.innerHTML = modelField.Value ?? '';
+            fieldValueElement.textContent = modelField.Value ?? '';
             fieldValueElement.id = 'field-value-' + modelField.Name;
             fieldContainerElement.appendChild(fieldValueElement);
         }

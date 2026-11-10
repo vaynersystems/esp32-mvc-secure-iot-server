@@ -46,6 +46,7 @@
 const changePasswordViewModelPath = '/W/M/change_pwd_model.json';
 const createUserViewModelPath = '/W/M/create_user_model.json';
 const editUserViewModelPath = '/W/M/edit_user_model.json';
+const currentUsername = '$_CURRENT_USER'[0] === '$' ? '' : '$_CURRENT_USER';
 var request = new XMLHttpRequest();
 
 // The server refused a change: say why (these requests used to look like they succeeded).
@@ -162,16 +163,16 @@ function deleteUser(username){
 function changePassword(viewModel){
     // modalElement = document.getElementById("system-modal-content");
 
-    changePasswordRequest = {};
+    // Administrators set the password without the current one. (Users change their own on the
+    // Account page, which asks for it.) Only the username and new password are sent.
+    const changePasswordRequest = {};
     changePasswordRequest.username = viewModel.find(f => f.Source== 'username').Value;
-    changePasswordRequest.oldPassword = viewModel.find(f => f.Source== 'oldPassword').Value;
     changePasswordRequest.newPassword = viewModel.find(f => f.Source== 'newPassword').Value;
-    changePasswordRequest.confirmPassword = viewModel.find(f => f.Source== 'confirmPassword').Value;
+    const confirmPassword = viewModel.find(f => f.Source== 'confirmPassword').Value;
 
-    if(changePasswordRequest.newPassword != changePasswordRequest.confirmPassword){
+    if(changePasswordRequest.newPassword != confirmPassword){
         return ['New and Confirm passwords do not match!'];
     }
-    console.log('change password', changePasswordRequest);
 
     const base = location.href.endsWith('index') ? location.href.replace('/index','') : location.href;
     const url = base + "/" + 'ChangePassword';
@@ -185,11 +186,14 @@ function changePassword(viewModel){
                 showServerError('Error changing password', request);
                 return;
             }
-            var response = request.responseText;
-            if(request.status == 200){
+            // Setting a password ends that user's sessions. If it was this administrator's own
+            // account, this session has ended too: sign in again.
+            if(currentUsername.length > 0 && changePasswordRequest.username.toLowerCase() === currentUsername.toLowerCase()){
+                showModal('Password changed', '<p>Your password was changed. Sign in again with the new password.</p>');
+                setTimeout(() => { window.location = '/logout'; }, 2000);
                 return;
             }
-                            
+            showModal('Password changed', '<p>The password for <b>' + escapeHtml(changePasswordRequest.username) + '</b> was changed. They will need to sign in again.</p>');
         }
     }
     request.send(JSON.stringify(changePasswordRequest));

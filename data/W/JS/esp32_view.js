@@ -183,7 +183,7 @@ function _drawTableField(container, modelField){
                     var fieldInputElement = document.createElement('td');
                     fieldInputElement.id = 'field-value-' + modelField.Name;
                     fieldInputElement.type = 'time';
-                    fieldInputElement.innerHTML = modelField.Value ?? '';
+                    fieldInputElement.textContent = modelField.Value ?? '';
                     container.appendChild(fieldInputElement);
                     break;  
             case 'Lookup':
@@ -192,27 +192,19 @@ function _drawTableField(container, modelField){
                 fieldInputElement.id = 'field-value-' + modelField.Name;
                 
 
-                // if(modelField.Data != undefined)
-                //     for(var option of modelField.Data){
-                //         // TODO: implement unique check
-                //         //if unique, filter out options used already
-                //         var optionElement = document.createElement('option');
-                //         optionElement.value = option.value;
-                //         optionElement.text = option.name;
-                //         fieldInputElement.appendChild(optionElement);
-                //     }
-
+                // textContent, not innerHTML: these values come from saved configuration.
                 if(multiple){
                     if(fieldInputElement.value === undefined) fieldInputElement.value = '';
+                    const names = [];
                     for(var selection of modelField.Value)
                     {
                         const opt = modelField.Data.find(o => o.value == selection);
-                        fieldInputElement.innerHTML += opt.name + ", ";
+                        if(opt !== undefined) names.push(opt.name);
                     }
-                    if(fieldInputElement.innerHTML.length > 2) fieldInputElement.innerHTML = fieldInputElement.innerHTML.substring(0,fieldInputElement.innerHTML.length - 2)
+                    fieldInputElement.textContent = names.join(', ');
                 } else
                 if(modelField.Value !== undefined)
-                    fieldInputElement.innerHTML = modelField.Value;
+                    fieldInputElement.textContent = modelField.Value;
 
                 container.appendChild(fieldInputElement);
                 break;

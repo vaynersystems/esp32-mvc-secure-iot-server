@@ -193,8 +193,10 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
         res->setHeader("Set-Cookie","expires=Thu, 01 Jan 1970 00:00:00 GMT;auth=; path=/");
         req->setHeader(HEADER_AUTH, "");
         res->setHeader(HEADER_GROUP, "");
+        // Return after next(): falling through called next() a second time at the end of this
+        // function, so the rest of the middleware chain and the handler ran twice for /logout.
         next();
-        //return;
+        return;
     }
     else if (isLoginPage && isPostRequest) {
         jwtTokenFromRequest.clear();
@@ -246,7 +248,10 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 
     if(!jwtTokenValid){ //fall back to processing from request if available
         
-        jwtTokenValid = (jwtTokenFromRequest.length() > 0 && !server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString));
+        // (This was negated, so a token that failed to decode was treated as valid and the reverse.
+        // Note the Authorization header is cleared above, so today the session always comes from
+        // the cookie and is checked in middlewareAuthorization.)
+        jwtTokenValid = (jwtTokenFromRequest.length() > 0 && server.middleware->jwtTokenizer->decodeJWT(jwtTokenFromRequest, jwtDecodedString));
     }
     
     if (!jwtTokenValid){          
@@ -260,7 +265,7 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
                 res->setStatusText("Too many failed logins. Try again later.");
                 res->setHeader("Retry-After", string_format("%lu", lockoutMs / 1000 + 1));
             }
-            else if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <=32) {
+            else if (reqUsername.length() > 0 && reqPassword.length() > 0 && reqUsername.length() <= 32 && reqPassword.length() <= PASSWORD_MAX_LENGTH) {
                 //Serial.println("Checking loging info..");
                 esp32_user_auth_info info = esp32_authentication::authenticateUser(reqUsername.c_str(), reqPassword.c_str(), reqSetupCode.c_str());
                 recordLoginResult(clientIp, info.authenticated);
@@ -344,7 +349,9 @@ void esp32_middleware::middlewareAuthentication(HTTPRequest* req, HTTPResponse* 
 
             } 
             
-            setAuthHeaders(req, "","",jwtToken.c_str());
+            // Pass the verified token on; middlewareAuthorization checks its session and sets the
+            // user and role. (This passed an empty string, which would have discarded the token.)
+            setAuthHeaders(req, "","",jwtTokenFromRequest.c_str());
         }
         else {
             // Failed to deserialize token

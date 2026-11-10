@@ -1,0 +1,96 @@
+<style>
+    #account{
+        display: flex;
+        flex-direction: column;
+        background-color: var(--box-background);
+        border-radius: 15px;
+        margin: 20px auto;
+        max-width: 420px;
+        padding-bottom: 10px;
+    }
+    #account .row{
+        display: flex;
+        flex-direction: column;
+        padding: 6px 20px;
+    }
+    #account .detail{ font-size: 14px; }
+    #account input{
+        padding: 5px 10px;
+        margin: 6px 0;
+    }
+    #account input[type="password"]{ background-color: var(--input-background); }
+    #account .actions{ padding: 6px 20px; }
+    #account-message{ padding: 0 20px; }
+    #account-message .error{ color: red; }
+</style>
+
+<div id="account">
+    <div class="header">Change password for <span id="account-username"></span></div>
+    <div class="row">
+        <div class="detail">Current password</div>
+        <input type="password" id="old-password" autocomplete="current-password" />
+    </div>
+    <div class="row">
+        <div class="detail">New password (<span class="password-min"></span>-<span class="password-max"></span> characters)</div>
+        <input type="password" id="new-password" autocomplete="new-password" />
+    </div>
+    <div class="row">
+        <div class="detail">Confirm new password</div>
+        <input type="password" id="confirm-password" autocomplete="new-password" />
+    </div>
+    <div id="account-message"></div>
+    <div class="actions">
+        <button id="change-password-button">Change Password</button>
+    </div>
+</div>
+
+<script src="/W/JS/esp32_modal.js"></script>
+<script type="text/javascript">
+(function(){
+    const username = '$_USERNAME';
+    const minLength = parseInt('$_PASSWORD_MIN') || 8;
+    const maxLength = parseInt('$_PASSWORD_MAX') || 32;
+
+    document.getElementById('account-username').textContent = username[0] === '$' ? '' : username;
+    for(const el of document.querySelectorAll('.password-min')) el.textContent = minLength;
+    for(const el of document.querySelectorAll('.password-max')) el.textContent = maxLength;
+
+    function showMessage(text, isError){
+        const messageElement = document.getElementById('account-message');
+        messageElement.innerHTML = '';
+        const line = document.createElement('p');
+        if(isError) line.className = 'error';
+        line.textContent = text;
+        messageElement.appendChild(line);
+    }
+
+    document.getElementById('change-password-button').addEventListener('click', () => {
+        const oldPassword = document.getElementById('old-password').value;
+        const newPassword = document.getElementById('new-password').value;
+        const confirmPassword = document.getElementById('confirm-password').value;
+
+        if(oldPassword.length === 0) return showMessage('Enter your current password.', true);
+        if(newPassword.length < minLength || newPassword.length > maxLength)
+            return showMessage('The new password must be ' + minLength + ' to ' + maxLength + ' characters.', true);
+        if(newPassword !== confirmPassword) return showMessage('The new passwords do not match.', true);
+        if(newPassword === oldPassword) return showMessage('The new password must be different from the current one.', true);
+
+        const request = new XMLHttpRequest();
+        request.open('POST', '/esp32_account/ChangePassword', true);
+        request.setRequestHeader('Content-type', 'application/json');
+        request.onreadystatechange = function(){
+            if(request.readyState !== request.DONE) return;
+            hideLoading();
+            if(request.status !== 200){
+                showMessage(request.statusText || ('The device answered with status ' + request.status), true);
+                return;
+            }
+            // Changing the password ends every session, this one included: sign in again.
+            showMessage('Password changed. Sign in again with your new password.', false);
+            setTimeout(() => { window.location = '/logout'; }, 2000);
+        };
+        showLoading();
+        request.send(JSON.stringify({ oldPassword: oldPassword, newPassword: newPassword }));
+    });
+})();
+</script>

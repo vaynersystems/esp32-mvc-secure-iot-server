@@ -16,18 +16,6 @@
         ]
     },
     {
-        "Name": "Old Password",
-        "Type": "Password",
-        "Value": "",
-        "Readonly": false,
-        "Source": "oldPassword",
-        "Validation": [
-            {
-                "Type": "Required"
-            }
-        ]
-    },
-    {
         "Name": "New Password",
         "Type": "Password",
         "Value": "",
@@ -43,7 +31,7 @@
             },
             {
                 "Type": "MaxLength",
-                "Value": 64
+                "Value": 32
             }
         ]
     },
@@ -63,7 +51,7 @@
             },
             {
                 "Type": "MaxLength",
-                "Value": 64
+                "Value": 32
             }
         ]
     }
