@@ -1,5 +1,7 @@
 #include "request_body.h"
+#include "js_escape.h"
 #include "esp32_devices_controller.hpp"
+#include "string_helper.h"
 extern esp32_pin_manager pinManager;
 
 DerivedController<esp32_devices_controller> esp32_devices_controller::reg("esp32_devices");
@@ -27,7 +29,8 @@ void esp32_devices_controller::Index(HTTPRequest * request, HTTPResponse * respo
     } while(bytesRead > 0);
     f.close();
 
-    controllerTemplate.SetTemplateVariable(F("$_DEVICE_DATA"), configData.c_str());
+    // The page puts this inside a JavaScript string: escape it so device names cannot run script.
+    controllerTemplate.SetTemplateVariable(F("$_DEVICE_DATA"), escape_for_js_string(configData).c_str());
 
     auto pins = pinManager.getControllerPins();
     string pinData = "[";
@@ -110,6 +113,12 @@ void esp32_devices_controller::LoadDeviceData(HTTPRequest* request, HTTPResponse
 /// @param res 
 /// @return 
 bool esp32_devices_controller::SaveDeviceData(HTTPRequest* request, HTTPResponse* response){
+    if(request->getHeader(HEADER_GROUP) != "ADMIN"){
+        request->discardRequestBody();
+        response->setStatusCode(403);
+        response->setStatusText("Only administrators can change device configuration");
+        return false;
+    }
     const int length = request->getContentLength();
     
     DynamicJsonDocument doc(length * 2);
@@ -130,11 +139,11 @@ bool esp32_devices_controller::SaveDeviceData(HTTPRequest* request, HTTPResponse
        
         auto drive = filesystem.getDisk(SYSTEM_DRIVE);
         File f = drive->open(PATH_DEVICE_CONFIG, FILE_WRITE);
-        if(f.available()){
+        if(f){
             serializeJson(doc,f);
             f.close();
             response->setStatusCode(200);
-            logger.logInfo(string_format("%s saved configuration to %s", request->getBasicAuthUser().c_str(), PATH_SYSTEM_CONFIG));
+            logger.logInfo(string_format("%s saved device configuration to %s", request->getHeader(HEADER_USERNAME).c_str(), PATH_DEVICE_CONFIG));
         } else{
             response->setStatusCode(500);
             // String errorText = "Error saving configuration: ";

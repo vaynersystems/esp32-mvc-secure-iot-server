@@ -275,7 +275,7 @@ function loadSettings(){
 
     if(hostNameElement !== null) hostNameElement.value = activeConfig.system.hostname;
     if(ntpServerElement !== null) ntpServerElement.value = activeConfig.system.ntp.server;
-    if(timeZoneElement !== null) timeZoneElement.value = activeConfig.system.ntp.timezone;
+    if(timeZoneElement !== null) selectTimeZone(timeZoneElement, activeConfig.system.ntp.timezone);
 
     if(hostEnableSSLElement !== null) hostEnableSSLElement.checked = activeConfig.system.enableSSL;
     if(hostEnableMDNSElement !== null) hostEnableMDNSElement.checked = activeConfig.system.enableMDNS;
@@ -701,14 +701,52 @@ function loadDrives(){
 
 loadDrives();
 
+function selectTimeZone(selectElement, value){
+    selectElement.value = value ?? '';
+    if(selectElement.value !== '' && selectElement.value === value) return;
+    let gmt = -5;
+    const text = (value ?? '').toString().trim();
+    const legacy = text.match(/^GTM\+(\d+(?:\.\d+)?)$/);
+    if(legacy) gmt = -parseFloat(legacy[1]);
+    else if(/^[+-]?\d+(\.\d+)?$/.test(text)) gmt = parseFloat(text);
+    for(const option of selectElement.options){
+        if(parseFloat(option.dataset.gmt) === gmt){
+            selectElement.value = option.value;
+            pendingChanges = true;
+            return;
+        }
+    }
+}
+
 function invalidateOnChange(componentId){
     const element = document.getElementById(componentId);
     if(element === null) return;
+    // 'input' fires while typing; 'change' only when the field loses focus (and covers selects/checkboxes).
+    element.addEventListener('input', () => {pendingChanges = true});
     element.addEventListener('change', () => {pendingChanges = true});
 }
 
 
+// Any edit to a settings field enables Save. One listener on the whole page, so a field added
+// later cannot be missed (several were, e.g. the fixed IP address fields). Excluded: the theme
+// (stored by this browser only, applied immediately) and controls that act on their own rather
+// than editing the configuration (certificate action picker, file pickers).
+const CONFIG_FIELDS_NOT_SAVED = ['system-theme', 'certificate-action'];
+function watchAllConfigFields(){
+    const root = document.querySelector('.config-view') ?? document.body;
+    const markChanged = (event) => {
+        const field = event.target;
+        if(!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
+        if(field.type === 'file' || CONFIG_FIELDS_NOT_SAVED.includes(field.id)) return;
+        if(event.isTrusted === false) return; // values the page itself sets while loading
+        pendingChanges = true;
+    };
+    root.addEventListener('input', markChanged);
+    root.addEventListener('change', markChanged);
+}
+
 function esp32_config_init(configDataSting){
+    watchAllConfigFields();
     
     document.getElementById('network-mode').addEventListener('change', function(){
         const modeSelectorElement = document.getElementById('network-mode');
@@ -773,7 +811,7 @@ function esp32_config_init(configDataSting){
     if(persistedConfig.system.ntp === undefined){
         persistedConfig.system.ntp = {};
         persistedConfig.system.ntp.server = 'us.pool.ntp.org';
-        persistedConfig.system.ntp.timezone = '-5';
+        persistedConfig.system.ntp.timezone = 'EST+5EDT,M3.2.0/2,M11.1.0/2';
     }
     if(persistedConfig.system.logging === undefined){
         persistedConfig.system.logging = {};
@@ -826,6 +864,11 @@ function esp32_config_init(configDataSting){
     invalidateOnChange('wifi-network-password');
     invalidateOnChange('wifi-network-dhcp-yes');
     invalidateOnChange('wifi-network-dhcp-no');
+    invalidateOnChange('wifi-network-client-ip');
+    invalidateOnChange('wifi-network-client-subnet');
+    invalidateOnChange('wifi-network-client-gateway');
+    invalidateOnChange('wifi-network-client-dns');
+    invalidateOnChange('wifi-network-ap-open');
     
     invalidateOnChange('wifi-network-name');
     invalidateOnChange('wifi-network-ap-password');

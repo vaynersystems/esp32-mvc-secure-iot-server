@@ -1,4 +1,5 @@
 #include "esp32_historic_controller.hpp"
+#include "js_escape.h"
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
 #include "System/CORE/esp32_config.hpp"
@@ -26,7 +27,7 @@ void esp32_historic_controller::Index(HTTPRequest* req, HTTPResponse* res) {
         totalBytesRead += bytesRead;
     } while(bytesRead > 0);
     f.close();
-    controllerTemplate.SetTemplateVariable(F("$_DEVICES"),deviceString.c_str() );
+    controllerTemplate.SetTemplateVariable(F("$_DEVICES"), escape_for_js_string(deviceString).c_str());
 
     vector<esp32_file_info_extended> files;
     auto disk = filesystem.getDisk(logger.location());

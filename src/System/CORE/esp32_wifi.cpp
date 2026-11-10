@@ -2,12 +2,34 @@
 #include "string_helper.h"
 #include <esp_mac.h>
 #include "lwip/sockets.h"
+#include "esp_sntp.h"
 #include "esp32_captive_dns.h"
 #ifndef WIFI_JOIN_TIMEOUT_MS
 #define WIFI_JOIN_TIMEOUT_MS 10000 // override with -DWIFI_JOIN_TIMEOUT_MS=... for a slow router
 #endif
 #include "esp_netif.h"
 #include "dhcpserver/dhcpserver.h"
+
+// The time zone is a POSIX TZ string ("EST+5EDT,M3.2.0/2,M11.1.0/2", "<+0530>-5:30"). Older
+// configs stored a GMT offset ("-5", "3.5") or "GTM+4" (meaning GMT-4); TZ cannot parse those,
+// so the clock ran on UTC. Turn them into the equivalent fixed-offset TZ string.
+static string posixTimeZone(const string& configured){
+    string text = configured;
+    if(text.empty() || text == "null") return "EST+5EDT,M3.2.0/2,M11.1.0/2"; // the shipped default
+    bool legacyGtm = text.compare(0, 4, "GTM+") == 0;
+    string number = legacyGtm ? text.substr(4) : text;
+    char* end = nullptr;
+    double gmt = strtod(number.c_str(), &end);
+    if(number.empty() || end == nullptr || *end != 0) return text; // already a TZ string
+    if(legacyGtm) gmt = -gmt;
+    int minutes = (int)(gmt * 60 + (gmt < 0 ? -0.5 : 0.5));
+    int absMinutes = minutes < 0 ? -minutes : minutes;
+    int hours = absMinutes / 60, rest = absMinutes % 60;
+    // POSIX offsets count west as positive: GMT-5 is "<-05>5".
+    string name = string_format("<%c%02d", minutes < 0 ? '-' : '+', hours) + (rest ? string_format("%02d", rest) : "") + ">";
+    string offset = string_format("%s%d", minutes > 0 ? "-" : "", hours) + (rest ? string_format(":%02d", rest) : "");
+    return name + offset;
+}
 
 // extern esp32_wifi wifi;
 // void IRAM_ATTR diableWifi(){
@@ -324,13 +346,28 @@ bool esp32_wifi::start(){
     Serial.println(WiFi.getMode() == wifi_mode_t::WIFI_MODE_AP ? WiFi.softAPIP() :  WiFi.localIP());
     //#endif
 
+    // lwIP keeps the pointer it is given, not a copy, and looks the name up again on every retry
+    // and hourly update. This passed a local string's buffer, freed when start() returned, so
+    // unless the first request got through right away the clock was never set (and the logger,
+    // which needs a date, wrote nothing). Keep the name in static storage.
+    static string sntpServerName;
+    sntpServerName = (ntpServer.empty() || ntpServer == "null") ? "pool.ntp.org" : ntpServer;
+    sntp_stop(); // start() can run again (e.g. after Wi-Fi is re-enabled)
     sntp_setoperatingmode(SNTP_OPMODE_POLL);
-    sntp_setservername(0, ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());
+    sntp_setservername(0, sntpServerName.c_str());
+    sntp_set_time_sync_notification_cb([](struct timeval* tv){
+        time_t now = tv->tv_sec;
+        struct tm local;
+        localtime_r(&now, &local);
+        char text[32];
+        strftime(text, sizeof(text), "%Y-%m-%d %H:%M:%S", &local);
+        Serial.printf("[ntp] clock set: %s\n", text);
+    });
     sntp_init();    
     
     
     if(WiFi.getMode() == WIFI_MODE_STA){
-        setenv("TZ", timeZone.c_str(), 1);
+        setenv("TZ", posixTimeZone(timeZone).c_str(), 1);
         tzset();
         #ifdef DEBUG
         Serial.printf("Initializing NTP server %s\n", ntpServer.empty() ? "pool.ntp.org" : ntpServer.c_str());

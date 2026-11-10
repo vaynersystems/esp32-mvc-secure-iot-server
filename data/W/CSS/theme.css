@@ -56,6 +56,8 @@
     --bar-color: #2486ff;
     --wait-background: rgba(240, 240, 240, .7);
     --wait-spinner: #cef13d;
+    --wait-ring: rgb(29, 142, 86);                 /* page loading ring */
+    --wait-track: rgba(25, 25, 85, .15);
     --avatar-background: #ddeedd;
     /* drop-down submenus and popups */
     --submenu-background: rgb(25, 25, 85);
@@ -116,6 +118,8 @@
     --bar-color: #4f9dff;
     --wait-background: rgba(10, 11, 18, .7);
     --wait-spinner: #b5d93a;
+    --wait-ring: #b5d93a;
+    --wait-track: rgba(255, 255, 255, .14);
     --avatar-background: #2a3a32;
     --submenu-background: #1f2333;
     --submenu-border: #343a55;
@@ -174,6 +178,8 @@
         --bar-color: #4f9dff;
         --wait-background: rgba(10, 11, 18, .7);
         --wait-spinner: #b5d93a;
+        --wait-ring: #b5d93a;
+        --wait-track: rgba(255, 255, 255, .14);
         --avatar-background: #2a3a32;
         --submenu-background: #1f2333;
         --submenu-border: #343a55;

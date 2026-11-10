@@ -1,4 +1,5 @@
 #include "esp32_dashboard_controller.hpp"
+#include "js_escape.h"
 #include "System/ROUTER/esp32_template.h"
 #include "string_helper.h"
 #include <nvs.h>
@@ -28,7 +29,8 @@ void esp32_dashboard_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     
     string deviceString = "";
     serializeJson(devicesConfig, deviceString);
-    controllerTemplate.SetTemplateVariable(F("$_DEVICES"),deviceString.c_str() );
+    // The page puts this inside a JavaScript string: escape it so device names cannot run script.
+    controllerTemplate.SetTemplateVariable(F("$_DEVICES"), escape_for_js_string(deviceString).c_str());
     esp32_base_controller::Index(req,res);      
 }
 

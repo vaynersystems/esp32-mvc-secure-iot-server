@@ -1,6 +1,9 @@
 #include "request_body.h"
+#include "js_escape.h"
 #include "esp32_users_controller.hpp"
 #include <strings.h>
+#include "System/MODULES/LOGGING/esp32_logging.hpp"
+extern esp32_logging logger;
 
 // ---- validation and safety helpers -------------------------------------------------------
 static bool validUsername(const char* name){
@@ -63,6 +66,7 @@ void esp32_users_controller::Index(HTTPRequest* req, HTTPResponse* res) {
     serializeJson(users, configData); 
     
     controllerTemplate.SetTemplateVariable(F("$_USER_LIST"), escapeForJsString(configData).c_str());   
+    controllerTemplate.SetTemplateVariable(F("$_CURRENT_USER"), escape_for_js_string(req->getHeader(HEADER_USERNAME)).c_str());
     esp32_base_controller::Index(req,res);    
 }
 
@@ -163,9 +167,9 @@ bool esp32_users_controller::CreateUser(HTTPRequest* req, HTTPResponse* res){
         res->setStatusText("Username must be 3-32 letters, digits, '.', '_' or '-'");
         return false;
     }
-    if(password == nullptr || strlen(password) < 8 || strlen(password) > 64){
+    if(password == nullptr || strlen(password) < PASSWORD_MIN_LENGTH || strlen(password) > PASSWORD_MAX_LENGTH){
         res->setStatusCode(400);
-        res->setStatusText("Password must be 8-64 characters");
+        res->setStatusText(string_format("Password must be %d-%d characters", PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH));
         return false;
     }
     if(!validRole(role)){
@@ -230,9 +234,12 @@ bool esp32_users_controller::UpdateUser(HTTPRequest* req, HTTPResponse* res){
     return true;
 }
  
+// Administrators set any user's password here without giving the current one. Users change
+// their own password on the account page (esp32_account), which does require it.
 void esp32_users_controller::ChangePassword(HTTPRequest* req, HTTPResponse* res){
     if(strcmp(req->getHeader(HEADER_GROUP).c_str(),"ADMIN") != 0)
     {
+        req->discardRequestBody();
         res->setStatusCode(401);
         return;
     }
@@ -246,57 +253,47 @@ void esp32_users_controller::ChangePassword(HTTPRequest* req, HTTPResponse* res)
         res->setStatusText("Incomplete request body");
         return;
     }
-    //Serial.printf("Updating user from data: %s...\n", content.c_str());
     auto error = deserializeJson(doc, content);
     if(error != DeserializationError::Ok){
         res->setStatusCode(500);
         res->setStatusText(error.c_str());
         return;
     }
-    //serializeJson(doc,Serial);
-    // (This check used to end in a stray ';' so it did nothing, and a missing field then built a
-    // std::string from NULL and crashed the device.)
     const char* usernameField = doc["username"] | (const char*)nullptr;
-    const char* oldField = doc["oldPassword"] | (const char*)nullptr;
     const char* newField = doc["newPassword"] | (const char*)nullptr;
-    if(usernameField == nullptr || oldField == nullptr || newField == nullptr){
+    if(usernameField == nullptr || newField == nullptr){
         res->setStatusCode(400);
-        res->setStatusText("username, oldPassword and newPassword are required");
+        res->setStatusText("username and newPassword are required");
         return;
     }
-    if(strlen(newField) < 8 || strlen(newField) > 64){
+    if(strlen(newField) < PASSWORD_MIN_LENGTH || strlen(newField) > PASSWORD_MAX_LENGTH){
         res->setStatusCode(400);
-        res->setStatusText("Password must be 8-64 characters");
+        res->setStatusText(string_format("Password must be %d-%d characters", PASSWORD_MIN_LENGTH, PASSWORD_MAX_LENGTH));
         return;
     }
     string username = usernameField;
-    string oldPassword = oldField;
     string newPassword = newField;
-    auto saved = esp32_authentication::changePassword(
-        username.c_str(), 
-        oldPassword.c_str(), 
-        newPassword.c_str()
-    );
+    auto saved = esp32_authentication::setPassword(username.c_str(), newPassword.c_str());
+    memset(&newPassword[0], 0, newPassword.size());
 
     switch(saved){
-        case ChangePasswordResult::BadPasswordFormat:
-            res->setStatusCode(400);            
-            res->setStatusText("Bad Password Format");
-        break;           
-        case ChangePasswordResult::SamePassword:
-            res->setStatusCode(400);            
-            res->setStatusText("Old and new passwords must be different");
-        break;            
-        case ChangePasswordResult::WrongPassword:
-            res->setStatusCode(401);            
-            res->setStatusText("Incorrect password provided.");
-        break;
-
         case ChangePasswordResult::Ok:
+            logger.logInfo(string_format("%s set the password of %s", req->getHeader(HEADER_USERNAME).c_str(), username.c_str()), auth);
             res->setStatusCode(200);
-        break;
+            break;
+        case ChangePasswordResult::BadPasswordFormat:
+            res->setStatusCode(400);
+            res->setStatusText("Bad Password Format");
+            break;
+        case ChangePasswordResult::WrongPassword: // setPassword's "no such user"
+            res->setStatusCode(404);
+            res->setStatusText("User not found");
+            break;
+        default:
+            res->setStatusCode(500);
+            res->setStatusText("Could not save the password");
+            break;
     }
-    
 }
 
 
