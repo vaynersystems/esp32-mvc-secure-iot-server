@@ -19,7 +19,8 @@
       "frequency": "300",
       "retention": "2",
       "level": 2,
-      "location": "0"
+      "location": "0",
+      "dns": false
     },
     "enableSSL": true,
     "enableMDNS": true

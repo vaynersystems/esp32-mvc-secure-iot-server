@@ -43,6 +43,16 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
     #endif
     size_t firmwareSize = request->getContentLength();
     esp_err_t result = ESP_OK;
+    // A missing/zero Content-Length used to mean ps_malloc(0) followed by an unbounded copy.
+    const esp_partition_t* target = esp_ota_get_next_update_partition(esp_ota_get_running_partition());
+    if(firmwareSize == 0 || target == NULL || firmwareSize > target->size){
+        request->discardRequestBody();
+        lcd.setDetails("Invalid firmware size");
+        return ESP_ERR_INVALID_SIZE;
+    }
+    // Stop if the upload stalls instead of spinning on the server task forever.
+    const unsigned long STALL_TIMEOUT_MS = 10000;
+    unsigned long lastData = millis();
     byte* buf = new byte[FILESYSTEM_BUFFER_SIZE];
     size_t readLength = 0;
     size_t fieldLength = 0;
@@ -64,8 +74,13 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
         while(true){            
             readLength = request->readBytes((byte*)buf,FILESYSTEM_BUFFER_SIZE); 
             //Serial.printf("Read %d bytes at 0x%06X .. \n", readLength, fieldLength);
-            if(readLength <= 0) continue;
-
+            if(readLength <= 0){
+                if(millis() - lastData > STALL_TIMEOUT_MS) break;
+                delay(2);
+                continue;
+            }
+            lastData = millis();
+            if(readLength > firmwareSize - fieldLength) readLength = firmwareSize - fieldLength;
             memcpy(&firmwareBinary[fieldLength], buf, readLength);
             fieldLength += readLength;
            
@@ -80,7 +95,7 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
         }else{
             result = updateFirmware(firmwareBinary, firmwareSize);
         }
-        delete[] firmwareBinary;       
+        free(firmwareBinary); // allocated with ps_malloc
     }
     else {
         #if defined(DEBUG_OTA) && DEBUG_OTA > 0
@@ -97,7 +112,12 @@ esp_err_t esp32_ota_server::updateFirmware(HTTPRequest *request)
             while(true){            
                 readLength = request->readBytes((byte*)buf,512); 
                 //Serial.printf("Read %d bytes at 0x%06X .. \n", readLength, fieldLength);
-                if(readLength <= 0) continue;
+                if(readLength <= 0){
+                    if(millis() - lastData > STALL_TIMEOUT_MS){ result = ESP_ERR_TIMEOUT; break; }
+                    delay(2);
+                    continue;
+                }
+                lastData = millis();
                 result = _writeFirmwareChunk(buf, readLength);
                 fieldLength += readLength;
             
@@ -144,19 +164,11 @@ esp_err_t esp32_ota_server::_startUpdate(size_t firmwareSize)
 
     lcd.setDetails(string_format("Firmware: %d bytes", firmwareSize).c_str());    
     
-    if (firmwareSize > 0 && firmwareSize < _updatePartition->size) {
-        esp_app_desc_t new_app_info;
-        if (firmwareSize > sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t) + sizeof(esp_app_desc_t)) {
-            // check current version with downloading
-            if (esp_efuse_check_secure_version(new_app_info.secure_version) == false) {
-                ESP_LOGE(PROGRAM_TAG, "This a new app can not be downloaded due to a secure version is lower than stored in efuse.");
-                return ESP_ERR_INVALID_VERSION;
-                
-            }
-            return esp_ota_begin(_updatePartition, OTA_SIZE_UNKNOWN, &_updateHandle);
-        }
-        
-        
+    if (firmwareSize > sizeof(esp_image_header_t) + sizeof(esp_image_segment_header_t) + sizeof(esp_app_desc_t)
+        && firmwareSize <= _updatePartition->size) {
+        // (A secure-version check used to read new_app_info here without ever filling it in; the
+        // image is validated by esp_ota_end, and anti-rollback is enforced by the bootloader.)
+        return esp_ota_begin(_updatePartition, OTA_SIZE_UNKNOWN, &_updateHandle);
     }  
     
     return ESP_ERR_INVALID_SIZE;
@@ -211,7 +223,7 @@ esp_err_t esp32_ota_server::_commitUpdate()
             Serial.printf("Completed update. Switched boot partition.\n");
             #endif
             lcd.setDetails("Completed Sucessfully");
-            return true;
+            return ESP_OK; // was "return true" (1), so a successful update was reported as failed
         } 
         else{
             #if defined(DEBUG_OTA) && DEBUG_OTA > 0

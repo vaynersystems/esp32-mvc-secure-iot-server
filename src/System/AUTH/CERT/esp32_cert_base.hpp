@@ -36,6 +36,7 @@ public:
     // }
     
 protected:
+    static bool isSelfIssuedRsa(SSLCert* cert);
     SSLCert* _cert;
     char *publicKey;
     char *privateKey;

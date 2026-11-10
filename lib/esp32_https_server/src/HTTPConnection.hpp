@@ -48,6 +48,15 @@ public:
   void loop();
   bool isClosed();
   bool isError();
+  // Kept-alive connection waiting for its next request with nothing received yet; the
+  // server may close it to make room for a new client.
+  bool isIdleKeepAlive();
+  unsigned long lastTransmission() { return _lastTransmissionTS; }
+  bool isWebsocket() { return _connectionState == STATE_WEBSOCKET && _wsHandler != nullptr; }
+  unsigned long openedAt() { return _openedAt; }
+  // Close this connection to free its slot for a new client. A websocket's handler is told
+  // first (onClose), so the application drops its reference before the handler is freed.
+  void evict();
 
 protected:
   friend class HTTPRequest;
@@ -61,6 +70,17 @@ protected:
 
   // Timestamp of the last transmission action
   unsigned long _lastTransmissionTS;
+
+  // When the connection was accepted (millis)
+  unsigned long _openedAt = 0;
+
+  // Requests completed on this connection (more than 0 means it is being kept alive)
+  unsigned int _requestsServed = 0;
+  // The current request line said HTTP/1.1 (persistent by default)
+  bool _httpVersion11 = false;
+  // Header lines / bytes received for the current request (limits memory a client can make us use)
+  unsigned int _headerCount = 0;
+  size_t _headerBytes = 0;
 
   // Timestamp of when the shutdown was started
   unsigned long _shutdownTS;

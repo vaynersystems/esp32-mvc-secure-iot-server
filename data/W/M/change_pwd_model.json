@@ -6,8 +6,13 @@
         "Readonly": true,
         "Source": "username",
         "Validation": [
-            {"Type": "Required"},
-            {"Type": "MinLength", "Value": 5}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 5
+            }
         ]
     },
     {
@@ -17,7 +22,9 @@
         "Readonly": false,
         "Source": "oldPassword",
         "Validation": [
-            {"Type": "Required"}
+            {
+                "Type": "Required"
+            }
         ]
     },
     {
@@ -27,7 +34,17 @@
         "Readonly": false,
         "Source": "newPassword",
         "Validation": [
-            {"Type": "Required"}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 8
+            },
+            {
+                "Type": "MaxLength",
+                "Value": 64
+            }
         ]
     },
     {
@@ -37,7 +54,17 @@
         "Readonly": false,
         "Source": "confirmPassword",
         "Validation": [
-            {"Type": "Required"}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 8
+            },
+            {
+                "Type": "MaxLength",
+                "Value": 64
+            }
         ]
-    }    
+    }
 ]

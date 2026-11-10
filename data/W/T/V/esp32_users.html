@@ -48,6 +48,16 @@ const createUserViewModelPath = '/W/M/create_user_model.json';
 const editUserViewModelPath = '/W/M/edit_user_model.json';
 var request = new XMLHttpRequest();
 
+// The server refused a change: say why (these requests used to look like they succeeded).
+function showServerError(title, request){
+    const reason = request.statusText || ('The device answered with status ' + request.status);
+    showModal(title, '<p class="error">' + escapeHtml(reason) + '</p>');
+}
+
+function escapeHtml(text){
+    return String(text).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
 function loadUsers(configDataSting){
 
     if(configDataSting == 'null' || configDataSting[0] == '$'){
@@ -67,16 +77,17 @@ function loadUsers(configDataSting){
         const userEntry = document.createElement('div');
         userEntry.innerHTML = userTemplateElement.innerHTML;
 
-        userEntry.querySelector('#user-name').innerHTML = user.username;
-        userEntry.querySelector('#user-role').innerHTML = user.role;
-        userEntry.querySelector('#user-created-on').innerHTML = user.created;
-        userEntry.querySelector('#user-enabled').innerHTML = user.enabled;
+        // textContent, not innerHTML: these values come from the user database.
+        userEntry.querySelector('#user-name').textContent = user.username;
+        userEntry.querySelector('#user-role').textContent = user.role;
+        userEntry.querySelector('#user-created-on').textContent = user.created;
+        userEntry.querySelector('#user-enabled').textContent = user.enabled;
         userEntry.setAttribute('username', user.username);
         userEntry.setAttribute('data', JSON.stringify(user));
         userEntry.className = "grid-5 grid-row";
 
         userEntry.querySelector('#user-delete').addEventListener('click', () => {
-            showModal('Confirm Delete User','Are you sure you want to delete user <b>' + userEntry.getAttribute('username') + '</b>?',
+            showModal('Confirm Delete User','Are you sure you want to delete user <b>' + escapeHtml(userEntry.getAttribute('username')) + '</b>?',
                 [
                     {text:'No', action: () => closeModal() }, 
                     {text: 'Yes', action: () => {deleteUser(userEntry.getAttribute('username'));closeModal();} }
@@ -111,7 +122,7 @@ function showChangePassword(username){
 
     // usernameElement.innerHTML = username;
 
-    openModal('Change ' + username + '\'s password', changePasswordViewModelPath, {'username': username}, null, null, null, changePassword);
+    openModal('Change ' + escapeHtml(username) + '\'s password', changePasswordViewModelPath, {'username': username}, null, null, null, changePassword);
 
     // showModalComponent(userChangePasswordElement,'Change Password', 
     //     [
@@ -170,8 +181,8 @@ function changePassword(viewModel){
         if (request.readyState == request.DONE) {
 
             hideLoading();
-            if (request.status == 401) {
-                showModal('Error changing password','<p class="error">' + request.statusText + '</p>',)
+            if (request.status != 200) {
+                showServerError('Error changing password', request);
                 return;
             }
             var response = request.responseText;
@@ -188,7 +199,7 @@ function changePassword(viewModel){
 
 }
 function showEditUser(user){   
-        openModal('Edit ' + user.name, editUserViewModelPath, user, null, UpdateUser);     
+        openModal('Edit ' + escapeHtml(user.username), editUserViewModelPath, user, null, UpdateUser);     
         // const userEditorElementSource = document.getElementById('user-editor');
         // if(userEditorElementSource === null) return;
         // const userEditorElement = document.createElement('div');
@@ -234,15 +245,13 @@ function UpdateUser(userModel){
         if (request.readyState == request.DONE) {
 
             hideLoading();
-            if (request.status == 401) {
-                
-                return false;
-            }
             var response = request.responseText;
             if(request.status == 200){
                 _load();
                 return true;
             }
+            showServerError('Could not save user', request);
+            return false;
                             
         }
     }
@@ -296,15 +305,13 @@ function CreateUser(userViewModel){
         if (request.readyState == request.DONE) {
 
             hideLoading();
-            if (request.status == 401) {
-                
-                return false;
-            }
             var response = request.responseText;
             if(request.status == 200){
                 _load();
                 return true;
             }
+            showServerError('Could not save user', request);
+            return false;
                             
         }
     }

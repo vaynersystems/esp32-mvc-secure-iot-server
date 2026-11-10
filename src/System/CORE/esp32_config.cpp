@@ -12,15 +12,21 @@
     bool esp32_config::getConfigSection(const char* sectionName, JsonDocument* loadObject){
         auto drive = filesystem.getDisk(SYSTEM_DRIVE);
         File f = drive->open(PATH_SYSTEM_CONFIG,"r");
-        StaticJsonDocument<2048> configDoc;
+        // Sized from the file: a fixed 2 KB buffer silently failed once the saved config grew,
+        // and every section then read as empty (Wi-Fi fell back to access-point mode).
+        DynamicJsonDocument configDoc(f.size() * 3 + 1024);
         auto error = deserializeJson(configDoc, f);
         f.close();
         if(error.code()  == DeserializationError::Ok){
             //serializeJson(configDoc,Serial);
             loadObject->set(configDoc[sectionName].as<JsonVariant>());   
-            return true;
+            if(loadObject->overflowed())
+                Serial.printf("[config] section '%s' is larger than its %u-byte buffer; some settings were dropped\n",
+                    sectionName, (unsigned)loadObject->capacity());
+            return !loadObject->overflowed();
         }
-        loadObject->set(configDoc.as<JsonVariant>());
+        Serial.printf("[config] could not read %s: %s\n", PATH_SYSTEM_CONFIG, error.c_str());
+        loadObject->clear();
         return false;
     }
     

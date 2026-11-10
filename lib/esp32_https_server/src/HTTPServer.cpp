@@ -126,6 +126,45 @@ void HTTPServer::loop() {
     }
   }
  
+  // Step 1b: All slots taken while a client is waiting to connect: close the kept-alive
+  // connection that has been idle longest, so it can take the slot on the next pass.
+  if (freeConnectionIdx == -1) {
+    fd_set pendingfds;
+    FD_ZERO(&pendingfds);
+    FD_SET(_socket, &pendingfds);
+    timeval noWait;
+    noWait.tv_sec = 0;
+    noWait.tv_usec = 0;
+    select(_socket + 1, &pendingfds, NULL, NULL, &noWait);
+    if (FD_ISSET(_socket, &pendingfds)) {
+      int oldest = -1;
+      for (int i = 0; i < _maxConnections; i++) {
+        if (_connections[i] != NULL && _connections[i]->isIdleKeepAlive() &&
+            (oldest < 0 || _connections[i]->lastTransmission() < _connections[oldest]->lastTransmission())) {
+          oldest = i;
+        }
+      }
+      if (oldest >= 0) {
+        HTTPS_LOGI("All connections busy; closing an idle kept-alive one for a new client");
+        _connections[oldest]->closeConnection();
+      } else {
+        // No idle connection: free the oldest websocket. Browsers keep these open for as
+        // long as a page with a live view exists (and the server never times them out),
+        // so a few open tabs could otherwise lock every new client out.
+        for (int i = 0; i < _maxConnections; i++) {
+          if (_connections[i] != NULL && _connections[i]->isWebsocket() &&
+              (oldest < 0 || _connections[i]->openedAt() < _connections[oldest]->openedAt())) {
+            oldest = i;
+          }
+        }
+        if (oldest >= 0) {
+          HTTPS_LOGW("All connections busy; closing the oldest websocket for a new client");
+          _connections[oldest]->evict();
+        }
+      }
+    }
+  }
+
   // Step 2: Check for new connections
   // This makes only sense if there is space to store the connection
   if (freeConnectionIdx > -1) {

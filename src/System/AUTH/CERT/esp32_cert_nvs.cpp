@@ -88,6 +88,13 @@ void esp32_cert_nvs::loadCertificates()
     }
 
     _cert = new SSLCert((unsigned char *)publicKey,(uint16_t) publicLength,(unsigned char *)privateKey,(uint16_t) privateLength);
+    // Move certificates this device generated with RSA to ECDSA (much faster TLS handshakes).
+    if(isSelfIssuedRsa(_cert)){
+        Serial.println("Replacing the self-signed RSA certificate with an ECDSA one");
+        delete _cert;
+        _cert = nullptr;
+        generateCert("esp32-dev","Fun company");
+    }
 }
 
 void esp32_cert_nvs::generateCert(const char* deviceName, const char* companyName, const char* validFrom, const char* validTo)

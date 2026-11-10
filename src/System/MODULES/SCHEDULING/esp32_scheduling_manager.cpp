@@ -1,5 +1,6 @@
 #include "esp32_scheduling_manager.hpp"
 #include "system_helper.h"
+#include "System/esp32_diag.h"
 unsigned long SCHEDULE_CHECK_INTERVAL = 1000;
 void esp32_scheduling_manager::onInit()
 {
@@ -25,6 +26,9 @@ void esp32_scheduling_manager::onLoop()
     if(_schedules.size() == 0) return;
     time_t now;
     now = getTime();
+    // Without a valid clock (no NTP, e.g. access-point mode) the day and time are 1970:
+    // running schedules then would switch devices on the wrong day and hour.
+    if(now == 0) return;
     struct tm tm = *localtime(&now);
     auto date = string_format("%02d/%02d/%d %02d:%02d:%02d", tm.tm_mon + 1, tm.tm_mday, tm.tm_year + 1900, tm.tm_hour, tm.tm_min, tm.tm_sec);
     if(_lastCheckedMillis + SCHEDULE_CHECK_INTERVAL > millis()) return;
@@ -38,7 +42,9 @@ void esp32_scheduling_manager::onLoop()
 
     for(int scheduleIdx = 0; scheduleIdx < _schedules.size(); scheduleIdx++){
         esp32_schedule scheduleEntry = _schedules[scheduleIdx];
+        DIAG_AT("schedule:is-active");
         bool sActive = isScheduleActive(scheduleEntry);
+        DIAG_AT("schedule:apply");
         if(!sActive) continue;
 
         //active schedule entry, for each device in entry, check device status and set accordingly        

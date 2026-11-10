@@ -3,7 +3,7 @@
     #login{
         display: flex;
         flex-direction: column;
-        background-color: #d9dcea2e;
+        background-color: var(--box-background);
         border-radius: 15px;
         margin: 20px auto;
         min-width: 200px;
@@ -22,7 +22,7 @@
         margin: 10px;
     }
     input[type="text"], textarea {
-        background-color : #e3dfe6; 
+        background-color: var(--input-background);
     }
     input[type="button"] {
         color: var(--primary-button-color);
@@ -46,6 +46,11 @@
         <div class="detail">Password</div>
         <input type='password' name='password' id='password'></input>
     </div>
+    <div class="row" id="setup-code-row" data-setup-required="$_SETUP_REQUIRED" style="display:none">
+        <div class="detail">Setup code</div>
+        <input type='text' name='setup-code' id='setup-code' autocomplete='off' autocapitalize='characters' spellcheck='false' maxlength='8'
+            placeholder="from the serial console" title="First login only: the code printed on the device's serial console"></input>
+    </div>
     <input id="login-button" type='button' value='Login' />
     <div class="error" id="error"></div>
 </div>
@@ -53,10 +58,13 @@
 <script src="/W/JS/auth.js"></script>
 <script type="text/javascript">
     window.onload = function(){
+        // A new device (no users yet) needs the setup code with the first login.
+        const setupRow = document.getElementById('setup-code-row');
+        if (setupRow && setupRow.dataset.setupRequired === 'true') setupRow.style.display = '';
         const loginButtonElement = document.getElementById('login-button');
         loginButtonElement.addEventListener('click', () =>{
             showLoading();
-            getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value);
+            getToken(tokenUrl,document.getElementById("user").value,document.getElementById("password").value,document.getElementById("setup-code").value);
         });
 
         document.addEventListener('keydown',(key) => { if(key.key == 'Enter') loginButtonElement.click()})

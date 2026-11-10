@@ -42,14 +42,27 @@ WebsocketInputStreambuf::~WebsocketInputStreambuf() {
  * longer need to continue, we can't just stop.  There are still 300 bytes in the socket stream that
  * need to be consumed/discarded before we can move on to the next record.
  */
-void WebsocketInputStreambuf::discard() {
-  uint8_t byte;
-  HTTPS_LOGD(">> WebsocketContext.discard(): %d bytes", _dataLength - _sizeRead);
+#ifndef HTTPS_WS_READ_TIMEOUT_MS
+#define HTTPS_WS_READ_TIMEOUT_MS 2000
+#endif
+
+bool WebsocketInputStreambuf::discard() {
+  // Counts only bytes actually read (it used to count one per call even when nothing arrived,
+  // which desynchronised the stream or spun for hours on a huge declared length).
+  uint8_t scratch[64];
+  unsigned long start = millis();
   while(_sizeRead < _dataLength) {
-    _con->readBuffer(&byte, 1);
-    _sizeRead++;
+    size_t want = _dataLength - _sizeRead;
+    if (want > sizeof(scratch)) want = sizeof(scratch);
+    size_t got = _con->readBuffer(scratch, want);
+    if (got == 0) {
+      if (millis() - start > HTTPS_WS_READ_TIMEOUT_MS) return false;
+      delay(2);
+      continue;
+    }
+    _sizeRead += got;
   }
-  HTTPS_LOGD("<< WebsocketContext.discard()");
+  return true;
 } // WebsocketInputStreambuf::discard
 
 
@@ -87,7 +100,14 @@ WebsocketInputStreambuf::int_type WebsocketInputStreambuf::underflow() {
   }
 
   HTTPS_LOGD("WebSocketInputRecordStreambuf - getting next buffer of data; size request: %d", sizeToRead);
+  // The payload can arrive in several TCP segments: wait briefly for the next one instead of
+  // ending the message early (which cut messages short and desynchronised the stream).
   int bytesRead = _con->readBuffer((uint8_t*)_buffer, sizeToRead);
+  unsigned long waitStart = millis();
+  while (bytesRead == 0 && millis() - waitStart < HTTPS_WS_READ_TIMEOUT_MS) {
+    delay(2);
+    bytesRead = _con->readBuffer((uint8_t*)_buffer, sizeToRead);
+  }
   if (bytesRead == 0) {
     HTTPS_LOGD("<< WebSocketInputRecordStreambuf.underflow(): Read 0 bytes");
     return EOF;

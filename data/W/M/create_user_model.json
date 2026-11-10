@@ -6,8 +6,13 @@
         "Readonly": false,
         "Source": "username",
         "Validation": [
-            {"Type": "Required"},
-            {"Type": "MinLength", "Value": 5}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 5
+            }
         ]
     },
     {
@@ -17,7 +22,17 @@
         "Readonly": false,
         "Source": "password",
         "Validation": [
-            {"Type": "Required"}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 8
+            },
+            {
+                "Type": "MaxLength",
+                "Value": 64
+            }
         ]
     },
     {
@@ -27,13 +42,32 @@
         "Readonly": false,
         "Source": "confirm",
         "Validation": [
-            {"Type": "Required"}
+            {
+                "Type": "Required"
+            },
+            {
+                "Type": "MinLength",
+                "Value": 8
+            },
+            {
+                "Type": "MaxLength",
+                "Value": 64
+            }
         ]
     },
     {
         "Name": "Role",
         "Type": "Lookup",
-        "Data": [{"name":"Administrator", "value": "ADMIN"}, {"name":"User", "value": "USER"}],
+        "Data": [
+            {
+                "name": "Administrator",
+                "value": "ADMIN"
+            },
+            {
+                "name": "User",
+                "value": "USER"
+            }
+        ],
         "Readonly": false,
         "Source": "role",
         "Value": "USER"
@@ -42,6 +76,7 @@
         "Name": "Enabled",
         "Type": "Boolean",
         "Readonly": false,
-        "Source": "enabled"
-    }   
+        "Source": "enabled",
+        "Value": true
+    }
 ]

@@ -33,6 +33,11 @@ function showWait(which){
 }
 
 function hideWait(which){
+    if(which === undefined || which === null || which === ''){
+        // The page-wide spinner created by showWait() with no argument: remove it.
+        document.querySelectorAll('#page-wait').forEach(el => el.parentElement?.removeChild(el));
+        return;
+    }
     const waitElement = document.getElementById(which + '-wait');
     if(waitElement !== undefined && waitElement !== null ) waitElement.style.display = 'none'; //hide wait indicator
 }

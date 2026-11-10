@@ -81,80 +81,79 @@ void WebsocketHandler::loop() {
   }
 }
 
+#ifndef HTTPS_WS_MAX_PAYLOAD
+#define HTTPS_WS_MAX_PAYLOAD 4096
+#endif
+
 int WebsocketHandler::read() {
-  WebsocketFrame frame;
-  int length = _con->readBuffer((uint8_t*)&frame, sizeof(frame));
-  HTTPS_LOGD("Websocket: Read %d bytes", length);
-  if(length == 0) 
-    return 0;
-  else if (length != sizeof(frame)) {
-    HTTPS_LOGE("Websocket read error");
-    //_con->closeConnection();
+  // 1. Gather the complete frame header (it may arrive in pieces).
+  if (_headerLength < 2) {
+    int got = _con->readBuffer(_header + _headerLength, 2 - _headerLength);
+    if (got <= 0) return 0;
+    _headerLength += got;
+    if (_headerLength < 2) return 0;
+  }
+  uint8_t opCode = _header[0] & 0x0F;
+  bool masked = (_header[1] & 0x80) != 0;
+  uint8_t len7 = _header[1] & 0x7F;
+  uint8_t needed = 2 + (len7 == 126 ? 2 : len7 == 127 ? 8 : 0) + (masked ? 4 : 0);
+  if (_headerLength < needed) {
+    int got = _con->readBuffer(_header + _headerLength, needed - _headerLength);
+    if (got > 0) _headerLength += got;
+    if (_headerLength < needed) return 0; // rest arrives later
+  }
+  _headerLength = 0; // header complete; the next call starts a new frame
+
+  // 2. Payload length, big-endian; reject anything larger than the application handles.
+  uint64_t payloadLen64 = len7;
+  uint8_t pos = 2;
+  if (len7 == 126) {
+    payloadLen64 = ((uint64_t)_header[2] << 8) | _header[3];
+    pos = 4;
+  } else if (len7 == 127) {
+    payloadLen64 = 0;
+    for (int i = 0; i < 8; i++) payloadLen64 = (payloadLen64 << 8) | _header[2 + i];
+    pos = 10;
+  }
+  uint8_t mask[4] = {0, 0, 0, 0};
+  if (masked) memcpy(mask, _header + pos, 4);
+  if (payloadLen64 > HTTPS_WS_MAX_PAYLOAD) {
+    HTTPS_LOGW("WS payload of %u bytes exceeds the %d byte limit, closing", (unsigned)payloadLen64, HTTPS_WS_MAX_PAYLOAD);
+    close(CLOSE_TOO_BIG, "");
     return -1;
   }
-  dumpFrame(frame);
-
-  // The following section parses the WebSocket frame.
-  uint32_t payloadLen = 0;
-  uint8_t  mask[4];
-  if (frame.len < 126) {
-    payloadLen = frame.len;
-  } else if (frame.len == 126) {
-    uint16_t tempLen;
-    _con->readBuffer((uint8_t*)&tempLen, sizeof(tempLen));
-    payloadLen = ntohs(tempLen);
-  } else if (frame.len == 127) {
-    uint64_t tempLen;
-    _con->readBuffer((uint8_t*)&tempLen, sizeof(tempLen));
-    payloadLen = ntohl((uint32_t)tempLen);
-  }
-  if (frame.mask == 1) {
-    _con->readBuffer(mask, sizeof(mask));
+  size_t payloadLen = (size_t)payloadLen64;
+  if (opCode >= 0x08 && payloadLen > 125) { // control frames are limited to 125 bytes
+    close(CLOSE_PROTOCOL_ERROR, "");
+    return -1;
   }
 
-  if (payloadLen == 0) {
-    HTTPS_LOGW("WS payload not present");
-  } else {
-    HTTPS_LOGI("WS payload: length=%d", payloadLen);
-  }
-
-  switch(frame.opCode) {
+  // 3. Handle the frame. Every branch consumes the payload so the stream stays aligned.
+  WebsocketInputStreambuf streambuf(_con, payloadLen, masked ? mask : nullptr);
+  switch(opCode) {
     case OPCODE_TEXT:
-    case OPCODE_BINARY: {
-      HTTPS_LOGD("Creating Streambuf");
-      WebsocketInputStreambuf streambuf(_con, payloadLen, frame.mask==1?mask:nullptr);
-      HTTPS_LOGD("Calling onMessage");
+    case OPCODE_BINARY:
       onMessage(&streambuf);
-      HTTPS_LOGD("Discarding Streambuf");
-      streambuf.discard();
       break;
-    }
-
-    case OPCODE_CLOSE: {  // If the WebSocket operation code is close then we are closing the connection.
+    case OPCODE_CLOSE:
+      streambuf.discard();
       _receivedClose = true;
       onClose();
-      //close(); // Close the websocket.
       return -1;
+    case OPCODE_CONTINUE: // fragmented messages are not supported: skip the fragment
+    case OPCODE_PING:     // (no pong is sent; browsers do not require one)
+    case OPCODE_PONG:
       break;
-    }
-
-    case OPCODE_CONTINUE: {
-      break;
-    }
-
-    case OPCODE_PING: {
-      break;
-    }
-
-    case OPCODE_PONG: {
-      break;
-    }
-
-    default: {
-        HTTPS_LOGW("WebSocketReader: Unknown opcode: %d", frame.opCode);
-      break;
-    }
-  } // Switch opCode
+    default:
+      HTTPS_LOGW("WebSocketReader: Unknown opcode: %d", opCode);
+      close(CLOSE_PROTOCOL_ERROR, "");
+      return -1;
+  }
+  if (!streambuf.discard()) {
+    // The payload did not arrive in time: the frame stream can no longer be trusted.
+    close(CLOSE_PROTOCOL_ERROR, "");
+    return -1;
+  }
   return 0;
 }  // Websocket::read
 

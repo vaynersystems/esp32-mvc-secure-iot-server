@@ -21,6 +21,17 @@
 using namespace std;
 //Class to interact with SPIFFS/LITTLEFS/SD attached to MCU
 //TODO: abstract away from SPIFFS
+/// @brief Where a request path resolved on disk: enough to stream it without looking it up again.
+struct esp32_served_file {
+    int drive = 0;
+    std::string path;        // fully qualified path, e.g. /spiffs/W/CSS/style.css(.gz)
+    bool gz = false;
+    std::string name;
+    std::string extension;
+    bool download = false;
+    bool editorRequest = false;
+};
+
 class esp32_fileio
 {
 public:
@@ -64,6 +75,10 @@ public:
     }
     static void writeFileToResponse(const char * filename, httpsserver::HTTPResponse * response);
     static void writeFileToResponse(esp32_route_file_info<esp32_file_info_extended> routeInfo, httpsserver::HTTPResponse *response);
+    // Streams an already-resolved file (no filesystem lookups beyond the open itself).
+    // Returns false if the file could not be opened.
+    static bool writeFileToResponse(const esp32_served_file& file, httpsserver::HTTPResponse *response);
+    static esp32_served_file toServedFile(esp32_route_file_info<esp32_file_info_extended>& routeInfo);
 protected:
     static bool isQualifiedPath(const char * path);
 

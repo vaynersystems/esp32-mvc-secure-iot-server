@@ -1,6 +1,7 @@
 //Notes:   This isa hacky approach because I couldn't get generic list of devices that supports different types of storage for reads and writes.
 //         someone with a stronger c/c++ background can likely resolve this with little effort.
 #include "esp32_devices.hpp"
+#include "System/esp32_diag.h"
 #include <esp32-hal-gpio.h>
 #include "../SCHEDULING/esp32_scheduling_manager.hpp"
 
@@ -99,6 +100,7 @@ void esp32_devices::onLoop()
         bool timeToPublish = mqtt.enabled() && _devices[idx].mqttPublish && millis() - _devices[idx].lastPublishTime > _devices[idx].mqttFrequency * 60000 ;
         
         deviceSeriesEntry["id"] = _devices[idx].id;
+        DIAG_AT("devices:read-state");
         getDeviceState( _devices[idx].id, deviceSeriesEntry);        
 
         switch(type){
@@ -107,6 +109,7 @@ void esp32_devices::onLoop()
             case esp32_device_type::Thermometer:
             {
                 if(timeToPublish && !deviceSeriesEntry["value"].isNull()){
+                    DIAG_AT("devices:mqtt-publish");
                     mqtt.publish(_devices[idx].mqttTopic.c_str(),deviceSeriesEntry["value"].as<string>().c_str());
                     _devices[idx].lastPublishTime = millis();
                 }
@@ -116,6 +119,7 @@ void esp32_devices::onLoop()
     }
 
     if(millis() - _lastSnapshotStoreTime > _snapshotFrequency){
+        DIAG_AT("devices:log-snapshot");
         logger.logSnapshot(seriesEntry);
         _lastSnapshotStoreTime = millis();
     }
@@ -123,6 +127,7 @@ void esp32_devices::onLoop()
     _snapshot.set(seriesEntry);
     
     
+    DIAG_AT("devices:write-outputs");
     /* Write output states */
     for (int idx = 0; idx < _devices.size(); idx++){    
         auto device = _devices[idx]; 

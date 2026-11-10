@@ -52,6 +52,10 @@ public:
     static void handle401(HTTPRequest* req, HTTPResponse* res);
 
 	static void handleFile(HTTPRequest* req, HTTPResponse* res);
+	// Forget where request paths resolved on disk (call after files change).
+	static void clearFileCache();
+	static bool driveParamValid(const std::string& requestPath);
+	static bool mayReadFile(const std::string& fullyQualifiedPath, bool isAdmin);
     #if ENABLE_EDITOR
     static void handleEditor(HTTPRequest* req, HTTPResponse* res);
 	#endif
